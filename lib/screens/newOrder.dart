@@ -25,6 +25,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   String? orderType;
   String? bookType;
   String? productType;
+  int seriesDisc=0;
   String ?shippingError;
 
 String? productGroup;
@@ -336,15 +337,31 @@ print(response['data']);
       if (response != null) {
 
         setState(() {
-          series=response['series_list'];
+          print(widget.party['series']);
+          if(widget.party['series']!=null) {
+          List <dynamic> a=jsonDecode(widget.party["series"]);
+
+            List<dynamic> b = response['series_list']
+                .where((ee) {
+              var seriesId = ee['seriesTableId'];
+              print("Checking seriesTableId: $seriesId");
+              return a.contains(
+                  seriesId); // Ensure `a` is a List and contains correct types
+            })
+                .toList();
+
+            series = b;
+          }else{
+            series=response['series_list'];
+          }
 
           classes=response['class_list'];
           mediums=response['medium_list'];
           groups=response['productGroup_list'];
           partyType=response['partyType_list'];
-          shippingAddressController.text=widget.party['AddressLine1'];
-          emailController.text=widget.party['email'];
-          phoneNumberController.text=widget.party['makerContact'];
+          shippingAddressController.text=widget.party['AddressLine1']??"";
+          emailController.text=widget.party['email']??"";
+          phoneNumberController.text=widget.party['makerContact']??"";
         });
 
 
@@ -353,7 +370,7 @@ print(response['data']);
         throw Exception('Failed to load orders');
       }
     } catch (error) {
-      print("Error fetching orders: $error");
+      print("Error fetcffdfdhing orders: $error");
     }
   }
   @override
@@ -468,12 +485,18 @@ print(response['data']);
                         .where((ele) => ele['seriesCategory'] == value)
                         .map((ele) => ele['classId'] as String)
                         .toList();
+                    var disc=series.where((element) => element['seriesTableId']==value).toList();
+
 
                     setState((){
+                      selectedClass=null;
                       filteredClass = classes
                           .where((ele) => pro.contains(ele['classId']))
                           .toList();
-                      selectedSeries = value;filterProductsBySeries(value);
+                      filteredProducts=[];
+                      selectedSeries = value;
+                      seriesDisc= disc!.length==0?0:disc[0]['maxDiscount'];
+                      filterProductsBySeries(value);
                     });
                   }),
                   SizedBox(height: 5),
@@ -524,6 +547,7 @@ print(response['data']);
                       "data": bookType=="Choose from Set"?[...setItems]:[...productItems],
                       "quantity": setQuantity,
                       "group": productGroup,
+                      "discount":seriesDisc,
                       "orderType":productItems[0]['type']=='set'?'Choose from Set':'Choose from Individual Book'
                     });
 
@@ -739,17 +763,6 @@ print(response['data']);
     );
   }
 
-  Widget _buildTextArea(String label, TextEditingController controller,String err,int maxli) {
-    return TextField(
-      controller: controller,
-      maxLines: maxli,
-      decoration: InputDecoration(
-        labelText: label,
-        border: const OutlineInputBorder(),
-        errorText: err==""?null:err
-      ),
-    );
-  }
 
   void _submitForm() async {
     print(widget.party['ownerId']);
@@ -759,9 +772,7 @@ print(response['data']);
     if(userString!=null){
       userData=jsonDecode(userString);
     }
-    print(userData['role']);
-    print(userData['id']);
-    print("====");
+
     if (orderType == null ) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -804,6 +815,7 @@ print(response['data']);
 
 
     try {
+
 
       Navigator.push(
         context,

@@ -33,6 +33,7 @@ class _CartScreenState extends State<CartScreen> {
 
 
   Future<void> order() async {
+    
     if (seriedDiscount.keys.toList().length==0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -99,6 +100,7 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
 
   void setData() {
     cartItems.clear();
+    var disc={};
     for (var order in widget.orders) {
 
       int quantity = int.parse(order['quantity'].toString()) ?? 1;
@@ -106,8 +108,9 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
       List<dynamic> items = order['data'];
 
       for (var item in items) {
-
+        disc[item['seriesCategory']]=order["discount"];
         cartItems.add(CartItem(
+
           name: group=="6HPipXSLx5"?item['product_name']:item['nameSku'] ,
           productGroup: group,
           price:( item['unitPrice'] != null ? double.tryParse(item['unitPrice'].toString()):double.tryParse(item['landing_cost'].toString())) ?? 0.0,
@@ -115,13 +118,15 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
           series:item['seriesCategory']??"",
           itemId: item['skuId'] ?? item['id'],
           total:item['unitPrice'] != null ? double.tryParse(item['unitPrice'].toString())!*quantity ?? 0.0 : 0.0,
-          discount:0,
+          discount:order['discount'],
           itemType:order['orderType']
         ));
       }
     }
     print(cartItems);
-    setState(() {});
+    setState(() {
+      seriedDiscount=disc;
+    });
   }
 
   @override

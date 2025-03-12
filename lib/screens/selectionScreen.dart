@@ -25,6 +25,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   String? _selectedWarehouse;
   String? _selectedRemark;
   String? orderRemark;
+  bool isLoading=false;
   List<dynamic> remarks=[];
 
   List<dynamic> attach=[];
@@ -223,7 +224,38 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             }
 
         }
-          distributors=data;
+          var obj=widget.payload['seriesDiscount'];
+          var keys = obj.keys.toList();
+          print(data.length);
+          print("keys");
+          int count=0;
+          final temp=[];
+
+          for(var i=0;i<data.length;i++){
+
+           if(data[i]['series']!=null){
+
+             List<dynamic> ser=jsonDecode(data[i]['series']);
+             bool flag=false;
+             for(var j=0;j<keys.length;j++){
+               print(ser);
+               print("9999");
+               if(ser.contains(keys[j])){
+
+               }else{
+                 flag=true;
+               }
+             }
+                if(!flag){
+                temp.add(data[i]);
+                }
+           }else{
+             temp.add(data[i]);
+           }
+          }
+
+
+distributors=temp;
         });
         }
       else {
@@ -273,7 +305,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       );
       return;
     }
-print(_selectedConsentPerson);
+
     if(_selectedConsentPerson.toLowerCase()=='stockist address'&& attach.length==0){
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -289,6 +321,9 @@ print(_selectedConsentPerson);
   }
 
   Future<void> proceed(flag) async {
+    setState(() {
+      isLoading=true;
+    });
     final prefs = await SharedPreferences.getInstance();
     final t=await prefs.getString('user');
     var id="";
@@ -307,6 +342,9 @@ print(_selectedConsentPerson);
         body: body,
       );
       if (response != null && response['status'] == false) {
+        setState(() {
+          isLoading=false;
+        });
         _showOtpDialog(flag);
       }else{
         _showErrorMessage("Failed to send OTP. Please try again.");
@@ -357,7 +395,35 @@ print(_selectedConsentPerson);
     }
   }
 
+  consentDone(id) async{
 
+    setState(() {
+      isLoading=true;
+    });
+    var body={};
+
+    body['OrderId']=id;
+
+    try {
+      print(body);
+      final response = await ApiService.post(
+        endpoint: '/order/updateApprovalAndSendMailWithPdf',
+        body: body,
+      );
+
+      if (response != null) {
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => OrdersScreen()),
+        );
+      } else {
+        throw Exception('Failed to load orders');
+      }
+    } catch (error) {
+      print("Error fetchidddddng orders: $error");
+    }
+  }
   Future<void> order(flag) async {
     var body = widget.payload;
     body['stockistId']=_selectedStockist;
@@ -380,12 +446,17 @@ print(_selectedConsentPerson);
       );
 
       if (response != null && response['status'] == false) {
+if(flag) {
+  Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => OrdersScreen()),
+  );
+}
+  else{
+    consentDone(response["data1"]);
+}
 
-        _showSuccessMessage("Order placed successfully!");
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) =>OrdersScreen()), // Route to HomePage
-        );
+
       } else {
         throw Exception('Failed to create order');
       }
@@ -467,7 +538,7 @@ print(_selectedConsentPerson);
         backgroundColor: Colors.indigo,
         title: Text('Create Order',style: TextStyle(color: Colors.white),),
       ),
-      body: uploadFileScreen?FileUploadScreen(saveFiles: saveFiles,): Padding(
+      body: isLoading?Center(child: CircularProgressIndicator(),):uploadFileScreen?FileUploadScreen(saveFiles: saveFiles,): Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(

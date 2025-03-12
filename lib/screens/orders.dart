@@ -35,144 +35,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
   bool isLoading=false;
 
 
-  _fetChAllRSM() async{
-    try {
-      setState(() {
-        isLoading=true;
-      });
-      final response = await ApiService.post(
-          endpoint:'/user/getUsers'
-          ,
-          body : { "role":'rsm' }
-      );
 
-      if (response != null) {
-        final data = response['data'];
-        setState(() {
-          rsmList=data;
-          selectedRsm=data[0]['id'];
-          isLoading=false;
-          _fetchAsm(data[0]['id']);
-        });
-      } else {
-        throw Exception('Failed to load orders');
-      }
-    } catch (error) {
-      print("Error fetching ojbjbjbjjrders: $error");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-  _fetchAsm(id) async{
-    try {
-      setState(() {
-        isLoading=true;
-      });
-      final response = await ApiService.post(
-        endpoint:'/user/getUserListBasedOnId'
-        ,
-        body: {"userId":id},
-      );
-
-      if (response != null) {
-        final data = response['data'];
-        setState(() {
-          asmList=data;
-          selectedASM=data[0]['id'];
-          isLoading=false;
-          _fetchSe(data[0]['id']);
-        });
-      } else {
-        throw Exception('Failed to load orders');
-      }
-    } catch (error) {
-      print("Error fetching ojbjbjbjjrders: $error");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-  _fetchRsm() async{
-    try {
-      setState(() {
-        isLoading=true;
-      });
-      final response = await ApiService.post(
-        endpoint:'/user/getUserListBasedOnId'
-        ,
-        body: {"userId":userData['id']},
-      );
-
-      if (response != null) {
-        final data = response['data'];
-        setState(() {
-          rsmList=data;
-          selectedRsm=data[0]['id'];
-          isLoading=false;
-          _fetchAsm(data[0]['id']);
-        });
-      } else {
-        throw Exception('Failed to load orders');
-      }
-    } catch (error) {
-      print("Error fetching ojbjbjbjjrders: $error");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-  _fetchSe(id) async{
-    try {
-      final response = await ApiService.post(
-        endpoint:'/user/getUserListBasedOnId'
-        ,
-        body: {"userId":id},
-      );
-
-      if (response != null) {
-        final data = response['data'];
-        setState(() {
-
-          seList=data;
-          selectedSE=data[0]['id'];
-          _fetchOrders(currentPage,selectedFilter);
-        });
-      } else {
-        throw Exception('Failed to load orders');
-      }
-    } catch (error) {
-      print("Error fetching orders: $error");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-  getUserData() async{
-    final prefs = await SharedPreferences.getInstance();
-    final a = prefs.getString('user') ;
-    if(a!.isNotEmpty) {
-      setState(() {
-        userData = jsonDecode(a??"");
-        if(userData['role']=='se') {
-          _fetchOrders(currentPage,selectedFilter);
-        }else if(userData['role']=='rsm'){
-          _fetchAsm(userData['id']);
-        }else if(userData['role']=='zsm'){
-          _fetchRsm();
-        }else if(userData['role']=='asm'){
-          _fetchSe(userData['id']);
-        }
-        else{
-          _fetChAllRSM();
-        }
-      });
-    }
-  }
 
   void _updatePageSize(String newSize) {
     setState(() {
@@ -189,12 +52,154 @@ setState(() {
   _fetchOrders(1,status);
   }
 
+  List<dynamic> allUsers=[];
+
+
+  _fetChAllRSM() async{
+    try {
+      setState(() {
+        isLoading=true;
+      });
+      final response = await ApiService.post(
+          endpoint:'/user/getUsers'
+          ,
+          body : {  }
+      );
+
+      if (response != null) {
+        final data = response['data'];
+        setState(() {
+          rsmList=data.where((e)=>e['role']=='rsm').toList();
+          asmList=data.where((e)=>e['role']=='asm').toList();
+          seList=data.where((e)=>e['role']=='se').toList();
+          allUsers=data;
+
+
+          _fetchOrders(currentPage,selectedFilter);
+
+        });
+      } else {
+        throw Exception('Failed to load orders');
+      }
+    } catch (error) {
+      print("Error fetching ojbjbjbjjrders: $error");
+    } finally {
+
+    }
+  }
+
+  _fetchAsm(id) async{
+    setState(() {
+      isLoading=true;
+    });
+    _fetchOrders(currentPage,selectedFilter);
+    try {
+
+      if(id!="") {
+        final response = await ApiService.post(
+          endpoint: '/user/getUserListBasedOnId'
+          ,
+          body: {"userId": id},
+        );
+
+        if (response != null) {
+          final data = response['data'];
+          setState(() {
+            asmList = data;
+            selectedSE="";
+            selectedASM="";
+
+            seList=response['data1'];
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      }else{
+        setState(() {
+          selectedASM="";
+          selectedSE = "";
+          asmList=allUsers.where((e)=>e['role']=='asm').toList();
+          seList=allUsers.where((e)=>e['role']=='se').toList();
+
+        });
+      }
+    } catch (error) {
+      print("Error fetching ojbjbjbjjrders: $error");
+    } finally {
+
+    }
+  }
+  _fetchSe(id) async{
+    _fetchOrders(currentPage,selectedFilter);
+    try {
+      setState(() {
+        isLoading=true;
+      });
+      if(id!="") {
+        final response = await ApiService.post(
+          endpoint: '/user/getUserListBasedOnId'
+          ,
+          body: {"userId": id},
+        );
+
+        if (response != null) {
+          final data = response['data'];
+          setState(() {
+selectedSE="";
+              seList=data;
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      }else{
+        setState(() {
+          selectedSE = "";
+          seList=allUsers.where((e)=>e['role']=='se').toList();
+          isLoading = false;
+        });
+      }
+    } catch (error) {
+      print("Error fetching orders: $error");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+  getUserData() async{
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user') ;
+    if(a!.isNotEmpty) {
+      setState(() {
+
+        userData = jsonDecode(a??"");
+
+        if(userData['role']=='se') {
+          selectedSE=userData['id'];
+          _fetchOrders(currentPage,selectedFilter);
+        }else if(userData['role']=='rsm'){
+          selectedRsm=userData['id'];
+          _fetchAsm(userData['id']);
+        }
+        else if(userData['role']=='asm'){
+          selectedASM=userData['id'];
+          _fetchSe(userData['id']);
+        }
+        else{
+          _fetChAllRSM();
+        }
+      });
+    }
+  }
   @override
   void initState() {
     super.initState();
-    _initializeDates();
     getUserData();
+
   }
+
   @override
   void dispose() {
     _scrollController.dispose(); // Dispose the scroll controller
@@ -292,6 +297,9 @@ setState(() {
     final body = {
       "pageNumber":pageN,
       "approvalStatus":status,
+      "recordPerPage":pageSize,
+      "rsm":selectedRsm,
+      "asm":selectedASM,
       "ownerId":userData['role']=="se"?userData['id']:selectedSE
     };
 
@@ -431,93 +439,113 @@ print(response);
 
                 ],),
               SizedBox(height: 15,),
-              userData['role'] != 'se'
-                  ? Column(
+              userData['role']!='se'? Row(
                 children: [
-                  Row(
-                    children: [
-                      SizedBox(width: 5),
-                      if (userData['role']!.contains('admin') || userData['role'] == 'zsm')
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedRsm,
-                            decoration: InputDecoration(
-                              labelText: 'Select RSM',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            ),
-                            style: TextStyle(fontSize: 14),
-                            dropdownColor: Colors.white,
-                            items: rsmList.map((rsm) {
-                              return DropdownMenuItem<String>(
-                                value: rsm['id'].toString(),
-                                child: Text(rsm['name'], style: TextStyle(fontSize: 14,color: Colors.black)),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              _fetchAsm(value);
-                            },
-                          ),
-                        ),
-                      SizedBox(width: 5),
-                      if (userData['role'] == 'rsm' || userData['role'].contains('admin') || userData['role'] == 'zsm')
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedASM,
-                            decoration: InputDecoration(
-                              labelText: 'Select ASM',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            ),
-                            style: TextStyle(fontSize: 14),
-                            dropdownColor: Colors.white,
-                            items: asmList.map((rsm) {
-                              return DropdownMenuItem<String>(
-                                value: rsm['id'].toString(),
-                                child: Text(rsm['name'], style: TextStyle(fontSize: 14,color: Colors.black)),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              _fetchSe(value);
-                            },
-                          ),
-                        ),
-                      SizedBox(width: 5),
-                    ],
-                  ),
-                  SizedBox(height: 10),
-                  Row(
-                    children: [
-                      SizedBox(width: 5),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: selectedSE,
-                          decoration: InputDecoration(
-                            labelText: 'Select RM',
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                          ),
-                          style: TextStyle(fontSize: 14),
-                          dropdownColor: Colors.white,
-                          items: seList.map((rsm) {
-                            return DropdownMenuItem<String>(
-                              value: rsm['id'].toString(),
-                              child: Text(rsm['name'], style: TextStyle(fontSize: 14,color: Colors.black)),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            selectedSE = value ?? "";
-                            _fetchOrders(currentPage, selectedFilter);
-                          },
-                        ),
+                  SizedBox(width: 5,),
+                  userData['role'].contains('admin')||userData['role']=='zsm'?Expanded(
+                    child:DropdownButtonFormField<String>(
+                      value: selectedRsm,
+                      decoration: InputDecoration(
+                        labelText: 'Select RSM',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       ),
-                      SizedBox(width: 5),
-                    ],
-                  ),
-                ],
-              )
-                  : Container(),
+                      style: TextStyle(fontSize: 14),
+                      dropdownColor: Colors.white,
+                      items: [
+                        DropdownMenuItem<String>(
+                          value: '', // Blank value for "All"
+                          child: Text('All', style: TextStyle(fontSize: 14, color: Colors.black)),
+                        ),
+                        ...rsmList.map((rsm) {
+                          return DropdownMenuItem<String>(
+                            value: rsm['id'].toString(),
+                            child: Text(rsm['name'], style: TextStyle(fontSize: 14, color: Colors.black)),
+                          );
+                        }).toList(),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          selectedRsm=value??"";
+                        });
+                        _fetchAsm(value);
+                      },
+                    )
+                    ,
+                  ):SizedBox(height:0),
+                  SizedBox(width: 5,),
+                  userData['role']=='rsm'||userData['role'].contains('admin')||userData['role']=='zsm'?Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: selectedASM,
+                      decoration: InputDecoration(
+                        labelText: 'Select ASM',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      style: TextStyle(fontSize: 14),
+                      dropdownColor: Colors.white,
+                      items: [
+                        DropdownMenuItem<String>(
+                          value: '', // Blank value for "All"
+                          child: Text('All', style: TextStyle(fontSize: 14, color: Colors.black)),
+                        ),
+                        ...asmList.map((rsm) {
+                          return DropdownMenuItem<String>(
+                            value: rsm['id'].toString(),
+                            child: Text(rsm['name'], style: TextStyle(fontSize: 14, color: Colors.black)),
+                          );
+                        }).toList(),
+                      ],
+                      onChanged: (value){
+                        setState(() {
+                          selectedASM=value??"";
+                        });
+                        _fetchSe(value);
+                      },
+                    ),
+                  ):SizedBox(height:0),
+                  SizedBox(width: 5,),
 
+                  SizedBox(width: 5,),
+                ],
+              ):Container(),
+              SizedBox(height: 8,),
+              userData['role']!='se'? Row(
+                children: [
+                  SizedBox(width: 5,),
+
+                  SizedBox(width: 5,),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: selectedSE,
+                      decoration: InputDecoration(
+                        labelText: 'Select RM',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      style: TextStyle(fontSize: 14),
+                      dropdownColor: Colors.white,
+                      items: [
+                        DropdownMenuItem<String>(
+                          value: '', // Blank value for "All"
+                          child: Text('All', style: TextStyle(fontSize: 14, color: Colors.black)),
+                        ),
+                        ...seList.map((rsm) {
+                          return DropdownMenuItem<String>(
+                            value: rsm['id'].toString(),
+                            child: Text(rsm['name'], style: TextStyle(fontSize: 14, color: Colors.black)),
+                          );
+                        }).toList(),
+                      ],
+                      onChanged: (value){
+                        selectedSE=value??"";
+                        _fetchOrders(currentPage,selectedFilter);
+                      },
+                    ),
+                  ),
+                  SizedBox(width: 5,),
+                ],
+              ):Container(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

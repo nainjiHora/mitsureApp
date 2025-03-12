@@ -30,6 +30,7 @@ class _PartyScreenState extends State<PartyScreen> {
   int currentPage = 1;
   int totalCount = 0;
   bool isLoading = false;
+  List<dynamic> allUsers=[];
 
 
   _fetChAllRSM() async{
@@ -40,16 +41,20 @@ class _PartyScreenState extends State<PartyScreen> {
       final response = await ApiService.post(
         endpoint:'/user/getUsers'
         ,
-           body : { "role":'rsm' }
+           body : {  }
       );
 
       if (response != null) {
         final data = response['data'];
         setState(() {
-          rsmList=data;
-          selectedRsm=data[0]['id'];
-          isLoading=false;
-          _fetchAsm(data[0]['id']);
+          rsmList=data.where((e)=>e['role']=='rsm').toList();
+          asmList=data.where((e)=>e['role']=='asm').toList();
+          seList=data.where((e)=>e['role']=='se').toList();
+          allUsers=data;
+
+
+          _fetchOrders(currentPage);
+
         });
       } else {
         throw Exception('Failed to load orders');
@@ -57,91 +62,79 @@ class _PartyScreenState extends State<PartyScreen> {
     } catch (error) {
       print("Error fetching ojbjbjbjjrders: $error");
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+
     }
   }
+
   _fetchAsm(id) async{
+    setState(() {
+      isLoading=true;
+    });
+    _fetchOrders(currentPage);
     try {
-      setState(() {
-        isLoading=true;
-      });
-      final response = await ApiService.post(
-        endpoint:'/user/getUserListBasedOnId'
-            ,
-        body: {"userId":id},
-      );
 
-      if (response != null) {
-        final data = response['data'];
+      if(id!="") {
+        final response = await ApiService.post(
+          endpoint: '/user/getUserListBasedOnId'
+          ,
+          body: {"userId": id},
+        );
+
+        if (response != null) {
+          final data = response['data'];
+          setState(() {
+            asmList = data;
+            selectedSE="";
+            seList=response['data1'];
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      }else{
         setState(() {
-          asmList=data;
-          selectedASM=data[0]['id'];
-          isLoading=false;
-          _fetchSe(data[0]['id']);
+          selectedASM="";
+          selectedSE = "";
+          asmList=allUsers.where((e)=>e['role']=='asm').toList();
+          seList=allUsers.where((e)=>e['role']=='se').toList();
+
         });
-      } else {
-        throw Exception('Failed to load orders');
       }
     } catch (error) {
       print("Error fetching ojbjbjbjjrders: $error");
     } finally {
-      setState(() {
-        isLoading = false;
-      });
-    }
-  }
-  _fetchRsm() async{
-    try {
-      setState(() {
-        isLoading=true;
-      });
-      final response = await ApiService.post(
-        endpoint:'/user/getUserListBasedOnId'
-        ,
-        body: {"userId":userData['id']},
-      );
 
-      if (response != null) {
-        final data = response['data'];
-        setState(() {
-          rsmList=data;
-          selectedRsm=data[0]['id'];
-          isLoading=false;
-          _fetchAsm(data[0]['id']);
-        });
-      } else {
-        throw Exception('Failed to load orders');
-      }
-    } catch (error) {
-      print("Error fetching ojbjbjbjjrders: $error");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
     }
   }
   _fetchSe(id) async{
-    print(id);
-    print("asmId");
+    _fetchOrders(currentPage);
     try {
-      final response = await ApiService.post(
-        endpoint:'/user/getUserListBasedOnId'
-        ,
-        body: {"userId":id},
-      );
+      setState(() {
+        isLoading=true;
+      });
+      if(id!="") {
+        final response = await ApiService.post(
+          endpoint: '/user/getUserListBasedOnId'
+          ,
+          body: {"userId": id},
+        );
 
-      if (response != null) {
-        final data = response['data'];
+        if (response != null) {
+          final data = response['data'];
+          setState(() {
+
+            seList=data;
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      }else{
         setState(() {
-
-          seList=data;
-          selectedSE=data[0]['id'];
-          _fetchOrders(1);
+          selectedSE = "";
+          seList=allUsers.where((e)=>e['role']=='se').toList();
+          isLoading = false;
         });
-      } else {
-        throw Exception('Failed to load orders');
       }
     } catch (error) {
       print("Error fetching orders: $error");
@@ -158,16 +151,16 @@ class _PartyScreenState extends State<PartyScreen> {
       setState(() {
 
         userData = jsonDecode(a??"");
-        print(userData);
-        print("kk");
+
          if(userData['role']=='se') {
+           selectedSE=userData['id'];
            _fetchOrders(currentPage);
          }else if(userData['role']=='rsm'){
+        selectedRsm=userData['id'];
            _fetchAsm(userData['id']);
-         }else if(userData['role']=='zsm'){
-           _fetchRsm();
          }
       else if(userData['role']=='asm'){
+        selectedASM=userData['id'];
         _fetchSe(userData['id']);
       }
          else{
@@ -184,12 +177,17 @@ class _PartyScreenState extends State<PartyScreen> {
   }
 
   Future<void> _fetchOrders(int pageNumber, {String? filter}) async {
-    if (isLoading) return;
+    setState(() {
+      isLoading = true;
+    });
 
     final body = {
       "pageNumber": pageNumber - 1, // Backend may use 0-based indexing
       "type": selectedFilter,
-      "recordPerPage": pageSize
+      "recordPerPage": pageSize,
+      "ownerId": selectedSE,
+      "rsm": selectedRsm,
+      "asm": selectedASM,
     };
 
     if (filter != null && filter.isNotEmpty) {
@@ -200,9 +198,7 @@ class _PartyScreenState extends State<PartyScreen> {
     body['ownerId']=selectedSE;
   }
 
-    setState(() {
-      isLoading = true;
-    });
+
 
     try {
       print(body);
@@ -346,7 +342,7 @@ class _PartyScreenState extends State<PartyScreen> {
               children: [
                 SizedBox(width: 5,),
                 userData['role'].contains('admin')||userData['role']=='zsm'?Expanded(
-                  child: DropdownButtonFormField<String>(
+                  child:DropdownButtonFormField<String>(
                     value: selectedRsm,
                     decoration: InputDecoration(
                       labelText: 'Select RSM',
@@ -355,16 +351,26 @@ class _PartyScreenState extends State<PartyScreen> {
                     ),
                     style: TextStyle(fontSize: 14),
                     dropdownColor: Colors.white,
-                    items: rsmList.map((rsm) {
-                      return DropdownMenuItem<String>(
-                        value: rsm['id'].toString(),
-                        child: Text(rsm['name'], style: TextStyle(fontSize: 14,color: Colors.black)),
-                      );
-                    }).toList(),
-                    onChanged: (value){
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: '', // Blank value for "All"
+                        child: Text('All', style: TextStyle(fontSize: 14, color: Colors.black)),
+                      ),
+                      ...rsmList.map((rsm) {
+                        return DropdownMenuItem<String>(
+                          value: rsm['id'].toString(),
+                          child: Text(rsm['name'], style: TextStyle(fontSize: 14, color: Colors.black)),
+                        );
+                      }).toList(),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        selectedRsm=value??"";
+                      });
                       _fetchAsm(value);
                     },
-                  ),
+                  )
+                  ,
                 ):SizedBox(height:0),
                 SizedBox(width: 5,),
                 userData['role']=='rsm'||userData['role'].contains('admin')||userData['role']=='zsm'?Expanded(
@@ -377,13 +383,22 @@ class _PartyScreenState extends State<PartyScreen> {
                     ),
                     style: TextStyle(fontSize: 14),
                     dropdownColor: Colors.white,
-                    items: asmList.map((rsm) {
-                      return DropdownMenuItem<String>(
-                        value: rsm['id'].toString(),
-                        child: Text(rsm['name'], style: TextStyle(fontSize: 14,color: Colors.black)),
-                      );
-                    }).toList(),
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: '', // Blank value for "All"
+                        child: Text('All', style: TextStyle(fontSize: 14, color: Colors.black)),
+                      ),
+                      ...asmList.map((rsm) {
+                        return DropdownMenuItem<String>(
+                          value: rsm['id'].toString(),
+                          child: Text(rsm['name'], style: TextStyle(fontSize: 14, color: Colors.black)),
+                        );
+                      }).toList(),
+                    ],
                     onChanged: (value){
+                      setState(() {
+                        selectedASM=value??"";
+                      });
                       _fetchSe(value);
                     },
                   ),
@@ -409,12 +424,18 @@ class _PartyScreenState extends State<PartyScreen> {
                     ),
                     style: TextStyle(fontSize: 14),
                     dropdownColor: Colors.white,
-                    items: seList.map((rsm) {
-                      return DropdownMenuItem<String>(
-                        value: rsm['id'].toString(),
-                        child: Text(rsm['name'], style: TextStyle(fontSize: 14,color: Colors.black)),
-                      );
-                    }).toList(),
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: '', // Blank value for "All"
+                        child: Text('All', style: TextStyle(fontSize: 14, color: Colors.black)),
+                      ),
+                      ...seList.map((rsm) {
+                        return DropdownMenuItem<String>(
+                          value: rsm['id'].toString(),
+                          child: Text(rsm['name'], style: TextStyle(fontSize: 14, color: Colors.black)),
+                        );
+                      }).toList(),
+                    ],
                     onChanged: (value){
                       selectedSE=value??"";
                       _fetchOrders(currentPage);

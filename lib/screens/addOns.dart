@@ -67,15 +67,30 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
 
     return dropdownItems; // Return a List<DropdownMenuItem<String>>
   }
+
+  void showComingSoonPopup(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("You must select all the Add ONs to proceed"),
+
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
+    );
+  }
   Future<void> order() async {
 
     if (prize.where((ele)=>ele['selected']=="").toList().length>0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please Select all Add Ons'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showComingSoonPopup(context);
       return;
     }
     var body = widget.payload;

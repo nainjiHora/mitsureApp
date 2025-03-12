@@ -47,15 +47,18 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
    setState(() {
      isLoading=true;
    });
+
+
     var body={};
     body['ownerId']=userData['id'];
     body['approvalStatus']=status;
     body['id']=widget.order['orderId'];
     body['reason']=remark;
+    body['orderId']=widget.order['orderId'];
     try {
 
       final response = await ApiService.post(
-        endpoint: '/order/updateOrder',
+        endpoint:userData['role']!='asm'? '/order/updateOrder':'/order/updateAsmApproval',
         body: body,
       );
 
@@ -260,10 +263,20 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 ),
                 child: Text('Take Consent', style: TextStyle(color: Colors.white)),
               ),
+              ElevatedButton(
+
+                onPressed: _showDeleteDialog,
+
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: Text('Discard', style: TextStyle(color: Colors.white)),
+              ),
 
             ],
           ):SizedBox(height: 0,),
-          userData['role']!='se'&&widget.order['approvalStatus']==0? Row(
+          (userData['role']!='se'&&userData["role"]!="asm"&&widget.order['approvalStatus']==0)||(userData["role"]=="asm"&&widget.order['asmApproval']==0&& widget.order['approvalStatus']==0)? Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               ElevatedButton(
@@ -294,6 +307,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
   Future<void> proceed() async {
+    setState(() {
+      isLoading=true;
+    });
     var id="";
     if(_selectedOption=='Stockist') {
       id=widget.order['stockistId'];
@@ -315,6 +331,7 @@ id=widget.order['partyId'];
       if (response != null && response['status'] == false) {
         setState(() {
           otpMobile=response['mobile'];
+          isLoading=false;
         });
         _showOtpDialog();
       }else{
@@ -326,6 +343,67 @@ id=widget.order['partyId'];
 
     }catch(error){
       print("Error sending OTP: $error");
+
+    }
+  }
+  void _showDeleteDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder( // Add StatefulBuilder to manage state inside dialog
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(" ${widget.order['so_id']}"),
+              content: Text(
+                "Are you sure to Discard this order , Discarded order will not be available later."
+              ),
+
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                     discardOrder(widget.order['orderId']);
+                  },
+                  child: Text("Discard"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+     Navigator.pop(context);
+                  },
+                  child: Text("Cancel"),
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  discardOrder(id) async{
+    setState(() {
+      isLoading=true;
+    });
+    var body = {
+      "id": id
+
+    };
+
+    try {
+      final response = await ApiService.post(
+        endpoint: '/order/deleteOrder',
+        body: body,
+      );
+
+      if (response != null && response['status'] == true) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => OrdersScreen()),
+        );
+      } else {
+
+      }
+    } catch (error) {
+      print("Error verifying OTP: $error");
 
     }
   }
@@ -397,8 +475,9 @@ id=widget.order['partyId'];
     );
   }
   Future<void> verifyOtp(flag) async {
- print(otpMobile);
- print(flag);
+setState(() {
+  isLoading=true;
+});
     var body = {
       "mobile": otpMobile,
       "otp": flag.text,
@@ -410,8 +489,8 @@ id=widget.order['partyId'];
         body: body,
       );
 
-      if (response != null && response['status'] == false) {
-         // Close OTP dialog
+       if (response != null && response['status'] == false) {
+
         await consentDone(); // Proceed to order
       } else {
 
@@ -423,25 +502,23 @@ id=widget.order['partyId'];
   }
 
   consentDone() async{
+
     setState(() {
       isLoading=true;
     });
     var body={};
     body['ownerId']=userData['id'];
-    
-    body['id']=widget.order['orderId'];
+    body['OrderId']=widget.order['orderId'];
 
     try {
-
+       print(body);
       final response = await ApiService.post(
-        endpoint: '/order/consent',
+        endpoint: '/order/updateApprovalAndSendMailWithPdf',
         body: body,
       );
 
       if (response != null) {
-        setState(() {
-          isLoading = false;
-        });
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => OrdersScreen()),
@@ -451,10 +528,6 @@ id=widget.order['partyId'];
       }
     } catch (error) {
       print("Error fetchidddddng orders: $error");
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
     }
   }
 
