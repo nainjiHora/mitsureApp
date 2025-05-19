@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mittsure/screens/commonLayout.js.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/apiService.dart';
 
@@ -26,19 +29,23 @@ class _NotificationScreenState extends State<NotificationScreen> {
   ];
 
   Future<void> _fetchNOtification() async {
-    final body = {
-      "pageNumber":0
+    final prefs = await SharedPreferences.getInstance();
+    final hasData = prefs.getString('user') != null;
+    var id = "";
+    if (hasData) {
+      id = jsonDecode(prefs.getString('user') ?? "")['id'];
+    }
+    final body = {"ownerId": id};
 
-    };
 
     try {
 
       final response = await ApiService.post(
-        endpoint: '/notification/fetchNotification',  // Use your API endpoint
+        endpoint: '/notification/getNotification',  // Use your API endpoint
         body: body,
       );
 
-
+print(response['data']);
       if (response != null) {
 
         final  data = response['data'];
@@ -71,8 +78,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
           itemCount: notifications.length,
           itemBuilder: (context, index) {
             final notification = notifications[index];
-            final formattedTimestamp =notification['createdAt']==null?"":DateFormat('dd MMM yyyy')
-                .format(DateTime.parse(notification['createdAt'].toString()));
+            final formattedTimestamp =notification['createAt']==null?"":DateFormat('dd MMM yyyy')
+                .format(DateTime.parse(notification['createAt'].toString()));
 
             return Card(
               elevation: 5,
@@ -80,13 +87,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
               child: ListTile(
                 contentPadding: EdgeInsets.all(16),
                 title: Text(
-                  notification['notificationTitle'],
+                  notification['header'],
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(notification['notificationMessage']),
+                    Text(notification['body']),
                     SizedBox(height: 8),
                     Text(
                       'Received at: $formattedTimestamp',
@@ -94,7 +101,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                     ),
                   ],
                 ),
-                trailing: Icon(Icons.notifications_active, color: Colors.blue),
+                trailing: notification['is_read']==0?Icon(Icons.notifications_active, color: Colors.blue):null,
               ),
             );
           },

@@ -21,16 +21,17 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  double incentive =0.0;
+  String incentive ='0.0';
   List<dynamic> incentu=[];
   final List<Map<String, dynamic>> menuItems = [
 
     {"title": "Party", "icon": 'assets/images/party.png', "route": PartyScreen(), "color": Colors.indigo,"disable":false},
     {"title": "Orders", "icon": 'assets/images/order.png', "route": OrdersScreen(), "color": Colors.green,"disable":false},
+    {"title": "Incentive Calculator", "icon": 'assets/images/incentive.png', "route": IncentiveScreen(), "color": Colors.indigo,"disable":false},
+    {"title": "Notification", "icon": 'assets/images/notification.png', "route": NotificationScreen(), "color": Colors.green,"disable":false},
+
     {"title": "Collection", "icon": 'assets/images/money.png', "route": CollectionScreen(), "color": Colors.green,"disable":true},
     {"title": "Returned Orders", "icon": 'assets/images/download.png', "route": ReturnOrders(), "color": Colors.indigo,"disable":true},
-    {"title": "Incentive Calculator", "icon": 'assets/images/incentive.png', "route": IncentiveScreen(), "color": Colors.indigo,"disable":true},
-    {"title": "Notification", "icon": 'assets/images/notification.png', "route": NotificationScreen(), "color": Colors.green,"disable":true},
 
   ];
 
@@ -112,16 +113,19 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           List<dynamic> c=response['data'];
           List<dynamic> a=[];
+          double yu=0;
+
+          print("DASdaa");
           List<dynamic> b=response['series_name'];
+          print(b.length);
           for(var i=0;i<b.length;i++){
             var obj={"series":b[i]['seriesName'],"amount":0,"color":b[i]['color']};
             for(var j=0;j<c.length;j++){
-              print(c);
-
+              
 
               if(c[j]['seriesId']==b[i]['seriesTableId']){
                 obj['amount']=obj['amount']+c[j]['totalAmount'];
-                incentive+=c[j]['totalAmount'];
+                yu+=c[j]['totalAmount'];
               }
             }
             a.add(obj);
@@ -130,9 +134,8 @@ class _HomePageState extends State<HomePage> {
           loading = false;
 
          incentu=a;
+         incentive=yu.toStringAsFixed(2);
 
-
-          // totalAmount=double.tryParse(response['totalAmount'])??0.0;
         });
       } else {
         throw Exception('Failed to load orders');

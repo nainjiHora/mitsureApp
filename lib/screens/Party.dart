@@ -205,7 +205,7 @@ class _PartyScreenState extends State<PartyScreen> {
       final response = await ApiService.post(
         endpoint: selectedFilter == 'school'
             ? '/party/getSchool'
-            : '/party/getDistributor',
+            : '/party/getDistributorWeb',
         body: body,
       );
 

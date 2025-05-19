@@ -13,45 +13,64 @@ class IncentiveScreen extends StatefulWidget {
 
 class _IncentiveScreenState extends State<IncentiveScreen> {
   String totalOrderedAmount = "";
+  int selectedPercent=0;
   double incentive = 0;
+  String? selectedSeries;
+  List<dynamic> incentiveList=[];
+  List<dynamic> series=[];
   double calculatedIncentive=0;
   double enteredAmount = 0;
+  bool loading=false;
   List<dynamic> policies=[];
 
   Future<void> _fetchOrders() async {
     final prefs = await SharedPreferences.getInstance();
     final hasData = prefs.getString('user') != null;
-    var id="";
+    var id = "";
     if (hasData) {
-      id=jsonDecode(prefs.getString('user')??"")['id'];
+      id = jsonDecode(prefs.getString('user') ?? "")['id'];
     }
-    final body = {
-      "userId":id
-    };
+    final body = {"ownerId": id};
 
     try {
+      setState(() {
+        loading = true;
+      });
 
       final response = await ApiService.post(
-        endpoint: '/order/getInsentive',  // Use your API endpoint
+        endpoint: '/order/getGroupedIncentives',
         body: body,
       );
 
-      // Check if the response is valid
       if (response != null) {
 
 
-
-       print(response);
         setState(() {
-          totalOrderedAmount=response['totalAmount'];
-          incentive=response['calculatedIncentive'];
-          policies=response['incentiveData'];
+          List<dynamic> c=response['data'];
+          List<dynamic> a=[];
+          List<dynamic> b=response['series_name'];
+          incentiveList=response['inc'];
+          for(var i=0;i<b.length;i++){
+            var obj={"series":b[i]['seriesName'],"amount":0,"color":b[i]['color']};
+            for(var j=0;j<c.length;j++){
+
+              if(c[j]['seriesId']==b[i]['seriesTableId']){
+                obj['amount']=obj['amount']+c[j]['totalAmount'];
+                incentive+=c[j]['totalAmount'];
+              }
+            }
+            a.add(obj);
+          }
+
+          loading = false;
+          series=response['series_name'];
+
         });
       } else {
         throw Exception('Failed to load orders');
       }
     } catch (error) {
-      print("Error fetching orders: $error");
+      print("Error fetddching orders: $error");
     }
   }
 
@@ -73,11 +92,7 @@ class _IncentiveScreenState extends State<IncentiveScreen> {
   }
 
   double calculateIncentive(double amount) {
-    if (amount <= 10000000) {
-      return amount * 0.01;  // 1% incentive for up to 10 million
-    } else {
-      return 10000000 * 0.01 + (amount - 10000000) * 0.02;  // 2% for amounts above 10 million
-    }
+   return amount*(selectedPercent/100);
   }
 
 
@@ -99,11 +114,33 @@ class _IncentiveScreenState extends State<IncentiveScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
+            Text("Incentive Earned",
+              style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              incentive.toStringAsFixed(2).toString(),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             Text("Incentive Calculator",
               style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 40),
+        DropdownButtonFormField<String>(
+          decoration: InputDecoration(
+            labelText: "Series",
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+          ),
+          value: selectedSeries,
+          items: series.map((item) => DropdownMenuItem(value: item!['seriesTableId']!.toString(), child: Text(item["seriesName"].toUpperCase()??""))).toList(),
+          onChanged: (value){
+            var a=incentiveList.where((ele)=>ele['seriesId']==value).toList()[0];
+            setState(() {
+              selectedPercent=int.parse(a['incentivePercent'].toString());
+            });
+
+          },
+        ),
             Text(
               'Enter Amount to Calculate Incentive:',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

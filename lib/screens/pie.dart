@@ -40,15 +40,35 @@ class IncentivePieChart extends StatelessWidget {
       padding: EdgeInsets.only(right: 15.0),
       child: Container(
         color: Colors.white,
-        height: 250, // Adjusted height for the chart
+        height: 250,
+        // Adjusted height for the chart
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               "Incentive Earned",
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            // SizedBox(height: 10),
+
+            Wrap(
+              spacing: 6.0,
+              runSpacing: 1.0,
+              children: List.generate(
+                incentu.length,
+                    (index) => Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      color: _getColorFromHex(incentu[index]['color']??'#000'),
+                    ),
+                    SizedBox(width: 5),
+                    Text(capitalize(incentu[index]['series']), style: TextStyle(fontSize: 14)),
+                  ],
+                ),
+              ),
+            ),
             Expanded(
               child: PieChart(
                 PieChartData(
@@ -67,7 +87,7 @@ class IncentivePieChart extends StatelessWidget {
                         (index) {
                       final item = incentu[index];
                       return PieChartSectionData(
-                        color: _getColorFromHex(item['color']),
+                        color: _getColorFromHex(item['color']??'#000'),
                         value: double.parse(item['amount'].toString()),
                         title: '',
                         radius: 30,
@@ -77,27 +97,6 @@ class IncentivePieChart extends StatelessWidget {
                   ),
                   sectionsSpace: 2,
                   centerSpaceRadius: 30,
-                ),
-              ),
-            ),
-
-            // SizedBox(height: 10),
-            Wrap(
-              spacing: 8.0,
-              runSpacing: 5.0,
-              children: List.generate(
-                incentu.length,
-                    (index) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 12,
-                      height: 12,
-                      color: _getColorFromHex(incentu[index]['color']),
-                    ),
-                    SizedBox(width: 5),
-                    Text(capitalize(incentu[index]['series']), style: TextStyle(fontSize: 14)),
-                  ],
                 ),
               ),
             ),
