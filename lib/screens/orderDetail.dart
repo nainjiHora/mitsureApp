@@ -258,7 +258,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   onPressed: _showConsentDialog,
 
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo,
+                  backgroundColor: Colors.indigo[900],
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
                 child: Text('Take Consent', style: TextStyle(color: Colors.white)),
@@ -593,7 +593,7 @@ setState(() {
                 }
               },
               child: Text('Submit',style: TextStyle(color: Colors.white),),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo[900]),
             ),
           ],
         );

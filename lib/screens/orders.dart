@@ -386,13 +386,13 @@ print(response);
               //               Text(
               //                 days[index], // Day name (Mon, Tue, etc.)
               //                 style: TextStyle(
-              //                   color: _selectedDate == dates[index] ? Colors.indigo : Colors.black,
+              //                   color: _selectedDate == dates[index] ? Colors.indigo[900] : Colors.black,
               //                   fontSize: 12,
               //                 ),
               //               ),
               //               CircleAvatar(
               //                 radius: 17,
-              //                 backgroundColor: _selectedDate == dates[index] ? Colors.indigo : Colors.transparent,
+              //                 backgroundColor: _selectedDate == dates[index] ? Colors.indigo[900] : Colors.transparent,
               //                 child: Text(
               //                   DateFormat('d').format(DateTime.parse(dates[index])), // Day of the month
               //                   style: TextStyle(

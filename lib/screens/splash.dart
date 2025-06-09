@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/screens/home.dart';
 import 'package:mittsure/screens/login.dart';
+import 'package:mittsure/screens/mainMenu.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -56,7 +58,7 @@ class _SplashScreenState extends State<SplashScreen>
     if (hasData) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => HomePage()), // Route to HomePage
+        MaterialPageRoute(builder: (context) => MainMenuScreen()), // Route to HomePage
       );
     } else {
       Navigator.pushReplacement(

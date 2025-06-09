@@ -147,7 +147,7 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
           },
         ),
         title: Text("My Cart", style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.indigo[900],
       ),
       body: Column(
         children: [

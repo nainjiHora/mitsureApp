@@ -535,7 +535,7 @@ if(flag) {
             Navigator.pop(context);
           },
         ),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.indigo[900],
         title: Text('Create Order',style: TextStyle(color: Colors.white),),
       ),
       body: isLoading?Center(child: CircularProgressIndicator(),):uploadFileScreen?FileUploadScreen(saveFiles: saveFiles,): Padding(
@@ -902,7 +902,7 @@ if(flag) {
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   minimumSize: Size(double.infinity, 50),
-                  backgroundColor: Colors.indigo,
+                  backgroundColor: Colors.indigo[900],
                 ),
                 onPressed: (){
                   _createOrder(true);

@@ -25,13 +25,13 @@ class _HomePageState extends State<HomePage> {
   List<dynamic> incentu=[];
   final List<Map<String, dynamic>> menuItems = [
 
-    {"title": "Party", "icon": 'assets/images/party.png', "route": PartyScreen(), "color": Colors.indigo,"disable":false},
+    {"title": "Party", "icon": 'assets/images/party.png', "route": PartyScreen(), "color": Colors.indigo[900],"disable":false},
     {"title": "Orders", "icon": 'assets/images/order.png', "route": OrdersScreen(), "color": Colors.green,"disable":false},
-    {"title": "Incentive Calculator", "icon": 'assets/images/incentive.png', "route": IncentiveScreen(), "color": Colors.indigo,"disable":false},
+    {"title": "Incentive Calculator", "icon": 'assets/images/incentive.png', "route": IncentiveScreen(), "color": Colors.indigo[900],"disable":false},
     {"title": "Notification", "icon": 'assets/images/notification.png', "route": NotificationScreen(), "color": Colors.green,"disable":false},
 
     {"title": "Collection", "icon": 'assets/images/money.png', "route": CollectionScreen(), "color": Colors.green,"disable":true},
-    {"title": "Returned Orders", "icon": 'assets/images/download.png', "route": ReturnOrders(), "color": Colors.indigo,"disable":true},
+    {"title": "Returned Orders", "icon": 'assets/images/download.png', "route": ReturnOrders(), "color": Colors.indigo[900],"disable":true},
 
   ];
 
@@ -225,7 +225,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         leading: Icon(Icons.person_sharp, color: Colors.white),
         title: Text("$_currentDate | $_username", style: TextStyle(color: Colors.white, fontSize: 16)),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.indigo[900],
         centerTitle: true,
         actions: [
           IconButton(
@@ -345,7 +345,7 @@ class _HomePageState extends State<HomePage> {
                     },
                     child: Card(
                       elevation: 5,
-                      color: Colors.indigo,
+                      color: Colors.indigo[900],
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),

@@ -39,36 +39,9 @@ class _DistributorDetailsScreenState extends State<DistributorDetailsScreen> {
           DetailsRow(label: 'Pincode', value: distributor['Pincode'] ?? 'N/A'),
           DetailsRow(label: 'Address Line 1', value: distributor['AddressLine1'] ?? 'N/A'),
           DetailsRow(label: 'Landmark', value: distributor['Landmark'] ?? 'N/A'),
+          DetailsRow(label: 'Coordinates', value: distributor['Landmark'] ?? 'N/A'),
           const Divider(),
 
-          // // Bank Details Section
-          // const SectionTitle(title: 'Bank Details'),
-          // DetailsRow(label: 'Branch Name', value: distributor['branchName'] ?? 'N/A'),
-          // DetailsRow(label: 'Bank Name', value: distributor['bankName'] ?? 'N/A'),
-          // DetailsRow(label: 'Account Holder Name', value: distributor['accountHolderName'] ?? 'N/A'),
-          // DetailsRow(label: 'Account Number', value: distributor['accountNo'] ?? 'N/A'),
-          // DetailsRow(label: 'IFSC Code', value: distributor['ifscCode'] ?? 'N/A'),
-          // const Divider(),
-
-          // Billing Details Section
-          // const SectionTitle(title: 'Billing Details'),
-          // DetailsRow(label: 'Billing Pincode', value: distributor['billingPincode'] ?? 'N/A'),
-          // DetailsRow(label: 'Billing State', value: distributor['billingState'] ?? 'N/A'),
-          // DetailsRow(label: 'Billing City', value: distributor['billingCity'] ?? 'N/A'),
-          // DetailsRow(label: 'Billing Address Line 1', value: distributor['billingAddressLine1'] ?? 'N/A'),
-          // DetailsRow(label: 'Billing Address Line 2', value: distributor['billingAddressLine2'] ?? 'N/A'),
-          // const Divider(),
-
-          // Shipping Details Section
-          // const SectionTitle(title: 'Shipping Details'),
-          // DetailsRow(label: 'Shipping Pincode', value: distributor['shippingPincode'] ?? 'N/A'),
-          // DetailsRow(label: 'Shipping State', value: distributor['shippingState'] ?? 'N/A'),
-          // DetailsRow(label: 'Shipping City', value: distributor['shippingCity'] ?? 'N/A'),
-          // DetailsRow(label: 'Shipping Address Line 1', value: distributor['shippingAddressLine1'] ?? 'N/A'),
-          // DetailsRow(label: 'Shipping Address Line 2', value: distributor['shippingAddressLine2'] ?? 'N/A'),
-          // const Divider(),
-
-          // Contact Person Details Section
           const SectionTitle(title: 'Contact Person Details'),
           DetailsRow(label: 'Name', value: distributor['name'] ?? 'N/A'),
           DetailsRow(label: 'Role', value: distributor['role'] ?? 'N/A'),
@@ -76,18 +49,38 @@ class _DistributorDetailsScreenState extends State<DistributorDetailsScreen> {
           DetailsRow(label: 'Email', value: distributor['email'] ?? 'N/A'),
           const Divider(),
 
-          // Additional Information Section
-          const SectionTitle(title: 'Additional Information'),
-          DetailsRow(label: 'PAN Number', value: distributor['panNumber'] ?? 'N/A'),
-          DetailsRow(label: 'Transporter Name', value: distributor['transporter_name'] ?? 'N/A'),
-          DetailsRow(label: 'KYC Received', value: distributor['kycRecieved'] == 1 ? 'Yes' : 'No'),
-SizedBox(height:10,),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              minimumSize: Size(double.infinity, 50),
-              backgroundColor: Colors.green,
-            ),
-            onPressed: (){
+          
+SizedBox(height:20,),
+ true
+                ? ElevatedButton.icon(
+                    icon: Icon(
+                      Icons.map,
+                      color: Colors.white,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(10, 50),
+                      backgroundColor: Colors.orange.shade400,
+                    ),
+                    onPressed: () {
+                    
+                    },
+                    label: Text(
+                      "Mark Location",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  )
+                : Container(),
+                SizedBox(height: 5,),
+                ElevatedButton.icon(
+                    icon: Icon(
+                      Icons.shop_two_outlined,
+                      color: Colors.white,
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size(10, 50),
+                      backgroundColor: Colors.green.shade400,
+                    ),
+                    onPressed: (){
               Navigator.push(
                 context,
                 MaterialPageRoute(
@@ -96,8 +89,28 @@ SizedBox(height:10,),
                 ),
               );
             },
-            child: Text("Proceed to Order", style: TextStyle(fontSize: 18, color: Colors.white)),
-          ),
+                    label: Text(
+                      "Proceed to Order",
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                
+          // ElevatedButton(
+          //   style: ElevatedButton.styleFrom(
+          //     minimumSize: Size(double.infinity, 50),
+          //     backgroundColor: Colors.green.shade600,
+          //   ),
+          //   onPressed: (){
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(
+          //         builder: (context) =>
+          //             NewOrderScreen(party: widget.data,type: widget.type),
+          //       ),
+          //     );
+          //   },
+          //   child: Text("Proceed to Order", style: TextStyle(fontSize: 18, color: Colors.white)),
+          // ),
         ],
       ),
     );

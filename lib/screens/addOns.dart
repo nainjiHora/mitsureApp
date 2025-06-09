@@ -47,7 +47,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
     List<DropdownMenuItem<String>> dropdownItems = [
       DropdownMenuItem<String>(
         value: "",
-        child: Text('Select', style: TextStyle(color: Colors.indigo)),
+        child: Text('Select', style: TextStyle(color: Colors.indigo[900])),
       ),
     ];
 
@@ -58,7 +58,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
           dropdownItems.add(
             DropdownMenuItem<String>(
               value: item['name'].toString(),
-              child: Text(item['name'].toString(), style: TextStyle(color: Colors.indigo)),
+              child: Text(item['name'].toString(), style: TextStyle(color: Colors.indigo[900])),
             ),
           );
         }
@@ -222,7 +222,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
       appBar: AppBar(
 
         title: Text("Add-On Products", style: TextStyle(fontFamily: 'Roboto', fontSize: 20,color: Colors.white)),
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.indigo[900],
     leading: IconButton(
     icon: Icon(Icons.arrow_back, color: Colors.white),
     onPressed: () {
@@ -241,7 +241,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
-                color: Colors.indigo.shade900,
+                color: Colors.indigo[900],
                 fontFamily: 'Montserrat',
               ),
             ),
@@ -285,7 +285,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      color: Colors.indigo.shade50,
+                      color: Colors.indigo[900],
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
@@ -296,7 +296,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.indigo.shade900,
+                                color: Colors.indigo[900],
                                 fontFamily: 'Montserrat',
                               ),
                             ),
@@ -305,7 +305,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.indigo.shade900,
+                                color: Colors.indigo[900],
                                 fontFamily: 'Montserrat',
                               ),
                             ),
@@ -319,8 +319,8 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
                                   prize[index]['selected'] = value!;
                                 });
                               },
-                              style: TextStyle(color: Colors.indigo, fontFamily: 'Roboto'),
-                              iconEnabledColor: Colors.indigo,
+                              style: TextStyle(color: Colors.indigo[900], fontFamily: 'Roboto'),
+                              iconEnabledColor: Colors.indigo[900],
                             ),
                           ],
                         ),

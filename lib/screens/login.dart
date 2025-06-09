@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:mittsure/newApp/MainMenuScreen.dart';
+import 'package:mittsure/screens/mainMenu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
@@ -86,7 +88,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => HomePage()),
+            MaterialPageRoute(builder: (context) => MainMenuScreen()),
           );
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -115,8 +117,8 @@ class _LoginScreenState extends State<LoginScreen> {
             // Top Section with Curved Design
             Container(
               height: 420,
-              decoration: const BoxDecoration(
-                color: Colors.indigo,
+              decoration:  BoxDecoration(
+                color: Colors.indigo[900],
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(80),
                 ),

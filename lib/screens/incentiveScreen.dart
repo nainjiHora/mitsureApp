@@ -166,11 +166,11 @@ class _IncentiveScreenState extends State<IncentiveScreen> {
                   calculatedIncentive = calculateIncentive(enteredAmount);
                 });
               },
-              child: Text('Calculate ',style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.indigo),),
+              child: Text('Calculate ',style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.indigo[900]),),
               style: ElevatedButton.styleFrom(
-                // primary: Colors.indigo, // Button color
+                // primary: Colors.indigo[900], // Button color
                 padding: EdgeInsets.symmetric(vertical: 14,horizontal: 8),
-                textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.indigo),
+                textStyle: TextStyle(fontSize: 18, fontWeight: FontWeight.bold,color: Colors.indigo[900]),
               ),
             ),
             SizedBox(height: 20),

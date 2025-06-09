@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/screens/Party.dart';
 import 'package:mittsure/screens/collection.dart';
 import 'package:mittsure/screens/home.dart';
@@ -130,12 +131,18 @@ class _CommonLayoutState extends State<CommonLayout> {
         title: Text(widget.title, style: TextStyle(fontSize: 18, color: Colors.white)),
         centerTitle: true,
         actions: [
-          IconButton(
-            icon: Icon(Icons.logout, color: Colors.white),
-            onPressed: _logout,
+           IconButton(
+            icon: const Icon(Icons.home, color: Colors.white),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => MainMenuScreen()),
+                (route) => false, // remove all previous routes
+              );
+            },
           ),
         ],
-        backgroundColor: Colors.indigo,
+        backgroundColor: Colors.indigo[900],
       ),
       body: widget.child, // Main content for the screen
       bottomNavigationBar: BottomNavigationBar(
@@ -147,7 +154,7 @@ class _CommonLayoutState extends State<CommonLayout> {
             _onTabSelected(index > 2 ? index - 1 : index); // Adjust for the home button in the middle
           }
         },
-        selectedItemColor: Colors.indigo,
+        selectedItemColor: Colors.indigo[900],
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         items: const [
