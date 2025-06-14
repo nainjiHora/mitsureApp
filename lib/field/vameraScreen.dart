@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_cropper/image_cropper.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 
 class KMReadingCameraScreen extends StatefulWidget {
-  final void Function(String imagePath, String reading) onReadingCaptured;
+  final bool bike;
+ final void Function(String imagePath, String reading, bool isManual) onReadingCaptured;
 
-  const KMReadingCameraScreen({required this.onReadingCaptured});
+  const KMReadingCameraScreen({
+    required this.onReadingCaptured,
+    required this.bike,
+  });
 
   @override
   _KMReadingCameraScreenState createState() => _KMReadingCameraScreenState();
@@ -23,6 +27,7 @@ class _KMReadingCameraScreenState extends State<KMReadingCameraScreen> {
   @override
   void initState() {
     super.initState();
+
     _initCamera();
   }
 
@@ -38,8 +43,13 @@ class _KMReadingCameraScreenState extends State<KMReadingCameraScreen> {
   Future<void> _takePicture() async {
     if (_cameraController == null || _isProcessing) return;
     final file = await _cameraController!.takePicture();
-    setState(() => _capturedImage = File(file.path));
-    _showCropConfirmDialog();
+    _capturedImage = File(file.path);
+
+    if (widget.bike) {
+      _showCropConfirmDialog();
+    } else {
+      _showNormalConfirmDialog();
+    }
   }
 
   Future<void> _showCropConfirmDialog() async {
@@ -52,7 +62,6 @@ class _KMReadingCameraScreenState extends State<KMReadingCameraScreen> {
       uiSettings: [
         AndroidUiSettings(
           toolbarTitle: 'Crop KM Area',
-          initAspectRatio: CropAspectRatioPreset.original,
           lockAspectRatio: false,
         ),
         IOSUiSettings(title: 'Crop KM Area'),
@@ -62,33 +71,38 @@ class _KMReadingCameraScreenState extends State<KMReadingCameraScreen> {
     if (!mounted) return;
 
     if (croppedFile != null) {
-      // Show confirm/retake dialog
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text('Use this image?'),
-          content: Image.file(File(croppedFile.path)),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _capturedImage = null;
-              },
-              child: Text('Retake'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                Navigator.pop(ctx);
-                _processCroppedImage(File(croppedFile.path));
-              },
-              child: Text('Confirm'),
-            ),
-          ],
-        ),
-      );
+      _processCroppedImage(File(croppedFile.path));
     } else {
       setState(() => _capturedImage = null);
     }
+  }
+
+  Future<void> _showNormalConfirmDialog() async {
+    if (_capturedImage == null) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Use this image?'),
+        content: Image.file(_capturedImage!),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              setState(() => _capturedImage = null);
+            },
+            child: Text('Retake'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              widget.onReadingCaptured(_capturedImage!.path, '',false);
+            },
+            child: Text('Confirm'),
+          ),
+        ],
+      ),
+    );
   }
 
   String normalizeMeterReading(String input) {
@@ -98,52 +112,75 @@ class _KMReadingCameraScreenState extends State<KMReadingCameraScreen> {
         .replaceAll(RegExp(r'[bB]'), '8')
         .replaceAll(RegExp(r'[sS]'), '5')
         .replaceAll(RegExp(r'[eE]'), '3')
-        .replaceAll(RegExp(r'[^0-9]'), ''); // remove any remaining non-digits
+        .replaceAll(RegExp(r'[^0-9]'), '');
   }
 
   Future<void> _processCroppedImage(File imageFile) async {
     setState(() => _isProcessing = true);
-
     final inputImage = InputImage.fromFile(imageFile);
     final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
 
     try {
       final recognizedText = await textRecognizer.processImage(inputImage);
-      setState(() => _isProcessing = false);
       final rawText = recognizedText.text;
       final cleanedText = normalizeMeterReading(rawText);
       _showReadingPopup(cleanedText, imageFile.path);
     } catch (e) {
-      setState(() => _isProcessing = false);
-      // Handle error here, e.g., show an error popup or log
       print('Error recognizing text: $e');
+      _showReadingPopup('', imageFile.path);
     } finally {
       await textRecognizer.close();
+      setState(() => _isProcessing = false);
     }
   }
 
-  void _showReadingPopup(String reading, String imagePath) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Detected Reading'),
-        content: Text(reading.trim().isEmpty ? 'No text detected.' : reading),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Close'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              widget.onReadingCaptured(imagePath, reading);
-            },
-            child: Text('Use This'),
+ void _showReadingPopup(String reading, String imagePath) {
+  TextEditingController manualController = TextEditingController();
+
+  showDialog(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text('Is this the correct reading?'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(reading.trim().isEmpty ? 'No text detected.' : reading),
+          SizedBox(height: 12),
+          Text("If incorrect, enter manually below:"),
+          TextField(
+            controller: manualController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              hintText: 'Enter KM Reading',
+              border: OutlineInputBorder(),
+            ),
           ),
         ],
       ),
-    );
-  }
+      actions: [
+        TextButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            setState(() => _capturedImage = null);
+          },
+          child: Text('Retake'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            final manualReading = manualController.text.trim();
+            if (manualReading.isNotEmpty) {
+              widget.onReadingCaptured(imagePath, manualReading, true);
+            } else {
+              widget.onReadingCaptured(imagePath, reading, false);
+            }
+          },
+          child: Text('Confirm'),
+        ),
+      ],
+    ),
+  );
+}
 
   @override
   void dispose() {
@@ -151,29 +188,29 @@ class _KMReadingCameraScreenState extends State<KMReadingCameraScreen> {
     super.dispose();
   }
 
+
+
   @override
   Widget build(BuildContext context) {
     if (_cameraController == null || !_cameraController!.value.isInitialized) {
-      return Center(child: CircularProgressIndicator());
+      return Center(child: BookPageLoader());
     }
 
     return Scaffold(
       body: Stack(
         children: [
-          // Camera preview
           Center(
             child: AspectRatio(
               aspectRatio: _cameraController!.value.aspectRatio,
               child: CameraPreview(_cameraController!),
             ),
           ),
-          // Overlay with transparent slip
-          Positioned.fill(
-            child: CustomPaint(
-              painter: SlipOverlayPainter(),
+          if (widget.bike)
+            Positioned.fill(
+              child: CustomPaint(
+                painter: SlipOverlayPainter(),
+              ),
             ),
-          ),
-          // Capture button
           Positioned(
             bottom: 30,
             left: 0,
@@ -199,25 +236,22 @@ class SlipOverlayPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = Colors.black.withOpacity(0.6);
-
-    final slipHeight = 80.0; // Height of the visible slip
+    final slipHeight = 80.0;
     final centerY = size.height / 2;
     final topRect = Rect.fromLTRB(0, 0, size.width, centerY - slipHeight / 2);
     final bottomRect =
         Rect.fromLTRB(0, centerY + slipHeight / 2, size.width, size.height);
 
-    // Draw dimmed top and bottom regions
     canvas.drawRect(topRect, paint);
     canvas.drawRect(bottomRect, paint);
 
-    // Draw border around the transparent slip area
     final borderPaint = Paint()
       ..color = Colors.black
       ..style = PaintingStyle.stroke
       ..strokeWidth = 4;
 
-    final borderRect = Rect.fromLTRB(16, centerY - slipHeight / 2,
-        size.width - 16, centerY + slipHeight / 2);
+    final borderRect = Rect.fromLTRB(
+        16, centerY - slipHeight / 2, size.width - 16, centerY + slipHeight / 2);
     canvas.drawRect(borderRect, borderPaint);
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/commonLayout.js.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -81,13 +82,13 @@ class _CollectionScreenState extends State<CollectionScreen> {
         title: 'Collections',
       currentIndex: 3,
       child: _isLoading
-          ? const Center(child: CircularProgressIndicator()) // Show loader initially
+          ? const Center(child: BookPageLoader()) // Show loader initially
           : _items.length>0?ListView.builder(
         controller: _scrollController,
         itemCount: _items.length + (_hasMore ? 1 : 0), // Show loader at the bottom if more data exists
         itemBuilder: (context, index) {
           if (index == _items.length&& _hasMore) {
-            return const Center(child: CircularProgressIndicator()); // Bottom loader
+            return const Center(child: BookPageLoader()); // Bottom loader
           }
 
           final item = _items[index];

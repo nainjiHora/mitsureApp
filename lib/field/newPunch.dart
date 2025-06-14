@@ -10,6 +10,7 @@ import 'package:mittsure/field/punchDetailpopup.dart';
 import 'package:mittsure/field/vameraScreen.dart';
 import 'package:http/http.dart' as http;
 import 'package:mittsure/newApp/MainMenuScreen.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/mainMenu.dart';
 import 'package:mittsure/services/monthFilter.dart';
 import 'package:mittsure/services/utils.dart';
@@ -29,6 +30,7 @@ class _PunchScreenState extends State<PunchScreen> {
   bool isLoadingCards = false;
   bool cameraScreen = false;
   String? meterReading = "";
+  var reasonData = null;
   Timer? _timer;
   int selectedMonth = 1;
   bool lastPunchIn = false;
@@ -38,6 +40,7 @@ class _PunchScreenState extends State<PunchScreen> {
   int presentCount = 12;
   int absentCount = 3;
   int halfDayCount = 1;
+  bool meterCamera = false;
   Map<String, dynamic> userData = {};
   getUserData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -53,7 +56,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
   // lastPunchIn = punches.isNotEmpty && punches.last.type == "In";
   Future<void> _fetchMonthlyAttendance(month) async {
-    print(month);
+  
     setState(() {
       isLoadingCards = true;
     });
@@ -199,7 +202,8 @@ class _PunchScreenState extends State<PunchScreen> {
     return "${d.inHours.toString().padLeft(2, '0')}:${(d.inMinutes % 60).toString().padLeft(2, '0')}:${(d.inSeconds % 60).toString().padLeft(2, '0')}";
   }
 
-  Future<void> onPunchButtonPressed(String imagePath, String reading) async {
+  Future<void> onPunchButtonPressed(
+      String imagePath, String reading, bool manual) async {
     if (imagePath == null || reading == null) return;
 
     setState(() {
@@ -211,15 +215,11 @@ class _PunchScreenState extends State<PunchScreen> {
     final location = await getCurrentLocation(context);
     if (location == null) {
       setState(() {
-        cameraScreen =
-            false; // 👈 This will hide camera screen when user cancels
+        cameraScreen = false;
       });
       return;
     }
-    final punchData = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (_) => PunchDetailsPopup(meterReading: meterReading ?? ""),
-    );
+    final punchData = reasonData;
 
     if (punchData == null) {
       setState(() {
@@ -234,17 +234,27 @@ class _PunchScreenState extends State<PunchScreen> {
 
       var request = http.MultipartRequest('POST', uri);
 
-      // Add form fields
       request.fields.addAll({
-        "in_km": lastPunchIn ? "" : punchData['km'],
+        "in_km": lastPunchIn ? "" : reading,
         "punch": lastPunchIn ? "out" : "in",
-        "out_km": lastPunchIn ? punchData['km'] : "",
+        "out_km": lastPunchIn ? reading : "",
         "userId": userData['id'].toString(),
         "remark": punchData['remark'] ?? '',
-        "manual_reading": punchData['kmChanged'] ? '1' : '0',
-        "work_type": punchData['worktype'] ?? '',
+        "manual_reading": manual ? '1' : '0',
+        "work_type":
+            punchData['worktype'] != "" && punchData['worktype'] != null
+                ? punchData['worktype']['name']
+                : '',
         "in_latitude": lastPunchIn ? "" : location.latitude.toString(),
         "in_longitude": lastPunchIn ? "" : location.longitude.toString(),
+        "visitType":
+            punchData['visitType'] != "" && punchData['visitType'] != null
+                ? punchData['visitType']['name']
+                : '',
+        "vehicleType":
+            punchData['vehicleType'] != "" && punchData['vehicleType'] != null
+                ? punchData['vehicleType']['name']
+                : '',
         "out_latitude": lastPunchIn ? location.latitude.toString() : "",
         "out_longitude": lastPunchIn ? location.longitude.toString() : "",
       });
@@ -254,7 +264,7 @@ class _PunchScreenState extends State<PunchScreen> {
       if (await imageFile.exists()) {
         request.files.add(
           await http.MultipartFile.fromPath(
-            'image', 
+            'image',
             imageFile.path,
           ),
         );
@@ -264,43 +274,63 @@ class _PunchScreenState extends State<PunchScreen> {
 
       var response = await http.Response.fromStream(streamedResponse);
 
-        final res = jsonDecode(response.body);
+      final res = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        if (res['status']) {
-          
-          DialogUtils.showCommonPopup(
-          context: context,
-          message: res['message'],
-          isSuccess: false,
-          onOkPressed:(){ setState(() {
-           isLoading=false; 
-          });
+        print(res);
+        print("ppooiiu");
+        if (res['status']==false) {
+          final prefs = await SharedPreferences.getInstance();
+          if (lastPunchIn) {
+            prefs.remove('vehicleType');
+          } else {
+            
+            final gl=punchData['vehicleType'] != "" &&
+                        punchData['vehicleType'] != null &&
+                        punchData['vehicleType']['min_time'] == '1'
+                    ? true
+                    : false;
+                    print(gl);
+                    print('glanh');
+            prefs.setBool(
+                'vehicleType',gl
+                );
           }
-         );
-        } else {
           _fetchWorkingHours();
+         
+        } else {
+           DialogUtils.showCommonPopup(
+              context: context,
+              message: res['message'],
+              isSuccess: false,
+              onOkPressed: () {
+                setState(() {
+                  isLoading = false;
+                });
+              });
+          
         }
       } else {
-       DialogUtils.showCommonPopup(
-          context: context,
-          message: res['message'],
-          isSuccess: false,
-          onOkPressed:(){ setState(() {
-           isLoading=false; 
-          });
-          }
-         );
+        DialogUtils.showCommonPopup(
+            context: context,
+            message: res['message'],
+            isSuccess: false,
+            onOkPressed: () {
+              setState(() {
+                isLoading = false;
+              });
+            });
       }
     } catch (error) {
+      print(error);
       DialogUtils.showCommonPopup(
           context: context,
           message: "Sorry ! Something Went Wrong",
           isSuccess: false,
-          onOkPressed:(){ setState(() {
-           isLoading=false; 
+          onOkPressed: () {
+            setState(() {
+              isLoading = false;
+            });
           });
-          }
-         );
     }
   }
 
@@ -376,18 +406,17 @@ class _PunchScreenState extends State<PunchScreen> {
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: ()async{
+      onWillPop: () async {
         Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => MainMenuScreen()),
-                  (route) => false, // remove all previous routes
-                );
-                return false;
+          context,
+          MaterialPageRoute(builder: (context) => MainMenuScreen()),
+          (route) => false, // remove all previous routes
+        );
+        return false;
       },
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F5F5), // Light grey background
         appBar: AppBar(
-          
           title: Text(
             "Attendance",
             style: TextStyle(color: Colors.white, fontSize: 18),
@@ -407,12 +436,12 @@ class _PunchScreenState extends State<PunchScreen> {
             ),
           ],
         ),
-        body: isLoading
-            ? Center(
-                child: CircularProgressIndicator(),
-              )
-            : cameraScreen
-                ? KMReadingCameraScreen(onReadingCaptured: onPunchButtonPressed)
+        body: Stack(
+          children: [
+            if (isLoading) const BookPageLoader(),
+            cameraScreen
+                ? KMReadingCameraScreen(
+                    onReadingCaptured: onPunchButtonPressed, bike: meterCamera)
                 : Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -451,8 +480,40 @@ class _PunchScreenState extends State<PunchScreen> {
                         ),
                         SizedBox(height: 20),
                         ElevatedButton.icon(
-                          onPressed: () {
-                            setState(() => cameraScreen = true);
+                          onPressed: () async {
+                            reasonData = await showDialog<Map<String, dynamic>>(
+                              context: context,
+                              builder: (_) => PunchDetailsPopup(
+                                meterReading: meterReading ?? "",
+                                punchIn: !lastPunchIn,
+                              ),
+                            );
+                            if (reasonData == null) {
+                              setState(() {
+                                isLoading = false;
+                              });
+                              return;
+                            } else {
+                              print(reasonData);
+                              print("reasonData");
+                              final prefs =
+                                  await SharedPreferences.getInstance();
+                              bool flag =
+                                  await prefs.getBool('vehicleType') ?? false;
+                              print(flag);
+                              print("ppooo");
+                              setState(() {
+                                if (reasonData['vehicleType'] != null &&
+                                    reasonData['vehicleType'] != "" &&
+                                    reasonData['vehicleType']['min_time'] ==
+                                        '1') {
+                                  meterCamera = true;
+                                } else {
+                                  meterCamera = flag;
+                                }
+                                cameraScreen = true;
+                              });
+                            }
                           },
                           icon: Icon(lastPunchIn ? Icons.logout : Icons.login,
                               size: 26, color: Colors.white),
@@ -540,11 +601,12 @@ class _PunchScreenState extends State<PunchScreen> {
                                                               FontWeight.bold)),
                                                   subtitle: Column(
                                                     crossAxisAlignment:
-                                                        CrossAxisAlignment.start,
+                                                        CrossAxisAlignment
+                                                            .start,
                                                     children: [
                                                       SizedBox(height: 4),
                                                       Text(
-                                                          "Meter Reading: ${punch["out_km"]}"),
+                                                          "Meter Reading: ${punch["out_km"]??"N/A"}"),
                                                       // Text("Lat: ${punch.latitude.toStringAsFixed(4)}, Lng: ${punch.longitude.toStringAsFixed(4)}"),
                                                       // Text("Notes: ${punch.note1}, ${punch.note2}, ${punch.note3}"),
                                                     ],
@@ -568,7 +630,8 @@ class _PunchScreenState extends State<PunchScreen> {
                                             title: Text(
                                                 "Punch In - ${getTime(punch["in_time"])}",
                                                 style: TextStyle(
-                                                    fontWeight: FontWeight.bold)),
+                                                    fontWeight:
+                                                        FontWeight.bold)),
                                             subtitle: Column(
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
@@ -590,6 +653,9 @@ class _PunchScreenState extends State<PunchScreen> {
                       ],
                     ),
                   ),
+            if (isLoading) const BookPageLoader(),
+          ],
+        ),
       ),
     );
   }

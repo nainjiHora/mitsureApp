@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:mittsure/field/routes.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/endVisitScreen.dart';
 import 'package:mittsure/newApp/routeItems.dart';
 import 'package:mittsure/newApp/visitCaptureScreen.dart';
@@ -67,8 +68,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
         endpoint: '/visit/fetchCurrentVisit', // Use your API endpoint
         body: body,
       );
-      print(response);
-      print("pppn");
+
       if (response != null && response['status'] == false) {
         setState(() {
           visitCount = response['data']['totalCount'];
@@ -89,7 +89,9 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
         endpoint: '/picklist/getRouteVisitType', // Use your API endpoint
         body: body,
       );
-
+print(widget.visitStatus);
+print(widget.data);
+print("tryuy");
       if (response != null && response['status'] == false) {
         setState(() {
           visitTypeOptions.addAll(response['data']);
@@ -109,44 +111,57 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   }
 
   tagLocation() async {
+    print(":plplpl");
     try {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
+      setState(() {
+        isLoading = true;
+      });
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
 
-    LocationPermission permission = await Geolocator.requestPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      return;
-    }
+      LocationPermission permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
 
-    Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-    final body = {
-      "lat": position.latitude.toString(),
-      "long": position.longitude.toString(),
-      "type": widget.type.toString(),
-      "id": widget.data['addressId']
-    };
-setState(() {
-  isLoading=true;
-});
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      final body = {
+        "lat": position.latitude.toString(),
+        "long": position.longitude.toString(),
+        "type": widget.type.toString(),
+        "id": widget.data['addressId']
+      };
+    
       final response = await ApiService.post(
-        endpoint: '/party/markLocation', // Use your API endpoint
+        endpoint: '/party/markLocation',
         body: body,
       );
+
+      print(response);
 
       if (response != null && response['success'] == true) {
         setState(() {
           widget.data['lat'] = position.latitude;
           widget.data['long'] = position.longitude;
-          DialogUtils.showCommonPopup(context: context, message: "Location Marked", isSuccess: true);
-          isLoading=false;
+          DialogUtils.showCommonPopup(
+              context: context, message: "Location Marked", isSuccess: true);
+          isLoading = false;
         });
       } else {
-         DialogUtils.showCommonPopup(context: context, message: response['message'], isSuccess: false);
+        DialogUtils.showCommonPopup(
+            context: context, message: response['message'], isSuccess: false);
+        setState(() {
+          isLoading = false;
+        });
       }
     } catch (error) {
-       DialogUtils.showCommonPopup(context: context, message: "Something Went Wrong", isSuccess: false);
+      DialogUtils.showCommonPopup(
+          context: context, message: "Something Went Wrong", isSuccess: false);
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -173,8 +188,8 @@ setState(() {
     final now = DateTime.now();
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: now.add(const Duration(days: 1)),
-      firstDate: now.add(const Duration(days: 1)),
+      initialDate: now.add(const Duration(days: 0)),
+      firstDate: now.add(const Duration(days: 0)),
       lastDate: now.add(const Duration(days: 7)),
     );
     if (picked != null) {
@@ -495,13 +510,13 @@ setState(() {
         ),
         body: isLoading
             ? Center(
-                child: CircularProgressIndicator(),
+                child: BookPageLoader(),
               )
             : ListView(
                 padding: const EdgeInsets.all(16.0),
                 children: [
                   Container(
-                    color: Colors.indigo[200],
+                    color: Colors.indigo[50],
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 15, vertical: 10),
@@ -662,7 +677,9 @@ setState(() {
                             minimumSize: Size(10, 50),
                             backgroundColor: Colors.orange.shade400,
                           ),
-                          onPressed: () {tagLocation();},
+                          onPressed: () {
+                            tagLocation();
+                          },
                           label: Text(
                             "Tag Location",
                             style: TextStyle(color: Colors.white),
@@ -674,7 +691,9 @@ setState(() {
                   ),
                   status == 0 &&
                           widget.data['status'] == 1 &&
-                          isToday(widget.date)
+                          isToday(widget.date) &&
+                          widget.data['lat'] != null &&
+                          widget.data['long'] != null
                       ? ElevatedButton.icon(
                           icon: Icon(
                             Icons.start_outlined,
@@ -756,7 +775,7 @@ setState(() {
                               MaterialPageRoute(
                                 builder: (context) => EndVisitScreen(
                                     visit: widget.data,
-                                    date: widget.data,
+                                    date: widget.date,
                                     type: widget.type,
                                     visitId: widget.visitId),
                               ),

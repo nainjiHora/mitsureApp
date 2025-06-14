@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/selectionScreen.dart';
 
 import '../services/apiService.dart';
@@ -269,7 +270,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
               Text("Onboard For ERP",style:TextStyle(fontSize: 20)),
             ],
           ),
-            isLoading?Center(child: CircularProgressIndicator(),):Expanded(
+            isLoading?Center(child: BookPageLoader(),):Expanded(
               child: prize.length>0?ListView.builder(
                 itemCount: prize.length,
                 itemBuilder: (context, index) {

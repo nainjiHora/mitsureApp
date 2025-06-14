@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:mittsure/field/newPunch.dart';
 import 'package:mittsure/screens/home.dart';
 
-import '../field/fieldhome.dart';
 
 class MainMenuPage extends StatefulWidget {
   const MainMenuPage({super.key});
@@ -38,20 +37,7 @@ class _MainMenuPageState extends State<MainMenuPage> {
               ),
             ),
             const SizedBox(height: 16),
-            Expanded(
-              child: _buildMenuCard(
-                context,
-                icon: Icons.map,
-                title: 'Field Operations',
-                color: Colors.green,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => FieldOperationsPage()), // Route to HomePage
-                  );
-                },
-              ),
-            ),
+           
           ],
         ),
       ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class AnimatedCircleTimer extends StatefulWidget {
   final String time;
-  final int hours;
+  final Color hours;
   final bool flag;
 
   const AnimatedCircleTimer({
@@ -48,6 +48,7 @@ class _AnimatedCircleTimerState extends State<AnimatedCircleTimer>
       _controller.stop();
     }
   }
+  
 
   @override
   void dispose() {
@@ -58,8 +59,8 @@ class _AnimatedCircleTimerState extends State<AnimatedCircleTimer>
   @override
   Widget build(BuildContext context) {
     final hours = widget.hours;
-    final glowColor = hours > 5 ? Colors.redAccent : Colors.greenAccent;
-    final glowIntensity = (hours.clamp(1, 12)) * 0.2;
+    final glowColor = hours;
+    final glowIntensity = (7.clamp(1, 12)) * 0.2;
 
     if (!widget.flag) {
       // Static circle with shadow and blur, no animation

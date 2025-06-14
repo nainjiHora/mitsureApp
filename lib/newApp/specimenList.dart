@@ -2,6 +2,7 @@ import 'dart:convert'; // For decoding the JSON response
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/specimenRequest.dart';
 import 'package:mittsure/screens/commonLayout.js.dart';
 import 'package:mittsure/screens/login.dart';
@@ -621,7 +622,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                           ),
                         )
                   : Center(
-                      child: CircularProgressIndicator(),
+                      child: BookPageLoader(),
                     ),
               if (totalPages > 1)
                 Padding(

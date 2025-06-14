@@ -7,6 +7,7 @@ import 'package:mittsure/field/agentlocation.dart';
 import 'package:mittsure/field/newPunch.dart';
 import 'package:mittsure/field/routes.dart';
 import 'package:mittsure/newApp/animatedCircle.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/specimenList.dart';
 import 'package:mittsure/newApp/specimenRequest.dart';
 import 'package:mittsure/newApp/visitScreen.dart';
@@ -32,7 +33,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   String? hours;
   String _username = "";
   Timer? _timer;
+  var visitData={};
   int _selectedIndex = 0;
+  List<dynamic> config=[];
+  bool isLoading=true;
   Map<String, dynamic> userData = {};
   Duration currentSessionDuration = Duration.zero;
 
@@ -54,6 +58,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       setState(() {
         userData = jsonDecode(a);
         _username = (userData['name'] ?? "").toString();
+        getRoutePartyCount(userData["id"]);
       });
       await _fetchWorkingHours();
       _updatePunchStatus();
@@ -63,7 +68,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   @override
   void initState() {
     super.initState();
-    getUserData();
+    
+    getAttendanceConfig();
+    
   }
 
   @override
@@ -72,7 +79,51 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     super.dispose();
   }
 
+  getRoutePartyCount(id) async{
+     
+    
+    try {
+      final response = await ApiService.post(
+        endpoint: '/routePlan/getRoutesPartyCount',
+        body: {"ownerId":id},
+      );
+
+      if (response != null) {
+        final data = response['data'];
+        setState(() {
+          visitData=data;
+          
+        });
+      }
+    } catch (error) {
+      print("Error fetching working hours: $error");
+    }
+  }
+
+  getAttendanceConfig() async{
+     
+    
+    try {
+      final response = await ApiService.post(
+        endpoint: '/attendance/getAttendanceConfig',
+        body: {},
+      );
+
+      if (response != null) {
+        final data = response['data'];
+        setState(() {
+          print(data);
+          config=data;
+        getUserData();
+        });
+      }
+    } catch (error) {
+      print("Error fetching working hours: $error");
+    }
+  }
+
   Future<void> _fetchWorkingHours() async {
+    
     DateTime now = DateTime.now();
     String formattedDate = DateFormat('yyyy-MM-dd').format(now);
     final body = {
@@ -88,6 +139,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
       if (response != null) {
         final data = response['data'];
+        
         final punchRecords = data['inOutHistory'] ?? [];
         setState(() {
           punches = punchRecords;
@@ -111,6 +163,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     }
     setState(() {
       isPunchedIn = punchedIn;
+      isLoading=false;
     });
   }
 
@@ -146,9 +199,46 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         }
       }
     }
+    
     startTimer(total);
     return total;
   }
+
+
+  Color getColorForAttendance(Duration duration) {
+  // Convert config time string to Duration and sort descending
+  List<Map<String, dynamic>> sortedConfig = List.from(config)
+    ..sort((a, b) {
+      Duration durA = _parseDuration(a['time']);
+      Duration durB = _parseDuration(b['time']);
+      return durB.compareTo(durA); // Sort descending
+    });
+
+  for (var entry in sortedConfig) {
+    Duration threshold = _parseDuration(entry['time']);
+    if (duration >= threshold) {
+      return _hexToColor(entry['color']);
+    }
+  }
+
+  // Default color if no match
+  return Colors.red;
+}
+
+Duration _parseDuration(String timeStr) {
+  final parts = timeStr.split(':').map(int.parse).toList();
+  return Duration(hours: parts[0], minutes: parts[1], seconds: parts[2]);
+}
+
+Color _hexToColor(String hex) {
+  hex = hex.replaceFirst('#', '');
+  if (hex.length == 6) {
+    hex = 'FF$hex'; // Add full opacity if not specified
+  }
+  return Color(int.parse(hex, radix: 16));
+}
+
+
 
   void startTimer(Duration initialDuration) {
     stopTimer();
@@ -173,54 +263,58 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      drawer: _buildDrawer(),
-      appBar: AppBar(
-        iconTheme: IconThemeData(color: Colors.white),
-        title: Text('Dashboard', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.indigo[900],
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  greeting == "Good Morning"
-                      ? Icons.wb_sunny
-                      : greeting == "Good Afternoon"
-                          ? Icons.wb_cloudy
-                          : Icons.nightlight_round,
-                  color: greetingIconColor(greeting),
-                  size: 28,
-                ),
-                SizedBox(width: 8),
-                Text(
-                  "${greeting}, ${_username.split(' ')[0]}",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-            SizedBox(height: 10),
-            _topStatsRow(),
-            SizedBox(height: 30),
-            Text("Attendance",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 20),
-            _attendanceSection(),
-            SizedBox(height: 30),
-            Text("Analysis",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 16),
-            _dashboardCards(),
-          ],
+    return Stack(
+      children:[ Scaffold(
+        key: _scaffoldKey,
+        drawer: _buildDrawer(),
+        appBar: AppBar(
+          iconTheme: IconThemeData(color: Colors.white),
+          title: Text('Dashboard', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.indigo[900],
+          elevation: 0,
         ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    greeting == "Good Morning"
+                        ? Icons.wb_sunny
+                        : greeting == "Good Afternoon"
+                            ? Icons.wb_cloudy
+                            : Icons.nightlight_round,
+                    color: greetingIconColor(greeting),
+                    size: 28,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    "${greeting}, ${_username.split(' ')[0]}",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              SizedBox(height: 10),
+              _topStatsRow(),
+              SizedBox(height: 30),
+              Text("Attendance",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              SizedBox(height: 20),
+              _attendanceSection(),
+              SizedBox(height: 30),
+              Text("Analysis",
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              SizedBox(height: 16),
+              _dashboardCards(),
+            ],
+          ),
+        ),
+        bottomNavigationBar: _buildBottomNavigationBar(),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      if (isLoading) const BookPageLoader(),
+      ]
     );
   }
 
@@ -343,7 +437,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        AnimatedCircleTimer(time:formatDuration(totalWorkedDuration),hours: 7,flag: isPunchedIn,),
+        AnimatedCircleTimer(time:formatDuration(totalWorkedDuration),hours: getColorForAttendance(totalWorkedDuration),flag: isPunchedIn),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
             backgroundColor: isPunchedIn ? Colors.red : Colors.green[700],
@@ -410,9 +504,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _analysisCard('Scheduled Visit', '5', Icons.star),
-        _analysisCard('Pending visits', '3', Icons.pending_actions),
-        _analysisCard('Completed Visits', '2', Icons.directions_walk),
+        _analysisCard('Scheduled Visit', visitData['totalPrtyCount'].toString(), Icons.star),
+        _analysisCard('Completed Visits', visitData['visitedCount'].toString(), Icons.directions_walk),
+        _analysisCard('Running Visits', visitData['runningVisitCount'].toString(), Icons.run_circle_outlined),
+        _analysisCard('Pending visits', visitData['notVisitedCount'].toString(), Icons.pending_actions),
       ],
     );
   }

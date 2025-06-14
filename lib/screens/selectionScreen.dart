@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/fileUpload.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -538,7 +539,7 @@ if(flag) {
         backgroundColor: Colors.indigo[900],
         title: Text('Create Order',style: TextStyle(color: Colors.white),),
       ),
-      body: isLoading?Center(child: CircularProgressIndicator(),):uploadFileScreen?FileUploadScreen(saveFiles: saveFiles,): Padding(
+      body: isLoading?Center(child: BookPageLoader(),):uploadFileScreen?FileUploadScreen(saveFiles: saveFiles,): Padding(
         padding: const EdgeInsets.all(16.0),
         child: SingleChildScrollView(
           child: Column(

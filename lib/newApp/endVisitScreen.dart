@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:mittsure/field/routes.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
+import 'package:mittsure/newApp/productCategoryInput.dart';
 import 'package:mittsure/newApp/visitPartyDetail.dart';
 import 'package:mittsure/services/apiService.dart';
+import 'package:mittsure/services/utils.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -107,11 +111,13 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
   }
 
   Future<void> _submitForm(cont) async {
-   
+    
     if (_formKey.currentState!.validate() &&
         latitude != null &&
-        longitude != null &&
-        _image != null) {
+        longitude != null ) {
+          setState(() {
+            isLoading=true;
+          });
       final uri = Uri.parse(
           'https://mittsure.qdegrees.com:3001/visit/endVisit'); // Change this
 
@@ -136,6 +142,8 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
       request.fields['phoneNumber'] = phoneNumberController.text ?? "";
       request.fields['tentativeAmount'] = tentativeAmountController.text ?? "";
       request.fields['feedback'] = feedback ?? "";
+      request.fields['phone'] = widget.visit['makerContact'] ?? "";
+      // request.fields['noVisitCount'] = feedback ?? "";
       request.fields['remark'] = extraController.text;
       request.fields['product_category'] = jsonEncode([]);
       request.fields['status_remark'] = extraController.text;
@@ -151,6 +159,14 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
         ),
       );
      print(request.fields);
+
+      Navigator.push(
+          cont,
+          MaterialPageRoute(
+              builder: (context) => ProductCategoryInput(payload:request)),
+        );
+   
+    return;
       final response = await request.send();
       var respons = await http.Response.fromStream(response);
 
@@ -159,18 +175,30 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
       if (response.statusCode >= 200 &&
           response.statusCode < 300 &&
           res['status'] == false) {
-        Navigator.pushReplacement(
+        // Navigator.pushReplacement(
+        //   cont,
+        //   MaterialPageRoute(
+        //       builder: (context) => RouteDetailsScreen(
+        //           data: widget.visit, type: widget.type, date: widget.date,visitStatus: 4,)),
+        // );
+         Navigator.pushReplacement(
           cont,
           MaterialPageRoute(
-              builder: (context) => RouteDetailsScreen(
-                  data: widget.visit, type: widget.type, date: widget.date,visitStatus: 4,)),
+              builder: (context) => CreatedRoutesPage()),
         );
       } else {
-        ScaffoldMessenger.of(cont).showSnackBar(
-          SnackBar(content: Text(res['message'])),
-        );
+        setState(() {
+          isLoading=false;
+        });
+        DialogUtils.showCommonPopup(context: cont, message: res['message'], isSuccess: false);
+        // ScaffoldMessenger.of(cont).showSnackBar(
+        //   SnackBar(content: Text(res['message'])),
+        // );
       }
     } else {
+      setState(() {
+          isLoading=false;
+        });
       ScaffoldMessenger.of(cont).showSnackBar(
         SnackBar(content: Text('Please fill all fields and capture image')),
       );
@@ -235,105 +263,109 @@ Widget _buildTextField(String label, TextEditingController controller) {
         );
         return false;
       },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text('End Visit', style: TextStyle(color: Colors.white)),
-          iconTheme: IconThemeData(color: Colors.white),
-          backgroundColor: Colors.indigo[900],
-        ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: ListView(
-              children: [
-                _buildTextField('Contact Person', contactPersonController),
-                _buildTextField('Mobile Number', phoneNumberController),
-                _buildDropdown(
-                    'Visit Status',
-                    dropdowns['statusType'],
-                    "statusTypeId",
-                    'statusTypeName',
-                    status,
-                    (val) => setState(() {
-                          status = val;
-                        })),
-                _buildDropdown(
-                    'Work Done',
-                    dropdowns['workDone'],
-                    "workDoneTableId",
-                    'workDoneName',
-                    workDone,
-                    (val) => setState(() {
-                          workDone = val;
-                        })),
-                         _buildDropdown(
-                    'Feedback',
-                    dropdowns['feedback'],
-                    "feedbackId",
-                    'feedbackName',
-                    feedback,
-                    (val) => setState(() {
-                          feedback = val;
-                        })),
-                        _buildTextField('No. Of Book', noOfbookController),
-                        _buildTextField('Tentative Amount', tentativeAmountController),
-                      _buildDropdown(
-                    'Next Step',
-                    dropdowns['nextStep'],
-                    "nextStepTableId",
-                    'nextStepName',
-                    nextStep,
-                    (val) => setState(() {
-                          nextStep = val;
-                        })),
-                         _buildDropdown(
-                    'Visit OutCome',
-                    dropdowns['visitOutcome'],
-                    "id",
-                    'name',
-                    visitOutcome,
-                    (val) => setState(() {
-                          visitOutcome = val;
-                        })),
-                // SizedBox(height: 16),
-                // Row(
-                //   children: [
-                //     Icon(Icons.location_on),
-                //     SizedBox(width: 8),
-                //     Text(latitude != null && longitude != null
-                //         ? 'Lat: ${latitude!.toStringAsFixed(5)}, Long: ${longitude!.toStringAsFixed(5)}'
-                //         : 'Fetching location...'),
-                //   ],
-                // ),
-                // SizedBox(height: 16),
-                // Text('Capture Image:',
-                //     style: TextStyle(fontWeight: FontWeight.bold)),
-                // SizedBox(height: 8),
-                _image != null
-                    ? Image.file(_image!, height: 200)
-                    : Text('Image Mandatory'),
-                ElevatedButton.icon(
-                  icon: Icon(Icons.camera_alt),
-                  label: Text('Capture from Camera'),
-                  onPressed: _captureImage,
+      child: Stack(
+        children: [
+          Scaffold(
+            appBar: AppBar(
+              title: Text('End Visit', style: TextStyle(color: Colors.white)),
+              iconTheme: IconThemeData(color: Colors.white),
+              backgroundColor: Colors.indigo[900],
+            ),
+            body: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Form(
+                key: _formKey,
+                child: ListView(
+                  children: [
+                    _buildTextField('Contact Person', contactPersonController),
+                    _buildTextField('Mobile Number', phoneNumberController),
+                    _buildDropdown(
+                        'Visit Status',
+                        dropdowns['statusType'],
+                        "statusTypeId",
+                        'statusTypeName',
+                        status,
+                        (val) => setState(() {
+                              status = val;
+                            })),
+                    _buildDropdown(
+                        'Work Done',
+                        dropdowns['workDone'],
+                        "workDoneTableId",
+                        'workDoneName',
+                        workDone,
+                        (val) => setState(() {
+                              workDone = val;
+                            })),
+                             _buildDropdown(
+                        'Feedback',
+                        dropdowns['feedback'],
+                        "feedbackId",
+                        'feedbackName',
+                        feedback,
+                        (val) => setState(() {
+                              feedback = val;
+                            })),
+                          
+                          _buildDropdown(
+                        'Next Step',
+                        dropdowns['nextStep'],
+                        "nextStepTableId",
+                        'nextStepName',
+                        nextStep,
+                        (val) => setState(() {
+                              nextStep = val;
+                            })),
+                             _buildDropdown(
+                        'Visit OutCome',
+                        dropdowns['visitOutcome'],
+                        "id",
+                        'name',
+                        visitOutcome,
+                        (val) => setState(() {
+                              visitOutcome = val;
+                            })),
+                    SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on),
+                        SizedBox(width: 8),
+                        Text(latitude != null && longitude != null
+                            ? 'Lat: ${latitude!.toStringAsFixed(5)}, Long: ${longitude!.toStringAsFixed(5)}'
+                            : 'Fetching location...'),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    Text('Capture Image:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    SizedBox(height: 8),
+                    _image != null
+                        ? Image.file(_image!, height: 200)
+                        : Text('Image Mandatory'),
+                    ElevatedButton.icon(
+                      icon: Icon(Icons.camera_alt),
+                      label: Text('Capture from Camera'),
+                      onPressed: _captureImage,
+                    ),
+                    SizedBox(height: 14),
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                      ),
+                      icon: Icon(Icons.check),
+                      label: Text('Submit'),
+                      onPressed: () {
+                        _submitForm(context);
+                      },
+                    ),
+                  ],
                 ),
-                SizedBox(height: 14),
-                ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
-                    foregroundColor: Colors.white,
-                  ),
-                  icon: Icon(Icons.check),
-                  label: Text('Submit'),
-                  onPressed: () {
-                    _submitForm(context);
-                  },
-                ),
-              ],
+              ),
             ),
           ),
-        ),
+          if (isLoading) const BookPageLoader(),
+        ],
       ),
     );
   }

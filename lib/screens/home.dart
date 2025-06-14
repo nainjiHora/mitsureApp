@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/Party.dart';
 import 'package:mittsure/screens/collection.dart';
 import 'package:mittsure/screens/incentiveScreen.dart';
@@ -238,7 +239,7 @@ class _HomePageState extends State<HomePage> {
         onRefresh: _refreshData, // Call the refresh function
         child: loading
             ? Center(
-          child: CircularProgressIndicator(),
+          child: BookPageLoader(),
         )
             : SingleChildScrollView(
           physics: AlwaysScrollableScrollPhysics(), // Ensure scrolling is enabled

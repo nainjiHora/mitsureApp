@@ -19,7 +19,7 @@ class ItemListPage extends StatefulWidget {
 class _ItemListPageState extends State<ItemListPage> {
   List<dynamic> allItems = [];
   String selectedStatus = 'All';
-  List<Map<String, String>> filteredItems = [];
+  List<dynamic> filteredItems = [];
 
   int currentPage = 0;
   int perPage = 10;
@@ -75,30 +75,45 @@ class _ItemListPageState extends State<ItemListPage> {
     );
   }
 
-  Widget buildFilterChips() {
-    final statuses = ['All', 'Pending', 'Approved', 'Rejected'];
-    return Wrap(
-      spacing: 8,
-      children: statuses.map((status) {
-        final isSelected = selectedStatus == status;
-        return ChoiceChip(
-          label: Text(status),
-          selected: isSelected,
-          selectedColor: Colors.indigo,
-          checkmarkColor: Colors.white,
-          labelStyle:
-              TextStyle(color: isSelected ? Colors.white : Colors.black),
-          onSelected: (_) => onStatusChange(status),
-        );
-      }).toList(),
-    );
-  }
+ Widget buildFilterChips() {
+  List<Map<String, dynamic>> statuses = [
+    {"name": 'All', "id": "", "color": Colors.indigo},
+    {"name": 'Approved', "id": "1", "color": Colors.green.shade600},
+    {"name": 'Pending', "id": "0", "color": Colors.yellow.shade600},
+    {"name": 'Rejected', "id": "2", "color": Colors.red}
+  ];
+
+  return Wrap(
+    spacing: 8,
+    children: statuses.map((status) {
+      final isSelected = selectedStatus == status['id'];
+      return ChoiceChip(
+        label: Text(status['name'] ?? ""),
+        selected: isSelected,
+        selectedColor: status['color'] ?? Colors.indigo,
+        checkmarkColor: Colors.white,
+        labelStyle: TextStyle(
+          color: isSelected ? Colors.white : Colors.black,
+        ),
+        onSelected: (_) => onStatusChange(status['id'] ?? ""),
+      );
+    }).toList(),
+  );
+}
+
 
   void onStatusChange(String status) {
     setState(() {
+      print(status);
       selectedStatus = status;
+      if (status == "") {
+        filteredItems = allItems;
+      } else {
+        
+        filteredItems =
+            allItems.where((element) => element['status'].toString() == status).toList();
+      }
     });
-    fetchRouteitems();
   }
 
   Future<void> fetchRouteitems() async {
@@ -119,8 +134,8 @@ class _ItemListPageState extends State<ItemListPage> {
 
       if (response != null && response['status'] == false) {
         setState(() {
-          print(response['data'][0]);
           allItems = response['data'] ?? [];
+          onStatusChange("");
         });
       }
     } catch (error) {
@@ -132,31 +147,31 @@ class _ItemListPageState extends State<ItemListPage> {
     }
   }
 
-  List<Map<String, String>> get paginatedItems {
-    int start = currentPage * perPage;
-    int end = start + perPage;
-    return filteredItems.sublist(
-        start, end > filteredItems.length ? filteredItems.length : end);
-  }
+  // List<Map<String, String>> get paginatedItems {
+  //   int start = currentPage * perPage;
+  //   int end = start + perPage;
+  //   return filteredItems.sublist(
+  //       start, end > filteredItems.length ? filteredItems.length : end);
+  // }
 
-  int get totalPages => (filteredItems.length / perPage).ceil();
+  // int get totalPages => (filteredItems.length / perPage).ceil();
 
-  void goToPage(int page) {
-    setState(() {
-      currentPage = page;
-    });
-  }
+  // void goToPage(int page) {
+  //   setState(() {
+  //     currentPage = page;
+  //   });
+  // }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
-      onWillPop: ()async{
+      onWillPop: () async {
         Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => CreatedRoutesPage()),
-                  (route) => false, // remove all previous routes
-                );
-                return false;
+          context,
+          MaterialPageRoute(builder: (context) => CreatedRoutesPage()),
+          (route) => false, // remove all previous routes
+        );
+        return false;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -203,11 +218,11 @@ class _ItemListPageState extends State<ItemListPage> {
             //         ),
             //       ),
             //       const SizedBox(width: 10),
-      
+
             //     ],
             //   ),
             // ),
-      
+
             // Item List
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 1),
@@ -219,17 +234,17 @@ class _ItemListPageState extends State<ItemListPage> {
               ),
             ),
             Expanded(
-              child: allItems.isEmpty
+              child: filteredItems.isEmpty
                   ? const Center(child: Text("No items found."))
                   : ListView.builder(
                       padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                      itemCount: allItems.length,
+                      itemCount: filteredItems.length,
                       itemBuilder: (context, index) {
-                        final item = allItems[index];
+                        final item = filteredItems[index];
                         return GestureDetector(
                           onTap: () {
                             print(item);
-      
+
                             Navigator.push(
                                 context,
                                 MaterialPageRoute(
@@ -249,11 +264,12 @@ class _ItemListPageState extends State<ItemListPage> {
                             child: ListTile(
                               leading: const Icon(Icons.category,
                                   color: Colors.indigo),
-                              title: Text(
-                                  item['DistributorName'] ?? item['schoolName']),
+                              title: Text(item['DistributorName'] ??
+                                  item['schoolName']),
                               subtitle: Text(
                                   "${item['partyType'] == 0 ? 'Distributor' : 'School'}-${item['partyId']}"),
-                              trailing: _buildStatusBadge(item['visited_status']),
+                              trailing:
+                                  _buildStatusBadge(item['visited_status']),
                             ),
                           ),
                         );

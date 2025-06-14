@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/visitPartyDetail.dart';
 import 'package:mittsure/services/apiService.dart';
 import 'package:path/path.dart';
@@ -345,7 +346,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
       ),
       body: isLoading
           ? Center(
-              child: CircularProgressIndicator(),
+              child: BookPageLoader(),
             )
           : Padding(
               padding: const EdgeInsets.all(16.0),

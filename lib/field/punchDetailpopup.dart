@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
+import 'package:mittsure/services/apiService.dart';
 
 class PunchDetailsPopup extends StatefulWidget {
   final String meterReading;
+  final bool punchIn;
 
-  PunchDetailsPopup({required this.meterReading});
+  const PunchDetailsPopup({
+    Key? key,
+    required this.meterReading,
+    required this.punchIn,
+  }) : super(key: key);
 
   @override
   _PunchDetailsPopupState createState() => _PunchDetailsPopupState();
@@ -15,6 +22,8 @@ class _PunchDetailsPopupState extends State<PunchDetailsPopup> {
   final Map<String, dynamic> _formData = {
     'km': '',
     'worktype': '',
+    'visitType': '',
+    'vehicleType': '',
     'remark': '',
     'kmChanged': false,
   };
@@ -23,15 +32,23 @@ class _PunchDetailsPopupState extends State<PunchDetailsPopup> {
   late String initialKM;
 
   String? selectedWorkType;
+  String? selectedVisitType;
+  String? selectedVehicleType;
+
+  bool isLoading = false;
+  List<dynamic> visitMode = [];
+  List<dynamic> worktype = [];
+  List<dynamic> transportMode = [];
 
   @override
   void initState() {
     super.initState();
-    initialKM = widget.meterReading;
-    _kmController = TextEditingController(text: widget.meterReading);
-    _kmController.addListener(() {
-      _formData['kmChanged'] = _kmController.text.trim() != initialKM.trim();
-    });
+    getPicklist();
+    // initialKM = widget.meterReading;
+    // _kmController = TextEditingController(text: widget.meterReading);
+    // _kmController.addListener(() {
+    //   _formData['kmChanged'] = _kmController.text.trim() != initialKM.trim();
+    // });
   }
 
   @override
@@ -40,69 +57,109 @@ class _PunchDetailsPopupState extends State<PunchDetailsPopup> {
     super.dispose();
   }
 
+  Future<void> getPicklist() async {
+    setState(() => isLoading = true);
+
+    try {
+      final response = await ApiService.post(
+        endpoint: '/attendance/getAttendanceDropdown',
+        body: {},
+      );
+
+      if (response != null) {
+        final data = response['data'];
+        setState(() {
+          transportMode = data['transport_mode'];
+          worktype = data['work_type'];
+          visitMode = data['visit_mode'];
+        });
+      }
+    } catch (error) {
+      debugPrint("Error fetching dropdowns: $error");
+    } finally {
+      setState(() => isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text('Add Punch Details'),
-      content: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // KM field
-              TextFormField(
-                controller: _kmController,
-                decoration: InputDecoration(labelText: "Meter reading (KM)"),
-                keyboardType: TextInputType.number,
-                inputFormatters: [
-                  FilteringTextInputFormatter.digitsOnly,
-                ],
-                validator: (val) =>
-                val == null || val.isEmpty ? 'Required' : null,
-                onSaved: (val) => _formData['km'] = val ?? '',
-              ),
+      title:  Text(widget.punchIn?'Add Punch Details':"Are you Sure to punch out ?", style: TextStyle(fontWeight: FontWeight.bold)),
+      content: Stack(
+        children: [
+          Form(
+            key: _formKey,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // _buildTextField(
+                    //   controller: _kmController,
+                    //   label: "Meter Reading (KM)",
+                    //   inputType: TextInputType.number,
+                    //   formatter: [FilteringTextInputFormatter.digitsOnly],
+                    //   onSaved: (val) => _formData['km'] = val ?? '',
+                    //   validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+                    // ),
 
-              // Work type dropdown
-              DropdownButtonFormField<String>(
-                value: selectedWorkType,
-                decoration: InputDecoration(labelText: "Work Type"),
-                items: ['Visit', 'Office'].map((type) {
-                  return DropdownMenuItem(
-                    value: type,
-                    child: Text(type),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    selectedWorkType = value;
-                  });
-                },
-                validator: (val) =>
-                val == null || val.isEmpty ? 'Please select work type' : null,
-                onSaved: (val) => _formData['worktype'] = val ?? '',
-              ),
+                    if (widget.punchIn)
+                      _buildDropdown("Work Type", worktype, "id", "name", selectedWorkType, (value) {
+                        setState(() {
+                          selectedWorkType = value;
+                          _formData['worktype'] = worktype.firstWhere(
+                            (element) => element['id'].toString() == value,
+                            orElse: () => '',
+                          );
+                          selectedVisitType = null;
+                          selectedVehicleType = null;
+                        });
+                      }),
 
-              // Remark (conditionally required)
-              TextFormField(
-                decoration: InputDecoration(labelText: "Remark"),
-                validator: (val) {
-                  if (selectedWorkType == 'Office' &&
-                      (val == null || val.trim().isEmpty)) {
-                    return 'Remark required for Office';
-                  }
-                  return null;
-                },
-                onSaved: (val) => _formData['remark'] = val ?? '',
+                    if (selectedWorkType == "10") ...[
+                      _buildDropdown("Visit Type", visitMode, "id", "name", selectedVisitType, (value) {
+                        setState(() {
+                          selectedVisitType = value;
+                          _formData['visitType'] = visitMode.firstWhere(
+                            (element) => element['id'].toString() == value,
+                            orElse: () => '',
+                          );
+                        });
+                      }),
+                      _buildDropdown("Transport Mode", transportMode, "id", "name", selectedVehicleType, (value) {
+                        setState(() {
+                          selectedVehicleType = value;
+                          _formData['vehicleType'] = transportMode.firstWhere(
+                            (element) => element['id'].toString() == value,
+                            orElse: () => '',
+                          );
+                        });
+                      }),
+                    ],
+
+                    if (selectedWorkType == '11')
+                      _buildTextField(
+                        label: "Remark",
+                        onSaved: (val) => _formData['remark'] = val ?? '',
+                        validator: (val) {
+                          if ((val == null || val.trim().isEmpty)) return 'Remark required';
+                          return null;
+                        },
+                      ),
+                  ],
+                ),
               ),
-            ],
+            ),
           ),
-        ),
+          if (isLoading)
+            const Positioned.fill(child: BookPageLoader()),
+        ],
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, null),
-          child: Text("Cancel"),
+          child: const Text("Cancel"),
         ),
         ElevatedButton(
           onPressed: () {
@@ -111,9 +168,63 @@ class _PunchDetailsPopupState extends State<PunchDetailsPopup> {
               Navigator.pop(context, _formData);
             }
           },
-          child: Text("Save"),
+          child:  Text(widget.punchIn?"Save":"Yes"),
         ),
       ],
+    );
+  }
+
+  Widget _buildDropdown(
+    String label,
+    List<dynamic> items,
+    String keyId,
+    String keyName,
+    String? value,
+    ValueChanged<String?> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+        value: value,
+        items: items
+            .map((item) => DropdownMenuItem<String>(
+                  value: item[keyId].toString(),
+                  child: Text(item[keyName] ?? ""),
+                ))
+            .toList(),
+        onChanged: onChanged,
+        validator: (val) => val == null || val.isEmpty ? 'Please select $label' : null,
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    TextEditingController? controller,
+    required String label,
+    TextInputType? inputType,
+    List<TextInputFormatter>? formatter,
+    FormFieldSetter<String>? onSaved,
+    FormFieldValidator<String>? validator,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: inputType,
+        inputFormatters: formatter,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+        validator: validator,
+        onSaved: onSaved,
+      ),
     );
   }
 }

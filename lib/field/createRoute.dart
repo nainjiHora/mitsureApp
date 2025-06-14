@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/services/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:marquee/marquee.dart';
@@ -119,25 +120,29 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
         partyType != null &&
         selectedSchool != null &&
         selectedDate != null) {
-          if(selectedparty.where((element) => element['partyId']==selectedSchool).toList().length>0){
-            DialogUtils.showCommonPopup(
+      if (selectedparty
+              .where((element) => element['partyId'] == selectedSchool)
+              .toList()
+              .length >
+          0) {
+        DialogUtils.showCommonPopup(
           context: context,
-          message:"This Party already exists",
+          message: "This Party already exists",
           isSuccess: false,
-         );
-            return;
-          }else{
-      setState(() {
-        selectedparty.add({
-          'visitType': visitType,
-          'partyType': partyType,
-          'partyId': selectedSchool,
-          'date': selectedDate,
+        );
+        return;
+      } else {
+        setState(() {
+          selectedparty.add({
+            'visitType': visitType,
+            'partyType': partyType,
+            'partyId': selectedSchool,
+            'date': selectedDate,
+          });
+          selectedSchool = null;
+          // removeParty(partyType, selectedSchool);
         });
-        selectedSchool = null;
-        // removeParty(partyType, selectedSchool);
-      });
-          }
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please select all fields')),
@@ -204,7 +209,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
       final n = filteredSchools
           .where((element) => element['schoolId'] != id)
           .toList();
-       setState(() {
+      setState(() {
         filteredSchools = n;
       });
     }
@@ -212,172 +217,172 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Create Route')),
-      body: isLoading
-          ? Center(
-              child: CircularProgressIndicator(),
-            )
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  _buildDropdown(
-                      'Visit Type',
-                      visitTypeOptions,
-                      "routeVisitTypeID",
-                      'routeVisitType',
-                      visitType,
-                      (val) => setState(() {
-                            visitType = val;
-                          })),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    readOnly: true,
-                    onTap: () {
-                      selectedparty.length > 0 ? null : _pickDate();
-                    },
-                    decoration: InputDecoration(
-                      hintText: selectedDate == null
-                          ? 'Choose date'
-                          : "${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
-                      suffixIcon: const Icon(Icons.calendar_today),
-                      border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 14),
+    return Stack(
+      children: [
+        Scaffold(
+          appBar: AppBar(title: const Text('Create Route')),
+          body: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                _buildDropdown(
+                    'Visit Type',
+                    visitTypeOptions,
+                    "routeVisitTypeID",
+                    'routeVisitType',
+                    visitType,
+                    (val) => setState(() {
+                          visitType = val;
+                        })),
+                const SizedBox(height: 12),
+                TextFormField(
+                  readOnly: true,
+                  onTap: () {
+                    selectedparty.length > 0 ? null : _pickDate();
+                  },
+                  decoration: InputDecoration(
+                    hintText: selectedDate == null
+                        ? 'Choose date'
+                        : "${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
+                    suffixIcon: const Icon(Icons.calendar_today),
+                    border: const OutlineInputBorder(),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 14),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _buildDropdown(
+                    'Party Type',
+                    [
+                      {"id": "", "name": "Select Party Type"},
+                      {"id": "1", "name": "School"},
+                      {"id": "0", "name": "Distributor"}
+                    ],
+                    "id",
+                    'name',
+                    partyType, (val) {
+                  setState(() => partyType = val);
+                  _fetchOrders(int.parse(val ?? '0'));
+                }),
+                const SizedBox(height: 12),
+                partyType == '1'
+                    ? _buildDropdown(
+                        'Select School',
+                        filteredSchools,
+                        "schoolId",
+                        'schoolName',
+                        selectedSchool,
+                        (val) => setState(() {
+                              selectedSchool = val;
+                            }))
+                    : _buildDropdown(
+                        'Select Distributor',
+                        filteredDistributors,
+                        "distributorID",
+                        'DistributorName',
+                        selectedSchool,
+                        (val) => setState(() {
+                              selectedSchool = val;
+                            })),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _addRoute,
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add'),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDropdown(
-                      'Party Type',
-                      [
-                        {"id": "", "name": "Select Party Type"},
-                        {"id": "1", "name": "School"},
-                        {"id": "0", "name": "Distributor"}
-                      ],
-                      "id",
-                      'name',
-                      partyType, (val) {
-                    setState(() => partyType = val);
-                    _fetchOrders(int.parse(val ?? '0'));
-                  }),
-                  const SizedBox(height: 12),
-                  partyType == '1'
-                      ? _buildDropdown(
-                          'Select School',
-                          filteredSchools,
-                          "schoolId",
-                          'schoolName',
-                          selectedSchool,
-                          (val) => setState(() {
-                                selectedSchool = val;
-                              }))
-                      : _buildDropdown(
-                          'Select Distributor',
-                          filteredDistributors,
-                          "distributorID",
-                          'DistributorName',
-                          selectedSchool,
-                          (val) => setState(() {
-                                selectedSchool = val;
-                              })),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      ElevatedButton.icon(
-                        onPressed: _addRoute,
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add'),
-                      ),
-                      ElevatedButton(
-                        onPressed: _goToNextPage,
-                        child: const Text('Next'),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Text(
-                        "Selected Parties",
-                        style: TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
-                  Container(
-                    height: 55 * (selectedparty.length).toDouble(),
-                    width: double.infinity,
-                    child: selectedparty.length > 0
-                        ? ListView.builder(
-                            itemCount: selectedparty.length,
-                            itemBuilder: (context, index) {
-                              final item = selectedparty[index];
-                              return Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Container(
-                                    width: 300,
-                                    margin: const EdgeInsets.symmetric(
-                                        vertical: 5,
-                                        horizontal:
-                                            10), // Add some spacing around rows
-                                    padding: const EdgeInsets.all(
-                                        8), // Add padding inside the row
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue[
-                                          50], // Light blue background color
-                                      border: Border.all(
-                                          color: Colors.blue,
-                                          width: 1), // Blue border
-                                      borderRadius: BorderRadius.circular(
-                                          8), // Rounded corners
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceAround,
-                                      children: [
-                                        Text(
-                                          getName(item).length > 10
-                                              ? getName(item)
-                                                      .toString()
-                                                      .substring(0, 26) +
-                                                  "..."
-                                              : getName(item),
-                                          style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight
-                                                  .bold), // Add styling to the text
-                                        ),
-                                        SizedBox(
-                                            width:
-                                                56), // Add spacing between elements
-                                      ],
-                                    ),
+                    ElevatedButton(
+                      onPressed: _goToNextPage,
+                      child: const Text('Next'),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Selected Parties",
+                      style:
+                          TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                    ),
+                  ],
+                ),
+                Container(
+                  height: 55 * (selectedparty.length).toDouble(),
+                  width: double.infinity,
+                  child: selectedparty.length > 0
+                      ? ListView.builder(
+                          itemCount: selectedparty.length,
+                          itemBuilder: (context, index) {
+                            final item = selectedparty[index];
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  width: 300,
+                                  margin: const EdgeInsets.symmetric(
+                                      vertical: 5,
+                                      horizontal:
+                                          10), // Add some spacing around rows
+                                  padding: const EdgeInsets.all(
+                                      8), // Add padding inside the row
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue[
+                                        50], // Light blue background color
+                                    border: Border.all(
+                                        color: Colors.blue,
+                                        width: 1), // Blue border
+                                    borderRadius: BorderRadius.circular(
+                                        8), // Rounded corners
                                   ),
-                                  GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        selectedparty.removeAt(index);
-                                      });
-                                    },
-                                    child: Icon(
-                                      Icons.delete,
-                                      color: Colors.red,
-                                    ),
-                                  )
-                                ],
-                              );
-                            },
-                            physics: NeverScrollableScrollPhysics(),
-                          )
-                        : Text("No Products Added"),
-                  ),
-                ],
-              ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceAround,
+                                    children: [
+                                      Text(
+                                        getName(item).length > 10
+                                            ? getName(item)
+                                                    .toString()
+                                                    .substring(0, 26) +
+                                                "..."
+                                            : getName(item),
+                                        style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight
+                                                .bold), // Add styling to the text
+                                      ),
+                                      SizedBox(
+                                          width:
+                                              56), // Add spacing between elements
+                                    ],
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    setState(() {
+                                      selectedparty.removeAt(index);
+                                    });
+                                  },
+                                  child: Icon(
+                                    Icons.delete,
+                                    color: Colors.red,
+                                  ),
+                                )
+                              ],
+                            );
+                          },
+                          physics: NeverScrollableScrollPhysics(),
+                        )
+                      : Text("No Products Added"),
+                ),
+              ],
             ),
+          ),
+        ),
+        if (isLoading) const BookPageLoader(),
+      ],
     );
   }
 

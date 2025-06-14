@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/commonLayout.js.dart';
 import 'package:mittsure/screens/newOrder.dart';
 import 'package:mittsure/screens/partyDetail.dart';
@@ -483,7 +484,7 @@ class _PartyScreenState extends State<PartyScreen> {
             ),
             // List of Parties
             if (isLoading)
-              Center(child: CircularProgressIndicator())
+              Center(child: BookPageLoader())
             else if (parties.isEmpty)
               Expanded(
                 child: Center(

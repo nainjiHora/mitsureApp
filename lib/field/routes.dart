@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mittsure/field/newPunch.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/routeItems.dart';
 import 'package:mittsure/services/apiService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -53,7 +54,6 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
       );
 
       if (response != null&& response['status']==false) {
-        print(response);
         setState(() {
           routeList = response['data'] ?? [];
           totalRecords = response['data1'] ?? 0;
@@ -170,7 +170,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
           iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: isLoading
-            ? const Center(child: CircularProgressIndicator())
+            ?  Center(child: BookPageLoader())
             : Column(
                 children: [
                   // Padding(
