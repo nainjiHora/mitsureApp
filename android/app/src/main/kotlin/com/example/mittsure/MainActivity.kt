@@ -1,4 +1,4 @@
-package com.example.mittsure
+package com.sales.mittsure
 
 import io.flutter.embedding.android.FlutterActivity
 

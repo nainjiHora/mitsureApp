@@ -89,13 +89,18 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
 
   fetchPicklist() async {
     final body = {};
+    print("opip");
 
     try {
       final response = await ApiService.post(
         endpoint: '/visit/getDataForAppDropDown', // Use your API endpoint
         body: body,
       );
+
+        print(response);
+        print("pppresponse");
       if (response != null && response['status'] == false) {
+        print("njinji");
         setState(() {
           print(widget.visit);
           contactPersonController.text=widget.visit['makerName']??"";
@@ -151,19 +156,19 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
       request.fields['visitOutcome'] = visitOutcome ?? "";
       request.fields['nextStep'] = nextStep ?? "";
 
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'end_image',
-          _image!.path,
-          filename: basename(_image!.path),
-        ),
-      );
+      // request.files.add(
+      //   await http.MultipartFile.fromPath(
+      //     'end_image',
+      //     _image!.path,
+      //     filename: basename(_image!.path),
+      //   ),
+      // );
      print(request.fields);
 
       Navigator.push(
           cont,
           MaterialPageRoute(
-              builder: (context) => ProductCategoryInput(payload:request)),
+              builder: (context) => ProductCategoryInput(payload:request,visit: widget.visit,)),
         );
    
     return;
@@ -207,6 +212,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
 
   Widget _buildDropdown(String label, List<dynamic> items, keyId, keyName,
       String? value, ValueChanged<String?> onChanged) {
+        print(label);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3.0),
       child: DropdownButtonFormField<String>(
@@ -336,17 +342,17 @@ Widget _buildTextField(String label, TextEditingController controller) {
                       ],
                     ),
                     SizedBox(height: 16),
-                    Text('Capture Image:',
-                        style: TextStyle(fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    _image != null
-                        ? Image.file(_image!, height: 200)
-                        : Text('Image Mandatory'),
-                    ElevatedButton.icon(
-                      icon: Icon(Icons.camera_alt),
-                      label: Text('Capture from Camera'),
-                      onPressed: _captureImage,
-                    ),
+                    // Text('Capture Image:',
+                    //     style: TextStyle(fontWeight: FontWeight.bold)),
+                    // SizedBox(height: 8),
+                    // _image != null
+                    //     ? Image.file(_image!, height: 200)
+                    //     : Text('Image Mandatory'),
+                    // ElevatedButton.icon(
+                    //   icon: Icon(Icons.camera_alt),
+                    //   label: Text('Capture from Camera'),
+                    //   onPressed: _captureImage,
+                    // ),
                     SizedBox(height: 14),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
@@ -354,7 +360,7 @@ Widget _buildTextField(String label, TextEditingController controller) {
                         foregroundColor: Colors.white,
                       ),
                       icon: Icon(Icons.check),
-                      label: Text('Submit'),
+                      label: Text('Proceed'),
                       onPressed: () {
                         _submitForm(context);
                       },

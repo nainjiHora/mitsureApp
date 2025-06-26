@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mittsure/field/routes.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/visitPartyDetail.dart';
 import 'package:mittsure/services/apiService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -191,7 +192,11 @@ class _ItemListPageState extends State<ItemListPage> {
             ),
           ],
         ),
-        body: Column(
+        body:  isLoading
+          ? Center(
+              child: BookPageLoader(),
+            )
+          : Column(
           children: [
             // Filters and Page Size
             // Padding(

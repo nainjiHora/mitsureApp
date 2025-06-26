@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/specimenRequest.dart';
+import 'package:mittsure/newApp/specimenRequestList.dart';
 import 'package:mittsure/screens/commonLayout.js.dart';
 import 'package:mittsure/screens/login.dart';
 import 'package:mittsure/screens/orderDetail.dart';
@@ -163,6 +164,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
     if (a!.isNotEmpty) {
       setState(() {
         userData = jsonDecode(a ?? "");
+        print(userData['role']);
 
         if (userData['role'] == 'se') {
           selectedSE = userData['id'];
@@ -206,42 +208,6 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
     }
   }
 
-  String getStatus(int value) {
-    switch (value) {
-      case 1:
-        return "Approved";
-      case 0:
-        return "Pending";
-      case 2:
-        return "Rejected";
-      case 3:
-        return "Shipped";
-      case 4:
-        return "Delivered";
-      case 5:
-        return "All";
-      case 6:
-        return "Saved For Later";
-      default:
-        return "pending"; // Handle unexpected values
-    }
-  }
-
-  Color getColor(int value) {
-    switch (value) {
-      case 1:
-        return Colors.green; // Approved
-      case 0:
-        return Colors.orangeAccent; // Pending
-      case 2:
-        return Colors.red;
-      case 6:
-        return Colors.teal; // Rejected
-      default:
-        return Colors.orangeAccent; // Fallback for unexpected values
-    }
-  }
-
   // Method to handle date selection
   void _onDateSelected(String date) {
     setState(() {
@@ -250,38 +216,10 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
     // _fetchOrders(currentPage,); // Fetch orders based on the selected date
   }
 
-  Widget _buildFilterButton(String text, bool isSelected, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-            vertical: 2, horizontal: 15), // Increased padding
-        margin: EdgeInsets.symmetric(
-            vertical: 4, horizontal: 4), // Added margin for spacing
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue : Colors.white,
-          borderRadius: BorderRadius.circular(25), // More rounded edges
-          border: Border.all(color: Colors.blue, width: 1.5), // Thicker border
-          boxShadow: [
-            if (isSelected)
-              BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
-                blurRadius: 8,
-                spreadRadius: 1,
-                offset: Offset(0, 3),
-              ),
-          ],
-        ),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontSize: 14, // Increased font size
-            color: isSelected ? Colors.white : Colors.blue,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-    );
+  bool hasRole(String targetRole) {
+    final role = userData['role'];
+    if (role == null) return false;
+    return role.toString().contains(targetRole);
   }
 
   Future<void> _fetchOrders(pageN, status) async {
@@ -300,13 +238,14 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
     print(body);
     try {
       final response = await ApiService.post(
-        endpoint: '/specimen/getAllAssignedSpecimenItems', // Use your API endpoint
+        endpoint:
+            '/specimen/getAllAssignedSpecimenItems', // Use your API endpoint
         body: body,
       );
-      print(response);
       // Check if the response is valid
-      if (response != null &&response['status']==false) {
+      if (response != null && response['status'] == false) {
         final data = response['data'];
+        print(data);
 
         setState(() {
           orders = data;
@@ -329,15 +268,6 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
   }
 
   // Method to log out (can be customized as per your auth logic)
-  void _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-      (route) => false, // remove all previous routes
-    );
-  }
 
   int get totalPages => (totalCount / int.parse(pageSize)).ceil();
 
@@ -370,25 +300,28 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12.0),
           child: Column(
             children: [
-             Text("Available Specimens",style: TextStyle(fontSize: 16,fontWeight: FontWeight.w600),),
+              Text(
+                "Available Specimens",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
 
               SizedBox(
                 height: 15,
               ),
               userData['role'] != 'se'
-
                   ? Row(
                       children: [
                         SizedBox(
                           width: 5,
                         ),
-                        userData['role'].contains('admin') ||
+                        hasRole('admin') ||
+                                userData['role'] == 'zsm' ||
                                 userData['role'] == 'zsm'
                             ? Expanded(
                                 child: DropdownButtonFormField<String>(
                                   value: selectedRsm,
                                   decoration: InputDecoration(
-                                    labelText: 'Select RSM',
+                                    labelText: 'Select VP',
                                     border: OutlineInputBorder(),
                                     contentPadding: EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 8),
@@ -426,13 +359,13 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                           width: 5,
                         ),
                         userData['role'] == 'rsm' ||
-                                userData['role'].contains('admin') ||
+                                hasRole('admin') ||
                                 userData['role'] == 'zsm'
                             ? Expanded(
                                 child: DropdownButtonFormField<String>(
                                   value: selectedASM,
                                   decoration: InputDecoration(
-                                    labelText: 'Select ASM',
+                                    labelText: 'Select CH',
                                     border: OutlineInputBorder(),
                                     contentPadding: EdgeInsets.symmetric(
                                         horizontal: 10, vertical: 8),
@@ -534,7 +467,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                    Text("Records per page: "),
+                        Text("Records per page: "),
                         DropdownButton<String>(
                           value: pageSize,
                           items: ['15', '20', '25', '30']
@@ -558,11 +491,11 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    SpecimenRequestScreen()) // remove all previous routes
+                                    SpecimenReList()) // remove all previous routes
                             );
                       },
                       icon: Icon(Icons.add),
-                      label: Text("New Request"))
+                      label: Text("Requests"))
                 ],
               ),
               // List of Orders
@@ -584,40 +517,61 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                           child: ListView.builder(
                             itemCount: filteredOrders.length,
                             itemBuilder: (context, index) {
+                              final order = filteredOrders[index];
+                              final skuItems =
+                                  order['skuItems'] as List<dynamic>;
+
                               return GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => OrderDetailsScreen(
-                                              order: filteredOrders[
-                                                  index])), // Route to HomePage
-                                    );
-                                  },
-                                  child: Card(
-                                    margin: EdgeInsets.symmetric(
-                                        vertical: 8, horizontal: 16),
-                                    elevation: 3,
-                                    child: ListTile(
-                                      title: Text(
-                                        filteredOrders[index]
-                                                ['nameSku'] ??
-                                            filteredOrders[index]['schoolName'],
+                                onTap: () {},
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 8),
+                                      child: Text(
+                                        order['seriesName']
+                                                .toString()
+                                                .toUpperCase() ??
+                                            '',
                                         style: TextStyle(
+                                            fontSize: 16,
                                             fontWeight: FontWeight.bold),
                                       ),
-                                      subtitle: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                              'Quantity: ${filteredOrders[index]['totalQuantity']}'),
-                                        
-                                        ],
-                                      ),
-                                      
                                     ),
-                                  ));
+                                    ListView.builder(
+                                      shrinkWrap: true,
+                                      physics: NeverScrollableScrollPhysics(),
+                                      itemCount: skuItems.length,
+                                      itemBuilder: (context, skuIndex) {
+                                        final item = skuItems[skuIndex];
+
+                                        return Card(
+                                          margin: EdgeInsets.symmetric(
+                                              vertical: 4, horizontal: 16),
+                                          elevation: 3,
+                                          child: ListTile(
+                                            title: Text(
+                                              item['nameSku'] ?? "",
+                                              style: TextStyle(
+                                                  fontWeight: FontWeight.bold),
+                                            ),
+                                            subtitle: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Text(
+                                                    'Class: ${item['className']}'),
+                                                Text(
+                                                    'Quantity: ${int.parse(item['quantity']).toString()}'),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    )
+                                  ],
+                                ),
+                              );
                             },
                           ),
                         )

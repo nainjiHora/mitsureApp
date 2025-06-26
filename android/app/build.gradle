@@ -23,7 +23,7 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.example.mittsure"
+    namespace "com.sales.mittsure"
     compileSdk 34
     ndkVersion flutter.ndkVersion
 

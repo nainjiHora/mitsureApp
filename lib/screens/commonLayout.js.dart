@@ -25,6 +25,7 @@ class CommonLayout extends StatefulWidget {
 }
 
 class _CommonLayoutState extends State<CommonLayout> {
+  
   void _logout() {
     showDialog(
       context: context,
@@ -112,10 +113,11 @@ class _CommonLayoutState extends State<CommonLayout> {
 
   void _navigateToHome() {
     // Handle navigation to the Home screen
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => HomePage()), // Replace with your HomeScreen
-    );
+    Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => MainMenuScreen()),
+                (route) => false, // remove all previous routes
+              );
   }
 
   @override

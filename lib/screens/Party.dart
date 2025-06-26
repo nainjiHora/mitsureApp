@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:mittsure/newApp/addDistributor.dart';
+import 'package:mittsure/newApp/addSchool.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/commonLayout.js.dart';
 import 'package:mittsure/screens/newOrder.dart';
@@ -346,7 +348,7 @@ class _PartyScreenState extends State<PartyScreen> {
                   child:DropdownButtonFormField<String>(
                     value: selectedRsm,
                     decoration: InputDecoration(
-                      labelText: 'Select RSM',
+                      labelText: 'Select VP',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
@@ -378,7 +380,7 @@ class _PartyScreenState extends State<PartyScreen> {
                   child: DropdownButtonFormField<String>(
                     value: selectedASM,
                     decoration: InputDecoration(
-                      labelText: 'Select ASM',
+                      labelText: 'Select CH',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
@@ -463,8 +465,24 @@ class _PartyScreenState extends State<PartyScreen> {
             ),
             // Page Size Dropdown
             Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+               selectedFilter=='school'? ElevatedButton.icon(onPressed: (){
+                   Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddSchoolForm()
+                          ),
+                        );
+                }, icon: Icon(Icons.add), label: Text("Add School")):Container(),
+                selectedFilter=='distributor'?ElevatedButton.icon(onPressed: (){
+                   Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => AddDistributorForm()
+                          ),
+                        );
+                }, icon: Icon(Icons.add), label: Text("Add Distributor")):Container(),
                 Text("Records per page: "),
                 DropdownButton<String>(
                   value: pageSize,

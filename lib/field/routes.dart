@@ -7,6 +7,7 @@ import 'package:mittsure/newApp/routeItems.dart';
 import 'package:mittsure/services/apiService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'createRoute.dart';
+// ... import statements stay the same
 
 class CreatedRoutesPage extends StatefulWidget {
   const CreatedRoutesPage({super.key});
@@ -20,14 +21,154 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
   int currentPage = 0;
   int perPage = 10;
   int totalRecords = 0;
+   Map<String, dynamic> userData = {};
   bool isLoading = true;
-  String selectedStatus = 'All';
   final List<int> pageSizes = [5, 10, 20, 50];
+   String selectedASM = "";
+  List<dynamic> asmList = [];
+  String selectedRsm = "";
+  List<dynamic> rsmList = [];
+  String selectedSE = "";
+  List<dynamic> seList = [];
 
   @override
   void initState() {
     super.initState();
+    getUserData();
+  }
+
+  List<dynamic> allUsers = [];
+
+  _fetChAllRSM() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      final response =
+          await ApiService.post(endpoint: '/user/getUsers', body: {});
+
+      if (response != null) {
+        final data = response['data'];
+        setState(() {
+          rsmList = data.where((e) => e['role'] == 'rsm').toList();
+          asmList = data.where((e) => e['role'] == 'asm').toList();
+          seList = data.where((e) => e['role'] == 'se').toList();
+          allUsers = data;
+
+          fetchRoutes();
+        });
+      } else {
+        throw Exception('Failed to load orders');
+      }
+    } catch (error) {
+      print("Error fetching ojbjbjbjjrders: $error");
+    } finally {}
+  }
+
+  bool hasRole(String targetRole) {
+    final role = userData['role'];
+    if (role == null) return false;
+    return role.toString().contains(targetRole);
+  }
+
+  _fetchAsm(id) async {
+    setState(() {
+      isLoading = true;
+    });
     fetchRoutes();
+    try {
+      if (id != "") {
+        final response = await ApiService.post(
+          endpoint: '/user/getUserListBasedOnId',
+          body: {"userId": id},
+        );
+
+        if (response != null) {
+          final data = response['data'];
+          setState(() {
+            asmList = data;
+            selectedSE = "";
+            selectedASM = "";
+
+            seList = response['data1'];
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      } else {
+        setState(() {
+          selectedASM = "";
+          selectedSE = "";
+          asmList = allUsers.where((e) => e['role'] == 'asm').toList();
+          seList = allUsers.where((e) => e['role'] == 'se').toList();
+        });
+      }
+    } catch (error) {
+      print("Error fetching ojbjbjbjjrders: $error");
+    } finally {}
+  }
+
+  _fetchSe(id) async {
+    fetchRoutes();
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      if (id != "") {
+        final response = await ApiService.post(
+          endpoint: '/user/getUserListBasedOnId',
+          body: {"userId": id},
+        );
+
+        if (response != null) {
+          final data = response['data'];
+          setState(() {
+            selectedSE = "";
+            seList = data;
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      } else {
+        setState(() {
+          selectedSE = "";
+          seList = allUsers.where((e) => e['role'] == 'se').toList();
+          isLoading = false;
+        });
+      }
+    } catch (error) {
+      print("Error fetching orders: $error");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user');
+    if (a!.isNotEmpty) {
+      setState(() {
+        userData = jsonDecode(a ?? "");
+        print(userData['role']);
+
+        if (userData['role'] == 'se') {
+          selectedSE = userData['id'];
+          fetchRoutes();
+        } else if (userData['role'] == 'rsm') {
+          selectedRsm = userData['id'];
+          _fetchAsm(userData['id']);
+        } else if (userData['role'] == 'asm') {
+          selectedASM = userData['id'];
+          _fetchSe(userData['id']);
+        } else {
+          _fetChAllRSM();
+        }
+      });
+    }
   }
 
   Future<void> fetchRoutes() async {
@@ -35,25 +176,23 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
       isLoading = true;
     });
 
-    final prefs = await SharedPreferences.getInstance();
-    final userJson = prefs.getString('user');
-    if (userJson == null) return;
-
-    final id = jsonDecode(userJson)['id'];
+   
     final body = {
       "pageNumber": currentPage,
-      "recordPerPage": perPage,
-      "ownerName": id,
-      if (selectedStatus != 'All') "status": selectedStatus.toLowerCase()
+      "recordPerPage": 20,
+      "ownerName": selectedSE,
+      "rsm": selectedRsm,
+      "asm": selectedASM,
     };
 
     try {
+      print(body);
       final response = await ApiService.post(
         endpoint: '/routePlan/getRoutePlan',
         body: body,
       );
 
-      if (response != null&& response['status']==false) {
+      if (response != null && response['status'] == false) {
         setState(() {
           routeList = response['data'] ?? [];
           totalRecords = response['data1'] ?? 0;
@@ -66,14 +205,6 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
         isLoading = false;
       });
     }
-  }
-
-  void onStatusChange(String status) {
-    setState(() {
-      selectedStatus = status;
-      currentPage = 0;
-    });
-    fetchRoutes();
   }
 
   void onPageSizeChange(int size) {
@@ -91,221 +222,393 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
     fetchRoutes();
   }
 
-  Widget buildFilterChips() {
-    final statuses = ['All', 'Pending', 'Approved', 'Rejected'];
-    return Wrap(
-      spacing: 8,
-      children: statuses.map((status) {
-        final isSelected = selectedStatus == status;
-        return ChoiceChip(
-          label: Text(status),
-          selected: isSelected,
-          selectedColor: Colors.indigo[900],
-          checkmarkColor: Colors.white,
-          labelStyle:
-              TextStyle(color: isSelected ? Colors.white : Colors.black),
-          onSelected: (_) => onStatusChange(status),
-        );
-      }).toList(),
-    );
+  List<dynamic> get todayRoutes {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    return routeList.where((route) {
+      final dateStr = route['date'];
+      final parsed = DateTime.tryParse(dateStr ?? '');
+      if (parsed == null) return false;
+      final dateOnly = DateTime(parsed.year, parsed.month, parsed.day);
+      return dateOnly == today;
+    }).toList();
   }
 
-  Widget buildPaginationButtons() {
-    int totalPages = (totalRecords / perPage).ceil();
+  List<dynamic> get upcomingRoutes {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
-    return Wrap(
-      spacing: 6,
-      children: List.generate(totalPages, (index) {
-        bool isSelected = index == currentPage;
-        return ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            backgroundColor:
-                isSelected ? Colors.indigo[900] : Colors.grey.shade200,
-            foregroundColor: isSelected ? Colors.white : Colors.black,
+    return routeList.where((route) {
+      final dateStr = route['date'];
+      final parsed = DateTime.tryParse(dateStr ?? '');
+      if (parsed == null) return false;
+      final dateOnly = DateTime(parsed.year, parsed.month, parsed.day);
+      return dateOnly.isAfter(today);
+    }).toList();
+  }
+
+  Widget buildRouteCard(dynamic route) {
+    final date = DateTime.tryParse(route['date'] ?? '') ?? DateTime.now();
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemListPage(
+              id: route['routeId'],
+              date: route['date'],
+            ),
           ),
-          onPressed: () => goToPage(index),
-          child: Text('${index + 1}'),
         );
-      }),
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.indigo.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.indigo.shade50,
+              ),
+              child: const Icon(Icons.calendar_today, color: Colors.indigo),
+            ),
+            const SizedBox(width: 16),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "${date.day}-${date.month}-${date.year}",
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                 Text(userData['role']=='se'?"Tap to view details":route['name']),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final dates = routeList
-        .map(
-            (route) => DateTime.tryParse(route['date'] ?? '') ?? DateTime.now())
-        .toList()
-      ..sort();
-
-    final totalPages = (totalRecords / perPage).ceil();
+    final totalPages = (totalRecords / perPage).floor();
 
     return WillPopScope(
-       onWillPop: ()async{
+      onWillPop: () async {
         Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => MainMenuScreen()),
-                  (route) => false, // remove all previous routes
+                  (route) => false,
                 );
-                return false;
+        return false; // Prevent default back navigation
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFFF9F9F9),
         appBar: AppBar(
           backgroundColor: Colors.indigo[900],
+          title: const Text('Created Routes', style: TextStyle(color: Colors.white)),
+          iconTheme: const IconThemeData(color: Colors.white),
           actions: [
             IconButton(
-              icon: const Icon(Icons.home, color: Colors.white),
+              icon: const Icon(Icons.home),
               onPressed: () {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => MainMenuScreen()),
-                  (route) => false, // remove all previous routes
+                  (route) => false,
                 );
               },
             ),
           ],
-          title:
-              const Text('Created Routes', style: TextStyle(color: Colors.white)),
-          iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: isLoading
-            ?  Center(child: BookPageLoader())
-            : Column(
-                children: [
-                  // Padding(
-                  //   padding:
-                  //       const EdgeInsets.symmetric(vertical: 8.0, horizontal: 1),
-                  //   child: Row(
-                  //     children: [
-                  //       Expanded(child: buildFilterChips()),
-                  //       const SizedBox(width: 10),
-                  //     ],
-                  //   ),
-                  // ),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        DropdownButton<int>(
-                          value: perPage,
-                          underline: Container(),
-                          items: pageSizes
-                              .map((size) => DropdownMenuItem(
-                                  value: size, child: Text("Page Size: $size")))
-                              .toList(),
-                          onChanged: (value) {
-                            if (value != null) onPageSizeChange(value);
-                          },
-                        ),
-                      ],
+            ? const Center(child: BookPageLoader())
+            : routeList.isEmpty
+                ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children:  [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.route, size: 80, color: Colors.grey),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text("No routes found",
+                              style: TextStyle(color: Colors.grey, fontSize: 18)),
+                        ],
+                      ),
+                    ],
+                  )
+                : Column(
+
+                    children: [
+                      SizedBox(height: 10,),
+                      userData['role'] != 'se'
+              ? Row(
+                  children: [
+                    SizedBox(
+                      width: 5,
                     ),
-                  ),
-      
-                  // Route List
-                  Expanded(
-                    child: dates.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No routes found.\nTry a different filter or create a new one!',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 18, color: Colors.grey),
+                    hasRole('admin') ||
+                            userData['role'] == 'zsm' ||
+                            userData['role'] == 'zsm'
+                        ? Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedRsm,
+                              decoration: InputDecoration(
+                                labelText: 'Select VP',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                              ),
+                              style: TextStyle(fontSize: 14),
+                              dropdownColor: Colors.white,
+                              items: [
+                                DropdownMenuItem<String>(
+                                  value: '', // Blank value for "All"
+                                  child: Text('All',
+                                      style: TextStyle(
+                                          fontSize: 14, color: Colors.black)),
+                                ),
+                                ...rsmList.map((rsm) {
+                                  return DropdownMenuItem<String>(
+                                    value: rsm['id'].toString(),
+                                    child: Text(rsm['name'],
+                                        style: TextStyle(
+                                            fontSize: 14, color: Colors.black)),
+                                  );
+                                }).toList(),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedRsm = value ?? "";
+                                });
+                                _fetchAsm(value);
+                              },
                             ),
                           )
-                        : ListView.builder(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                            itemCount: routeList.length,
-                            itemBuilder: (context, index) {
-                              final route = routeList[index];
-                              final date =
-                                  DateTime.tryParse(route['date'] ?? '') ??
-                                      DateTime.now();
-                              return GestureDetector(
-                                onTap: () {
-                                  print(route);
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (context) => ItemListPage(
-                                            id: route['routeId'],
-                                            date: route['date'])),
-                                  );
-                                },
-                                child: Card(
-                                  elevation: 3,
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: ListTile(
-                                    leading: const Icon(
-                                        Icons.calendar_today_rounded,
-                                        color: Colors.indigo),
-                                    title: Text(
-                                      "${date.day}-${date.month}-${date.year}",
-                                      style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 16),
-                                    ),
-                                    subtitle: const Text("Tap to view details"),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-      
-                  // Pagination Controls
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("Page ${currentPage + 1} of $totalPages"),
-                        const SizedBox(height: 6),
-                        buildPaginationButtons(),
-                      ],
+                        : SizedBox(height: 0),
+                    SizedBox(
+                      width: 5,
                     ),
-                  )
-                ],
-              ),
-        floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
-          child: FloatingActionButton(
-            backgroundColor: Colors.indigo[900],
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const CreateRoutePage()),
-              );
-            },
-            child: const Icon(
-              Icons.add,
-              color: Colors.white,
-            ),
+                    userData['role'] == 'rsm' ||
+                            hasRole('admin') ||
+                            userData['role'] == 'zsm'
+                        ? Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedASM,
+                              decoration: InputDecoration(
+                                labelText: 'Select CH',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                              ),
+                              style: TextStyle(fontSize: 14),
+                              dropdownColor: Colors.white,
+                              items: [
+                                DropdownMenuItem<String>(
+                                  value: '', // Blank value for "All"
+                                  child: Text('All',
+                                      style: TextStyle(
+                                          fontSize: 14, color: Colors.black)),
+                                ),
+                                ...asmList.map((rsm) {
+                                  return DropdownMenuItem<String>(
+                                    value: rsm['id'].toString(),
+                                    child: Text(rsm['name'],
+                                        style: TextStyle(
+                                            fontSize: 14, color: Colors.black)),
+                                  );
+                                }).toList(),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedASM = value ?? "";
+                                });
+                                _fetchSe(value);
+                              },
+                            ),
+                          )
+                        : SizedBox(height: 0),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                  ],
+                )
+              : Container(),
+          SizedBox(
+            height: 8,
           ),
-        ),
+          userData['role'] != 'se'
+              ? Row(
+                  children: [
+                    SizedBox(
+                      width: 5,
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedSE,
+                        decoration: InputDecoration(
+                          labelText: 'Select RM',
+                          border: OutlineInputBorder(),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                        style: TextStyle(fontSize: 14),
+                        dropdownColor: Colors.white,
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: '', // Blank value for "All"
+                            child: Text('All',
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.black)),
+                          ),
+                          ...seList.map((rsm) {
+                            return DropdownMenuItem<String>(
+                              value: rsm['id'].toString(),
+                              child: Text(rsm['name'],
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.black)),
+                            );
+                          }).toList(),
+                        ],
+                        onChanged: (value) {
+                          selectedSE = value ?? "";
+                          fetchRoutes();
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                  ],
+                )
+              : Container(),
+              SizedBox(height: 10,),
+                      // Padding(
+                      //   padding: const EdgeInsets.only(right: 16, top: 8),
+                      //   child: Row(
+                      //     mainAxisAlignment: MainAxisAlignment.end,
+                      //     children: [
+                      //       DropdownButton<int>(
+                      //         value: perPage,
+                      //         underline: Container(),
+                      //         style: const TextStyle(fontSize: 14),
+                      //         items: pageSizes
+                      //             .map((size) => DropdownMenuItem(
+                      //                 value: size,
+                      //                 child: Text("Page Size: $size")))
+                      //             .toList(),
+                      //         onChanged: (value) {
+                      //           if (value != null) onPageSizeChange(value);
+                      //         },
+                      //       ),
+                      //     ],
+                      //   ),
+                      // ),
+                      Expanded(
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                          children: [
+                            if (todayRoutes.isNotEmpty) ...[
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Text("📅 Today's Routes",
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.indigo)),
+                              ),
+                              ...todayRoutes.map(buildRouteCard),
+                            ],
+                            if (upcomingRoutes.isNotEmpty) ...[
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 8),
+                                child: Text("🚀 Upcoming Routes",
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.indigo)),
+                              ),
+                              ...upcomingRoutes.map(buildRouteCard),
+                            ],
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Column(
+                          children: [
+                            Text("Page ${currentPage + 1} of $totalPages",
+                                style: const TextStyle(fontWeight: FontWeight.w500)),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 6,
+                              children: List.generate(totalPages, (index) {
+                                final isSelected = index == currentPage;
+                                return ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isSelected
+                                        ? Colors.indigo
+                                        : Colors.grey.shade300,
+                                    foregroundColor:
+                                        isSelected ? Colors.white : Colors.black,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 10),
+                                  ),
+                                  onPressed: () => goToPage(index),
+                                  child: Text('${index + 1}'),
+                                );
+                              }),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+        floatingActionButton: userData['role']=='se'? FloatingActionButton(
+          backgroundColor: Colors.indigo[900],
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const CreateRoutePage()),
+            );
+          },
+          child: const Icon(Icons.add,color: Colors.white,),
+        ):null,
       ),
     );
   }
-}
-
-Widget _buildDropdown(String label, List<dynamic> items, keyId, keyName,
-    String? value, ValueChanged<String?> onChanged) {
-  return DropdownButtonFormField<String>(
-    decoration: InputDecoration(
-      labelText: label,
-      border: const OutlineInputBorder(),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-    ),
-    value: value,
-    items: items
-        .map((item) => DropdownMenuItem(
-            value: item![keyId]!.toString(), child: Text(item[keyName] ?? "")))
-        .toList(),
-    onChanged: onChanged,
-  );
 }

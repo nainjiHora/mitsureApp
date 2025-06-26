@@ -61,6 +61,11 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   }
 
   fetchlastVisit() async {
+    print(widget.data);
+    print("ssssss");
+    setState(() {
+      isLoading = true;
+    });
     final body = {"partyId": widget.data['partyId']};
 
     try {
@@ -77,6 +82,10 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       } else {}
     } catch (error) {
       print("Error fething orders: $error");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -89,9 +98,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
         endpoint: '/picklist/getRouteVisitType', // Use your API endpoint
         body: body,
       );
-print(widget.visitStatus);
-print(widget.data);
-print("tryuy");
+
       if (response != null && response['status'] == false) {
         setState(() {
           visitTypeOptions.addAll(response['data']);
@@ -131,9 +138,14 @@ print("tryuy");
         "lat": position.latitude.toString(),
         "long": position.longitude.toString(),
         "type": widget.type.toString(),
-        "id": widget.data['addressId']
+        "id": widget.data['addressId'],
+        "data": jsonEncode({
+          "party": widget.data['partyId'],
+          "lat": position.latitude.toString(),
+          "long": position.longitude.toString(),
+        })
       };
-    
+
       final response = await ApiService.post(
         endpoint: '/party/markLocation',
         body: body,
@@ -307,12 +319,25 @@ print("tryuy");
     );
   }
 
+  var userData = {};
+  getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user');
+    if (a!.isNotEmpty) {
+      setState(() {
+        userData = jsonDecode(a ?? "");
+      });
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     fetchPicklist();
     fetchlastVisit();
+    getUserData();
+
     distributor = widget.data;
   }
 
@@ -667,7 +692,12 @@ print("tryuy");
                   SizedBox(
                     height: 6,
                   ),
-                  widget.data['lat'] == null && widget.data['long'] == null
+                  userData['role'] == 'se' &&
+                          status == 0 &&
+                          widget.data['status'] == 1 &&
+                          isToday(widget.date) &&
+                          widget.data['lat'] == null &&
+                          widget.data['long'] == null
                       ? ElevatedButton.icon(
                           icon: Icon(
                             Icons.map,
@@ -689,7 +719,8 @@ print("tryuy");
                   SizedBox(
                     height: 10,
                   ),
-                  status == 0 &&
+                  userData['role'] == 'se' &&
+                          status == 0 &&
                           widget.data['status'] == 1 &&
                           isToday(widget.date) &&
                           widget.data['lat'] != null &&
@@ -721,7 +752,7 @@ print("tryuy");
                           ),
                         )
                       : Container(),
-                  status == 1
+                  userData['role'] == 'se' && status == 1
                       ? ElevatedButton.icon(
                           icon: Icon(
                             Icons.start_outlined,
@@ -740,7 +771,7 @@ print("tryuy");
                           ),
                         )
                       : Container(),
-                  status == 2
+                  userData['role'] == 'se' && status == 2
                       ? ElevatedButton.icon(
                           icon: Icon(
                             Icons.start_outlined,
@@ -759,7 +790,7 @@ print("tryuy");
                           ),
                         )
                       : Container(),
-                  status == 3
+                  userData['role'] == 'se' && status == 3
                       ? ElevatedButton.icon(
                           icon: Icon(
                             Icons.start_outlined,

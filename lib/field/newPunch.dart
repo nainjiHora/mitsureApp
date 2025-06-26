@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:mittsure/field/punchDetailpopup.dart';
@@ -20,12 +21,23 @@ import 'package:shimmer/shimmer.dart';
 import '../services/apiService.dart';
 
 class PunchScreen extends StatefulWidget {
+  final bool mark;
+
+  PunchScreen({required this.mark});
+
   @override
   _PunchScreenState createState() => _PunchScreenState();
 }
 
 class _PunchScreenState extends State<PunchScreen> {
   List<dynamic> punches = [];
+  DateTime? followUpDate;
+  String selectedASM = "";
+  List<dynamic> asmList = [];
+  String selectedRsm = "";
+  List<dynamic> rsmList = [];
+  String selectedSE = "";
+  List<dynamic> seList = [];
   bool isLoading = false;
   bool isLoadingCards = false;
   bool cameraScreen = false;
@@ -37,9 +49,9 @@ class _PunchScreenState extends State<PunchScreen> {
   Duration currentSessionDuration = Duration.zero;
 
   // Dummy counters
-  int presentCount = 12;
-  int absentCount = 3;
-  int halfDayCount = 1;
+  int presentCount = 0;
+  int absentCount = 0;
+  int halfDayCount = 0;
   bool meterCamera = false;
   Map<String, dynamic> userData = {};
   getUserData() async {
@@ -48,15 +60,139 @@ class _PunchScreenState extends State<PunchScreen> {
     if (a!.isNotEmpty) {
       setState(() {
         userData = jsonDecode(a ?? "");
-        _fetchWorkingHours();
+        print(userData['role']);
+
+        if (userData['role'] == 'se') {
+          selectedSE = userData['id'];
+          _fetchWorkingHours(null);
         _fetchMonthlyAttendance(null);
+        } else if (userData['role'] == 'rsm') {
+          selectedRsm = userData['id'];
+          _fetchAsm(userData['id']);
+        } else if (userData['role'] == 'asm') {
+          selectedASM = userData['id'];
+          _fetchSe(userData['id']);
+        } else {
+          _fetChAllRSM();
+        }
       });
     }
   }
 
+  List<dynamic> allUsers = [];
+  _fetChAllRSM() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      final response =
+          await ApiService.post(endpoint: '/user/getUsers', body: {});
+
+      if (response != null) {
+        final data = response['data'];
+        setState(() {
+          rsmList = data.where((e) => e['role'] == 'rsm').toList();
+          asmList = data.where((e) => e['role'] == 'asm').toList();
+          seList = data.where((e) => e['role'] == 'se').toList();
+          allUsers = data;
+         isLoading=false;
+        
+        });
+      } else {
+        throw Exception('Failed to load orders');
+      }
+    } catch (error) {
+      print("Error fetching ojbjbjbjjrders: $error");
+    } finally {}
+  }
+
+  bool hasRole(String targetRole) {
+    final role = userData['role'];
+    if (role == null) return false;
+    return role.toString().contains(targetRole);
+  }
+
+  _fetchAsm(id) async {
+    setState(() {
+      isLoading = true;
+    });
+    
+    try {
+      if (id != "") {
+        final response = await ApiService.post(
+          endpoint: '/user/getUserListBasedOnId',
+          body: {"userId": id},
+        );
+
+        if (response != null) {
+          final data = response['data'];
+          setState(() {
+            asmList = data;
+            selectedSE = "";
+            selectedASM = "";
+
+            seList = response['data1'];
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      } else {
+        setState(() {
+          selectedASM = "";
+          selectedSE = "";
+          asmList = allUsers.where((e) => e['role'] == 'asm').toList();
+          seList = allUsers.where((e) => e['role'] == 'se').toList();
+          isLoading=false;
+        });
+      }
+    } catch (error) {
+      print("Error fetching ojbjbjbjjrders: $error");
+    } finally {}
+  }
+
+  _fetchSe(id) async {
+   print(id);
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      if (id != "") {
+        final response = await ApiService.post(
+          endpoint: '/user/getUserListBasedOnId',
+          body: {"userId": id},
+        );
+
+        if (response != null) {
+          final data = response['data'];
+          setState(() {
+            selectedSE = "";
+            seList = data;
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      } else {
+        setState(() {
+          selectedSE = "";
+          seList = allUsers.where((e) => e['role'] == 'se').toList();
+          isLoading = false;
+        });
+      }
+    } catch (error) {
+      print("Error fetching orders: $error");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+
+
   // lastPunchIn = punches.isNotEmpty && punches.last.type == "In";
   Future<void> _fetchMonthlyAttendance(month) async {
-  
     setState(() {
       isLoadingCards = true;
     });
@@ -64,7 +200,7 @@ class _PunchScreenState extends State<PunchScreen> {
     final now = DateTime.now();
 
     Map<String, dynamic> body = {
-      "userId": userData['id'],
+      "userId": selectedSE,
       "month": month ?? now.month, // e.g., 6 for June
       "year": now.year, // e.g., 2025
     };
@@ -102,13 +238,14 @@ class _PunchScreenState extends State<PunchScreen> {
     }
   }
 
-  Future<void> _fetchWorkingHours() async {
+  Future<void> _fetchWorkingHours(date) async {
+    DateTime now =date?? DateTime.now();
     setState(() {
       isLoading = true;
+      followUpDate = now;
     });
-    DateTime now = DateTime.now();
     String formattedDate = DateFormat('yyyy-MM-dd').format(now);
-    final body = {"userId": userData['id'], "date": formattedDate};
+    final body = {"userId": selectedSE, "date": formattedDate};
 
     try {
       final response = await ApiService.post(
@@ -278,27 +415,23 @@ class _PunchScreenState extends State<PunchScreen> {
       if (response.statusCode == 200) {
         print(res);
         print("ppooiiu");
-        if (res['status']==false) {
+        if (res['status'] == false) {
           final prefs = await SharedPreferences.getInstance();
           if (lastPunchIn) {
             prefs.remove('vehicleType');
           } else {
-            
-            final gl=punchData['vehicleType'] != "" &&
-                        punchData['vehicleType'] != null &&
-                        punchData['vehicleType']['min_time'] == '1'
-                    ? true
-                    : false;
-                    print(gl);
-                    print('glanh');
-            prefs.setBool(
-                'vehicleType',gl
-                );
+            final gl = punchData['vehicleType'] != "" &&
+                    punchData['vehicleType'] != null &&
+                    punchData['vehicleType']['min_time'] == '1'
+                ? true
+                : false;
+            print(gl);
+            print('glanh');
+            prefs.setBool('vehicleType', gl);
           }
-          _fetchWorkingHours();
-         
+          _fetchWorkingHours(null);
         } else {
-           DialogUtils.showCommonPopup(
+          DialogUtils.showCommonPopup(
               context: context,
               message: res['message'],
               isSuccess: false,
@@ -307,7 +440,6 @@ class _PunchScreenState extends State<PunchScreen> {
                   isLoading = false;
                 });
               });
-          
         }
       } else {
         DialogUtils.showCommonPopup(
@@ -393,14 +525,168 @@ class _PunchScreenState extends State<PunchScreen> {
   getTime(str) {
     String dateTimeString = str;
 
-    // Parse the string into DateTime
     DateTime parsedDateTime = DateTime.parse(dateTimeString);
-
-    // Format to show only time (e.g., 1:33 PM)
     String formattedTime = DateFormat.jm().format(parsedDateTime);
 
-    // print(formattedTime);
     return formattedTime; // Output: 1:33 PM
+  }
+
+  getAdminFilters(){
+    return Column(
+      children: [
+        const SizedBox(height: 10),
+          
+          userData['role'] != 'se'
+              ? Row(
+                  children: [
+                    SizedBox(
+                      width: 5,
+                    ),
+                    hasRole('admin') ||
+                            userData['role'] == 'zsm' ||
+                            userData['role'] == 'zsm'
+                        ? Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedRsm,
+                              decoration: InputDecoration(
+                                labelText: 'Select VP',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                              ),
+                              style: TextStyle(fontSize: 14),
+                              dropdownColor: Colors.white,
+                              items: [
+                                DropdownMenuItem<String>(
+                                  value: '', // Blank value for "All"
+                                  child: Text('Select VP',
+                                      style: TextStyle(
+                                          fontSize: 14, color: Colors.black)),
+                                ),
+                                ...rsmList.map((rsm) {
+                                  return DropdownMenuItem<String>(
+                                    value: rsm['id'].toString(),
+                                    child: Text(rsm['name'],
+                                        style: TextStyle(
+                                            fontSize: 14, color: Colors.black)),
+                                  );
+                                }).toList(),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedRsm = value ?? "";
+                                });
+                                _fetchAsm(value);
+                              },
+                            ),
+                          )
+                        : SizedBox(height: 0),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    userData['role'] == 'rsm' ||
+                            hasRole('admin') ||
+                            userData['role'] == 'zsm'
+                        ? Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedASM,
+                              decoration: InputDecoration(
+                                labelText: 'Select CH',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
+                              ),
+                              style: TextStyle(fontSize: 14),
+                              dropdownColor: Colors.white,
+                              items: [
+                                DropdownMenuItem<String>(
+                                  value: '', // Blank value for "All"
+                                  child: Text('Select CH',
+                                      style: TextStyle(
+                                          fontSize: 14, color: Colors.black)),
+                                ),
+                                ...asmList.map((rsm) {
+                                  return DropdownMenuItem<String>(
+                                    value: rsm['id'].toString(),
+                                    child: Text(rsm['name'],
+                                        style: TextStyle(
+                                            fontSize: 14, color: Colors.black)),
+                                  );
+                                }).toList(),
+                              ],
+                              onChanged: (value) {
+                                setState(() {
+                                  selectedASM = value ?? "";
+                                });
+                                _fetchSe(value);
+                              },
+                            ),
+                          )
+                        : SizedBox(height: 0),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                  ],
+                )
+              : Container(),
+          SizedBox(
+            height: 8,
+          ),
+          userData['role'] != 'se'
+              ? Row(
+                  children: [
+                    SizedBox(
+                      width: 5,
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: selectedSE,
+                        decoration: InputDecoration(
+                          labelText: 'Select RM',
+                          border: OutlineInputBorder(),
+                          contentPadding:
+                              EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                        ),
+                        style: TextStyle(fontSize: 14),
+                        dropdownColor: Colors.white,
+                        items: [
+                          DropdownMenuItem<String>(
+                            value: '', // Blank value for "All"
+                            child: Text('Select RM',
+                                style: TextStyle(
+                                    fontSize: 14, color: Colors.black)),
+                          ),
+                          ...seList.map((rsm) {
+                            return DropdownMenuItem<String>(
+                              value: rsm['id'].toString(),
+                              child: Text(rsm['name'],
+                                  style: TextStyle(
+                                      fontSize: 14, color: Colors.black)),
+                            );
+                          }).toList(),
+                        ],
+                        onChanged: (value) {
+                          selectedSE = value ?? "";
+                         if(selectedSE!=null &&selectedSE!=""){ _fetchWorkingHours(null);
+        _fetchMonthlyAttendance(null);}
+                        },
+                      ),
+                    ),
+                    SizedBox(
+                      width: 5,
+                    ),
+                  ],
+                )
+              : Container(),
+              SizedBox(height: 10,)
+      ],
+    );
   }
 
   @override
@@ -417,6 +703,7 @@ class _PunchScreenState extends State<PunchScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF5F5F5), // Light grey background
         appBar: AppBar(
+          iconTheme: IconThemeData(color: Colors.white),
           title: Text(
             "Attendance",
             style: TextStyle(color: Colors.white, fontSize: 18),
@@ -438,7 +725,8 @@ class _PunchScreenState extends State<PunchScreen> {
         ),
         body: Stack(
           children: [
-            if (isLoading) const BookPageLoader(),
+            
+          
             cameraScreen
                 ? KMReadingCameraScreen(
                     onReadingCaptured: onPunchButtonPressed, bike: meterCamera)
@@ -446,94 +734,96 @@ class _PunchScreenState extends State<PunchScreen> {
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16)),
-                          elevation: 6,
-                          color: Colors.white,
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              children: [
-                                Text("Today's Working Hours",
-                                    style: TextStyle(
-                                        color: Colors.indigo[900],
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold)),
-                                SizedBox(height: 8),
-                                Text(formatDuration(totalWorkedDuration),
-                                    style: TextStyle(
-                                        fontSize: 34,
-                                        fontWeight: FontWeight.w800,
-                                        color: Colors.indigo[900])),
-                                if (lastPunchIn) ...[
-                                  SizedBox(height: 8),
-                                  Text(
-                                      "Current Session: ${formatDuration(currentSessionDuration)}",
-                                      style: TextStyle(
-                                          color: Colors.grey[700],
-                                          fontWeight: FontWeight.w500)),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 20),
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            reasonData = await showDialog<Map<String, dynamic>>(
-                              context: context,
-                              builder: (_) => PunchDetailsPopup(
-                                meterReading: meterReading ?? "",
-                                punchIn: !lastPunchIn,
-                              ),
-                            );
-                            if (reasonData == null) {
-                              setState(() {
-                                isLoading = false;
-                              });
-                              return;
-                            } else {
-                              print(reasonData);
-                              print("reasonData");
-                              final prefs =
-                                  await SharedPreferences.getInstance();
-                              bool flag =
-                                  await prefs.getBool('vehicleType') ?? false;
-                              print(flag);
-                              print("ppooo");
-                              setState(() {
-                                if (reasonData['vehicleType'] != null &&
-                                    reasonData['vehicleType'] != "" &&
-                                    reasonData['vehicleType']['min_time'] ==
-                                        '1') {
-                                  meterCamera = true;
-                                } else {
-                                  meterCamera = flag;
-                                }
-                                cameraScreen = true;
-                              });
-                            }
-                          },
-                          icon: Icon(lastPunchIn ? Icons.logout : Icons.login,
-                              size: 26, color: Colors.white),
-                          label: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            child: Text(lastPunchIn ? "Punch Out" : "Punch In",
-                                style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white)),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                lastPunchIn ? Colors.red : Colors.green,
-                            minimumSize: Size(double.infinity, 56),
+                        if (widget.mark)
+                          Card(
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16)),
+                            elevation: 6,
+                            color: Colors.white,
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                children: [
+                                  Text("Today's Working Hours",
+                                      style: TextStyle(
+                                          color: Colors.indigo[900],
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold)),
+                                  SizedBox(height: 8),
+                                  Text(formatDuration(totalWorkedDuration),
+                                      style: TextStyle(
+                                          fontSize: 34,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.indigo[900])),
+                                  if (lastPunchIn) ...[
+                                    SizedBox(height: 8),
+                                    Text(
+                                        "Current Session: ${formatDuration(currentSessionDuration)}",
+                                        style: TextStyle(
+                                            color: Colors.grey[700],
+                                            fontWeight: FontWeight.w500)),
+                                  ],
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
+                        if (widget.mark) SizedBox(height: 20),
+                        if (widget.mark)
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                              reasonData =
+                                  await showDialog<Map<String, dynamic>>(
+                                context: context,
+                                builder: (_) => PunchDetailsPopup(
+                                  meterReading: meterReading ?? "",
+                                  punchIn: !lastPunchIn,
+                                ),
+                              );
+                              if (reasonData == null) {
+                                setState(() {
+                                  isLoading = false;
+                                });
+                                return;
+                              } else {
+                                final prefs =
+                                    await SharedPreferences.getInstance();
+                                bool flag =
+                                    await prefs.getBool('vehicleType') ?? false;
+
+                                setState(() {
+                                  if (reasonData['vehicleType'] != null &&
+                                      reasonData['vehicleType'] != "" &&
+                                      reasonData['vehicleType']['min_time'] ==
+                                          '1') {
+                                    meterCamera = true;
+                                  } else {
+                                    meterCamera = flag;
+                                  }
+                                  cameraScreen = true;
+                                });
+                              }
+                            },
+                            icon: Icon(lastPunchIn ? Icons.logout : Icons.login,
+                                size: 26, color: Colors.white),
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              child: Text(
+                                  lastPunchIn ? "Punch Out" : "Punch In",
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white)),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  lastPunchIn ? Colors.red : Colors.green,
+                              minimumSize: Size(double.infinity, 56),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
                         SizedBox(height: 20),
+                        getAdminFilters(),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [
@@ -559,14 +849,46 @@ class _PunchScreenState extends State<PunchScreen> {
                                 ],
                         ),
                         SizedBox(height: 20),
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text("Today's Punch Report",
-                              style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.indigo[900])),
-                        ),
+                        Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                  widget.mark
+                                      ? "Today's Punch Report"
+                                      : "Punch Report",
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.indigo[900])),
+                              GestureDetector(
+                                onTap: () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now(),
+                                    firstDate: DateTime(DateTime.now().year),
+                                    lastDate: DateTime.now(),
+                                  );
+                                  if (picked != null)
+                                    setState((){
+                                      followUpDate = picked;
+                                      _fetchWorkingHours(followUpDate);
+                                    });
+                                },
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.calendar_today),
+                                    Text(
+                                        widget.mark
+                                            ? ""
+                                            :followUpDate!=null? " ${followUpDate!.day}-${followUpDate!.month}-${followUpDate!.year}":"",
+                                        style: TextStyle(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.indigo[900])),
+                                  ],
+                                ),
+                              ),
+                            ]),
                         SizedBox(height: 12),
                         Expanded(
                           child: punches.isEmpty
@@ -606,7 +928,7 @@ class _PunchScreenState extends State<PunchScreen> {
                                                     children: [
                                                       SizedBox(height: 4),
                                                       Text(
-                                                          "Meter Reading: ${punch["out_km"]??"N/A"}"),
+                                                          "Meter Reading: ${punch["out_km"] ?? "N/A"}"),
                                                       // Text("Lat: ${punch.latitude.toStringAsFixed(4)}, Lng: ${punch.longitude.toStringAsFixed(4)}"),
                                                       // Text("Notes: ${punch.note1}, ${punch.note2}, ${punch.note3}"),
                                                     ],

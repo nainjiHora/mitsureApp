@@ -150,7 +150,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
         endpoint: '/picklist/getProductTypeMittplus',
         body: body,
       );
-print(response);
+      print(response);
       // Check if the response is valid
       if (response != null) {
         final data = response['data'];
@@ -375,16 +375,16 @@ print(response);
         ),
         backgroundColor: Colors.indigo[900],
         centerTitle: true,
-         actions: [
+        actions: [
           IconButton(
             icon: const Icon(Icons.home, color: Colors.white),
             onPressed: () {
-  Navigator.pushAndRemoveUntil(
-    context,
-    MaterialPageRoute(builder: (context) => MainMenuScreen()),
-    (route) => false, // remove all previous routes
-  );
-},
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => MainMenuScreen()),
+                (route) => false, // remove all previous routes
+              );
+            },
           ),
         ],
       ),
@@ -795,8 +795,11 @@ print(response);
       userData = jsonDecode(userString);
     }
     if (selectedOrders.length == 0) {
-      DialogUtils.showCommonPopup(context: context, message: "Please Select Atleast 1 Product", isSuccess: false);
-      
+      DialogUtils.showCommonPopup(
+          context: context,
+          message: "Please Select Atleast 1 Product",
+          isSuccess: false);
+
       return;
     }
 
@@ -809,40 +812,37 @@ print(response);
       "ownerId": userData['id'],
       "products": selectedOrders
     };
+    print(obj);
+    // try {
+    final response = await ApiService.post(
+      endpoint: '/specimen/addSpecimenToUser', // Use your API endpoint
+      body: obj,
+    );
 
-    try {
-    
-    
-      final response = await ApiService.post(
-        endpoint: '/specimen/addSpecimenToUser', // Use your API endpoint
-        body: obj,
-      );
-      print(response);
-      print("pppn");
-      if (response != null && response['status'] == false) {
+    print(response);
 
-        DialogUtils.showCommonPopup(
+    if (response != null && response['status'] == false) {
+      DialogUtils.showCommonPopup(
           context: context,
           message: "Request Raised",
           isSuccess: true,
           onOkPressed: () {
             complete();
           });
-      } else {
-        DialogUtils.showCommonPopup(
-          context: context,
-          message: response['message'],
-          isSuccess: false,
-        );
-         
-       
-      }
-    } catch (error) {
+    } else {
       DialogUtils.showCommonPopup(
-          context: context,
-          message: "Something Went Wrong",
-          isSuccess: false,
+        context: context,
+        message: response['message'],
+        isSuccess: false,
       );
     }
+    // } catch (error) {
+    //   print(error);
+    //   DialogUtils.showCommonPopup(
+    //     context: context,
+    //     message: "Something Went Wrong",
+    //     isSuccess: false,
+    //   );
+    // }
   }
 }

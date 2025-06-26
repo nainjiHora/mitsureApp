@@ -1,17 +1,24 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
+import 'package:path/path.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/services/apiService.dart';
 import 'package:mittsure/services/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HoInterventionScreen extends StatefulWidget {
-  final payload;
-  final answers;
+  final dynamic payload;
+  final dynamic answers;
+  final interested;
+  final visit;
 
-  HoInterventionScreen({required this.payload, this.answers});
+  HoInterventionScreen(
+      {required this.payload, this.answers, required this.interested,required this.visit});
 
   @override
   _HoInterventionScreenState createState() => _HoInterventionScreenState();
@@ -19,20 +26,87 @@ class HoInterventionScreen extends StatefulWidget {
 
 class _HoInterventionScreenState extends State<HoInterventionScreen> {
   bool hoInterventionNeeded = false;
-  String selectedOption = 'Party';
+  bool followUpRequired = false;
+  bool mittsureAccountNeeded = false;
+  bool furtherVisit = false;
+  bool skipOtp = true;
+
+  final _formKey = GlobalKey<FormState>();
+  final furtherformKey = GlobalKey<FormState>();
+  final TextEditingController furtherVisitController = TextEditingController();
+  final TextEditingController remarkController = TextEditingController();
+  final TextEditingController followUpRemark = TextEditingController();
   final TextEditingController otherNumberController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
-  bool isLoading = false;
 
+  final TextEditingController schoolNameController = TextEditingController();
+  final TextEditingController contactPersonController = TextEditingController();
+  final TextEditingController accountMobileController = TextEditingController();
+  final TextEditingController accountEmailController = TextEditingController();
+  final TextEditingController prefDistributor = TextEditingController();
+  final TextEditingController accountRemarksController =
+      TextEditingController();
+
+  DateTime? followUpDate;
   Timer? _otpTimer;
   int _remainingSeconds = 30;
   bool _canResendOtp = false;
+  String selectedOption = 'Party';
+  dynamic selectedValue;
+  File? capturedImage;
+  bool isLoading = false;
+  List<dynamic> distributors = [];
 
-  Future<void> _submitRequest() async {
-    setState(() {
-      isLoading = true;
-    });
+  bool isValidIndianMobile(String mobile) {
+    return RegExp(r'^[6-9]\d{9}$').hasMatch(mobile);
+  }
 
+  bool isValidEmail(String email) {
+    return RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(email);
+  }
+
+  Future<void> _submitRequest(BuildContext context) async {
+    setState(() => isLoading = true);
+
+    if (hoInterventionNeeded && remarkController.text.trim().isEmpty) {
+      _showSnackbar("Please enter a remark.", context);
+      setState(() => isLoading = false);
+      return;
+    }
+
+    if (followUpRequired && followUpDate == null) {
+      _showSnackbar("Please select a follow-up date.", context);
+      setState(() => isLoading = false);
+      return;
+    }
+
+    if (mittsureAccountNeeded) {
+      if (!_formKey.currentState!.validate()) {
+        setState(() => isLoading = false);
+        return;
+      }
+    }
+    if (furtherVisit &&
+        (furtherVisitController.text == "" ||
+            furtherVisitController.text == null)) {
+      setState(() => isLoading = false);
+      DialogUtils.showCommonPopup(
+          context: context,
+          message: "Please fill the reason for no visit required",
+          isSuccess: false);
+      return;
+    }
+
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.camera);
+    if (pickedFile == null) {
+      _showSnackbar("Please capture an image before submitting.", context);
+      setState(() => isLoading = false);
+      return;
+    }
+    capturedImage = File(pickedFile.path);
+
+    final pcat = {"interested": widget.interested, "data": widget.answers};
     final uri = Uri.parse('https://mittsure.qdegrees.com:3001/visit/endVisit');
     var request = http.MultipartRequest('POST', uri);
 
@@ -40,19 +114,59 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
       request.fields[key] = value;
     });
 
-    request.fields['otp_number'] = selectedOption == 'Other'
-        ? otherNumberController.text
-        : widget.payload.fields['phone'];
+   var a=distributors.where((element) => element['DistributorName']==prefDistributor.text.trim()).toList();
+
+   if(a.length>0){
+    selectedValue=a[0]['distributorID'];
+   }
+
+    request.fields['preferred_distributor']=jsonEncode({"id":selectedValue,"name":prefDistributor.text});
+
+    request.fields['otp_number'] = !skipOtp
+        ? ""
+        : selectedOption == 'Other'
+            ? otherNumberController.text
+            : widget.payload.fields['phone'];
     request.fields['ho_need'] = hoInterventionNeeded.toString();
     request.fields['noVisitCount'] = '0';
     request.fields['tentativeAmount'] = '0';
-    request.fields['product_category'] = jsonEncode(widget.answers);
+    request.fields['product_category'] = jsonEncode(pcat);
+    request.fields['remark'] = followUpRemark.text;
 
-    print(request.fields);
-    print("paydata");
-    
+    if (hoInterventionNeeded) {
+      request.fields['ho_need_remark'] = remarkController.text.trim();
+    }
+
+    if (followUpRequired && followUpDate != null) {
+      request.fields['follow_up_required'] = followUpRequired.toString();
+      request.fields['followUpDate'] =
+          (followUpDate!.millisecondsSinceEpoch / 1000).toString();
+    }
+
+    final accountFormJson = {
+      "account_needed": mittsureAccountNeeded,
+      "school_name": mittsureAccountNeeded?schoolNameController.text.trim():"",
+      "contact_person":mittsureAccountNeeded? contactPersonController.text.trim():"",
+      "mobile":mittsureAccountNeeded? accountMobileController.text.trim():"",
+      "email":mittsureAccountNeeded? accountEmailController.text.trim():"",
+      "remarks":mittsureAccountNeeded? accountRemarksController.text.trim():"",
+    };
+    request.fields['mittstoreAccountNeeded'] = jsonEncode(accountFormJson);
+
+    final furvisit = {
+      "visit_required": !furtherVisit,
+      "reason": furtherVisitController.text.trim(),
+    };
+    request.fields['furtherVisitRequired'] = jsonEncode(furvisit);
+    request.fields['otp_skip']=!skipOtp?'Yes':'No';
+    request.files.add(await http.MultipartFile.fromPath(
+      'end_image',
+      capturedImage!.path,
+      filename: basename(capturedImage!.path),
+    ));
 
     try {
+      print(request.fields);
       final response = await request.send();
       var respons = await http.Response.fromStream(response);
       final res = jsonDecode(respons.body);
@@ -60,30 +174,31 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
       if (response.statusCode >= 200 &&
           response.statusCode < 300 &&
           res['status'] == false) {
-        _sendOtp();
+        if (skipOtp) {
+          _sendOtp(context);
+        } else {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => MainMenuScreen()),
+            (_) => false,
+          );
+        }
       } else {
-        setState(() {
-          isLoading = false;
-        });
         DialogUtils.showCommonPopup(
             context: context, message: res['message'], isSuccess: false);
+        setState(() => isLoading = false);
       }
     } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
       DialogUtils.showCommonPopup(
           context: context, message: "Something went wrong", isSuccess: false);
+      setState(() => isLoading = false);
     }
   }
 
-  Future<void> _sendOtp() async {
+  Future<void> _sendOtp(context) async {
     final prefs = await SharedPreferences.getInstance();
     final t = await prefs.getString('user');
-    var id = "";
-    if (t != null) {
-      id = jsonDecode(t)['id'];
-    }
+    var id = t != null ? jsonDecode(t)['id'] : "";
 
     var body = {
       "mobile": selectedOption == 'Other'
@@ -93,49 +208,451 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
     };
 
     try {
-      final response = await ApiService.post(
-        endpoint: '/user/sendOtp',
-        body: body,
-      );
+      final response =
+          await ApiService.post(endpoint: '/user/sendOtp', body: body);
       if (response != null && response['status'] == false) {
-        setState(() {
-          isLoading = false;
-        });
+        setState(() => isLoading = false);
         _startOtpTimer();
-        _showOtpDialog();
+        _showOtpDialog(context);
       } else {
-        DialogUtils.showCommonPopup(
-            context: context, message: response["message"], isSuccess: false);
+        _showPopup(response["message"], false, context);
       }
     } catch (error) {
-      DialogUtils.showCommonPopup(
-          context: context,
-          message: "Failed to send OTP. Please try again.",
-          isSuccess: false);
+      _showPopup("Failed to send OTP. Please try again.", false, context);
     }
   }
 
   void _startOtpTimer() {
-    _remainingSeconds = 30;
-    _canResendOtp = false;
-    _otpTimer?.cancel();
+    setState(() {
+      _remainingSeconds = 30;
+      _canResendOtp = false;
+    });
 
+    _otpTimer?.cancel();
     _otpTimer = Timer.periodic(Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
-        } else {
-          _canResendOtp = true;
-          _otpTimer?.cancel();
-        }
-      });
+      if (_remainingSeconds > 0) {
+        setState(() => _remainingSeconds--);
+      } else {
+        setState(() => _canResendOtp = true);
+        _otpTimer?.cancel();
+      }
     });
   }
 
-  Future<void> _submitOtp() async {
-    setState(() {
-      isLoading = true;
-    });
+  void _showSnackbar(String msg, cont) {
+    ScaffoldMessenger.of(cont).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  void _showPopup(String message, bool success, cont) {
+    DialogUtils.showCommonPopup(
+        context: cont, message: message, isSuccess: success);
+  }
+
+  @override
+  void initState() {
+    // TODO: implement initState
+    super.initState();
+    print(widget.visit);
+    print("po");
+    contactPersonController.text=widget.visit['makerName']??"";
+    accountMobileController.text=widget.visit['makerContact']??"";
+    schoolNameController.text=widget.visit['schoolName']??widget.visit['distributorName'];
+
+    getUserData();
+  }
+
+  var userData = {};
+
+  getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user');
+    if (a!.isNotEmpty) {
+      setState(() {
+        userData = jsonDecode(a ?? "");
+      });
+      fetchDistributor();
+    }
+  }
+
+  fetchDistributor() async {
+    final body = {"ownerId": userData['id']};
+
+    try {
+      final response = await ApiService.post(
+        endpoint: '/party/getAllDistri',
+        body: body,
+      );
+
+      if (response != null) {
+        final data = response['data'];
+        distributors = data;
+      } else {
+        throw Exception('Failed to load orders');
+      }
+    } catch (error) {
+      print("Error fetching orders: $error");
+    }
+  }
+
+  @override
+  void dispose() {
+    _otpTimer?.cancel();
+    remarkController.dispose();
+    otherNumberController.dispose();
+    otpController.dispose();
+    followUpRemark.dispose();
+    schoolNameController.dispose();
+    contactPersonController.dispose();
+    accountMobileController.dispose();
+    accountEmailController.dispose();
+    accountRemarksController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title:
+            const Text('Submit Visit', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.indigo,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CheckboxListTile(
+              title: Text("HO Actionable Items",
+                  style: TextStyle(fontWeight: FontWeight.bold)),
+              value: hoInterventionNeeded,
+              onChanged: (value) =>
+                  setState(() => hoInterventionNeeded = value!),
+            ),
+            if (hoInterventionNeeded)
+              TextField(
+                controller: remarkController,
+                decoration: InputDecoration(
+                    labelText: "Remark For HO", border: OutlineInputBorder()),
+                maxLines: 1,
+              ),
+            SizedBox(height: 12),
+            CheckboxListTile(
+              title: Text("Follow-up Required"),
+              value: followUpRequired,
+              onChanged: (value) => setState(() => followUpRequired = value!),
+            ),
+            if (followUpRequired)
+              ListTile(
+                title: Text(followUpDate == null
+                    ? "Select Follow-up Date"
+                    : "Follow-up: ${followUpDate!.day}-${followUpDate!.month}-${followUpDate!.year}"),
+                trailing: Icon(Icons.calendar_today),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime(2100),
+                  );
+                  if (picked != null) setState(() => followUpDate = picked);
+                },
+              ),
+            Divider(height: 24),
+            TextField(
+              controller: followUpRemark,
+              decoration: InputDecoration(
+                  labelText: "Remark", border: OutlineInputBorder()),
+              maxLines: 1,
+            ),
+            Divider(height: 24),
+            CheckboxListTile(
+              title: Text("Mittstore Account Needed"),
+              value: mittsureAccountNeeded,
+              onChanged: (value) =>
+                  setState(() => mittsureAccountNeeded = value!),
+            ),
+            if (mittsureAccountNeeded)
+              Container(
+                margin: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  border: Border.all(color: Colors.indigo),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Mittsure Account Details",
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.indigo)),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: schoolNameController,
+                        decoration: InputDecoration(
+                          labelText: 'Party Name',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty
+                            ? "Required"
+                            : null,
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: contactPersonController,
+                        decoration: InputDecoration(
+                          labelText: 'Contact Person',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty
+                            ? "Required"
+                            : null,
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: accountMobileController,
+                        keyboardType: TextInputType.phone,
+                        decoration: InputDecoration(
+                          labelText: 'Mobile Number',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) => !isValidIndianMobile(val ?? "")
+                            ? "Invalid mobile"
+                            : null,
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: accountEmailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email ID',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) =>
+                            !isValidEmail(val ?? "") ? "Invalid email" : null,
+                      ),
+                      SizedBox(height: 12),
+                      TextFormField(
+                        controller: accountRemarksController,
+                        maxLines: 1,
+                        decoration: InputDecoration(
+                          labelText: 'Remarks (optional)',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            Divider(height: 24),
+            CheckboxListTile(
+              title: Text("Further visit not required"),
+              value: furtherVisit,
+              onChanged: (value) => setState(() => furtherVisit = value!),
+            ),
+            if (furtherVisit)
+              Container(
+                margin: EdgeInsets.symmetric(vertical: 16),
+                child: Form(
+                  key: furtherformKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextFormField(
+                        controller: furtherVisitController,
+                        maxLines: 1,
+                        decoration: InputDecoration(
+                          labelText: 'Why Not Required ?',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (val) => val == null || val.trim().isEmpty
+                            ? "Required"
+                            : null,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              Text("Preferred Distributor",style: TextStyle(fontWeight: FontWeight.bold),),
+            TypeAheadFormField<Map<String, dynamic>>(
+              textFieldConfiguration: TextFieldConfiguration(
+                controller: prefDistributor,
+                decoration: InputDecoration(
+                  labelText: 'Enter or Select Distributor',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              suggestionsCallback: (pattern) {
+                return distributors
+                    .where((dist) => dist['DistributorName']
+                        .toLowerCase()
+                        .contains(pattern.toLowerCase()))
+                    .cast<Map<String, dynamic>>();
+              },
+              itemBuilder: (context, suggestion) {
+                return ListTile(
+                  title: Text(suggestion['DistributorName']),
+                );
+              },
+              onSuggestionSelected: (suggestion) {
+                prefDistributor.text = suggestion['DistributorName'];
+                // selectedValue = suggestion['distributorID']; 
+              },
+             
+            ),
+            CheckboxListTile(
+              title: Text("Verify With Otp"),
+              value: skipOtp,
+              onChanged: (value) => setState(() => skipOtp = value!),
+            ),
+            if (skipOtp)
+              Column(
+                children: [
+                  Text("OTP Mode",
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ListTile(
+                    title: Text('Registered Mobile Number'),
+                    leading: Radio(
+                      value: 'Party',
+                      groupValue: selectedOption,
+                      onChanged: (value) =>
+                          setState(() => selectedOption = value.toString()),
+                    ),
+                  ),
+                  ListTile(
+                    title: Text('Other'),
+                    leading: Radio(
+                      value: 'Other',
+                      groupValue: selectedOption,
+                      onChanged: (value) =>
+                          setState(() => selectedOption = value.toString()),
+                    ),
+                  ),
+                  if (selectedOption == 'Other')
+                    TextField(
+                      controller: otherNumberController,
+                      keyboardType: TextInputType.phone,
+                      decoration: InputDecoration(
+                          labelText: "Enter phone number",
+                          border: OutlineInputBorder()),
+                    ),
+                ],
+              ),
+            SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: isLoading
+                    ? null
+                    : () {
+                        if (selectedOption == 'Other' &&
+                            otherNumberController.text.isEmpty) {
+                          _showSnackbar(
+                              "Please enter the phone number.", context);
+                        } else {
+                          _submitRequest(context);
+                        }
+                      },
+                icon: isLoading
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Icon(Icons.camera_alt, color: Colors.white),
+                label: Text("Capture Image & Submit",
+                    style: TextStyle(color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: Colors.indigo,
+                  textStyle: TextStyle(fontSize: 16),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showOtpDialog(BuildContext cont) {
+    late StateSetter dialogSetState;
+    int remainingSeconds = 120;
+    bool canResendOtp = false;
+    Timer? timer;
+
+    void startTimer() {
+      timer = Timer.periodic(Duration(seconds: 1), (t) {
+        if (remainingSeconds > 1) {
+          remainingSeconds--;
+          dialogSetState(() {});
+        } else {
+          t.cancel();
+          canResendOtp = true;
+          dialogSetState(() {});
+        }
+      });
+    }
+
+    showDialog(
+      context: cont,
+      barrierDismissible: false,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            dialogSetState = setState;
+            if (timer == null) startTimer();
+
+            return AlertDialog(
+              title: Text("Enter OTP"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: InputDecoration(hintText: "Enter 6-digit OTP"),
+                  ),
+                  SizedBox(height: 8),
+                  canResendOtp
+                      ? TextButton(
+                          onPressed: () {
+                            timer?.cancel();
+                            Navigator.pop(context);
+                            _sendOtp(cont);
+                          },
+                          child: Text("Resend OTP"),
+                        )
+                      : Text("Resend in $remainingSeconds seconds"),
+                ],
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    if (otpController.text.length == 6) {
+                      timer?.cancel();
+                      Navigator.pop(context);
+                      _submitOtp(cont);
+                    } else {
+                      _showSnackbar("Please enter a valid 6-digit OTP", cont);
+                    }
+                  },
+                  child: Text("Submit"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _submitOtp(cont) async {
+    setState(() => isLoading = true);
 
     var body = {
       "mobile": selectedOption == 'Other'
@@ -153,157 +670,17 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
       if (response != null && response['status'] == false) {
         Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => MainMenuScreen()),
-          (route) => false,
+          cont,
+          MaterialPageRoute(builder: (_) => MainMenuScreen()),
+          (_) => false,
         );
       } else {
-        DialogUtils.showCommonPopup(
-            context: context,
-            message: "Incorrect OTP. Please try again.",
-            isSuccess: false);
+        _showPopup("Incorrect OTP. Please try again.", false, context);
       }
-    } catch (error) {
-      DialogUtils.showCommonPopup(
-          context: context,
-          message: "Failed to verify OTP. Please try again.",
-          isSuccess: false);
+    } catch (_) {
+      _showPopup("Failed to verify OTP. Please try again.", false, context);
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
-  }
-
-  void _showOtpDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => WillPopScope(
-        onWillPop: () async => false,
-        child: StatefulBuilder(
-          builder: (context, setState) => AlertDialog(
-            title: Text("Enter OTP"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: otpController,
-                  maxLength: 6,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(hintText: "Enter 6-digit OTP"),
-                ),
-                SizedBox(height: 10),
-                if (!_canResendOtp)
-                  Text("Resend OTP in $_remainingSeconds seconds"),
-                if (_canResendOtp)
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop(); // close current dialog
-                      _sendOtp(); // re-send OTP and reopen dialog
-                    },
-                    child: Text("Resend OTP"),
-                  ),
-              ],
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  if (otpController.text.length == 6) {
-                    _submitOtp();
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Please enter a valid 6-digit OTP")),
-                    );
-                  }
-                },
-                child: Text("Submit"),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _otpTimer?.cancel();
-    otherNumberController.dispose();
-    otpController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text("HO Intervention")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            CheckboxListTile(
-              title: Text("HO Intervention Needed"),
-              value: hoInterventionNeeded,
-              onChanged: (value) {
-                setState(() {
-                  hoInterventionNeeded = value!;
-                });
-              },
-            ),
-            Text("Otp Mode", style: TextStyle(fontSize: 20)),
-            ListTile(
-              title: Text('Party'),
-              leading: Radio(
-                value: 'Party',
-                groupValue: selectedOption,
-                onChanged: (value) {
-                  setState(() => selectedOption = value.toString());
-                },
-              ),
-            ),
-            ListTile(
-              title: Text('Other'),
-              leading: Radio(
-                value: 'Other',
-                groupValue: selectedOption,
-                onChanged: (value) {
-                  setState(() => selectedOption = value.toString());
-                },
-              ),
-            ),
-            if (selectedOption == 'Other')
-              TextField(
-                controller: otherNumberController,
-                keyboardType: TextInputType.phone,
-                decoration: InputDecoration(labelText: "Enter phone number"),
-              ),
-            Spacer(),
-            ElevatedButton(
-              onPressed: isLoading
-                  ?null
-                  : () {
-                      if (selectedOption == 'Other' &&
-                          otherNumberController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Please enter the number")),
-                        );
-                      } else {
-                        _submitRequest();
-                      }
-                    },
-              child: isLoading
-                  ? CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    )
-                  : Text("Submit"),
-              style: ElevatedButton.styleFrom(
-                minimumSize: Size.fromHeight(50),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

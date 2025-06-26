@@ -6,10 +6,14 @@ import 'package:intl/intl.dart';
 import 'package:mittsure/field/agentlocation.dart';
 import 'package:mittsure/field/newPunch.dart';
 import 'package:mittsure/field/routes.dart';
+import 'package:mittsure/newApp/allowances.dart';
 import 'package:mittsure/newApp/animatedCircle.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
+import 'package:mittsure/newApp/expenseList.dart';
+import 'package:mittsure/newApp/myProfile.dart';
 import 'package:mittsure/newApp/specimenList.dart';
 import 'package:mittsure/newApp/specimenRequest.dart';
+import 'package:mittsure/newApp/userRequests.dart';
 import 'package:mittsure/newApp/visitScreen.dart';
 import 'package:mittsure/screens/Party.dart';
 import 'package:mittsure/screens/home.dart';
@@ -29,14 +33,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool isPunchedIn = false;
   List<dynamic> punches = [];
-  bool flag=false;
+  bool flag = false;
   String? hours;
   String _username = "";
   Timer? _timer;
-  var visitData={};
+  var visitData = {};
   int _selectedIndex = 0;
-  List<dynamic> config=[];
-  bool isLoading=true;
+  List<dynamic> config = [];
+  bool isLoading = true;
   Map<String, dynamic> userData = {};
   Duration currentSessionDuration = Duration.zero;
 
@@ -68,9 +72,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   @override
   void initState() {
     super.initState();
-    
+
     getAttendanceConfig();
-    
   }
 
   @override
@@ -79,20 +82,17 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     super.dispose();
   }
 
-  getRoutePartyCount(id) async{
-     
-    
+  getRoutePartyCount(id) async {
     try {
       final response = await ApiService.post(
         endpoint: '/routePlan/getRoutesPartyCount',
-        body: {"ownerId":id},
+        body: {"ownerId": id},
       );
 
       if (response != null) {
         final data = response['data'];
         setState(() {
-          visitData=data;
-          
+          visitData = data;
         });
       }
     } catch (error) {
@@ -100,9 +100,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     }
   }
 
-  getAttendanceConfig() async{
-     
-    
+  getAttendanceConfig() async {
     try {
       final response = await ApiService.post(
         endpoint: '/attendance/getAttendanceConfig',
@@ -113,8 +111,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         final data = response['data'];
         setState(() {
           print(data);
-          config=data;
-        getUserData();
+          config = data;
+          getUserData();
         });
       }
     } catch (error) {
@@ -123,7 +121,6 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   }
 
   Future<void> _fetchWorkingHours() async {
-    
     DateTime now = DateTime.now();
     String formattedDate = DateFormat('yyyy-MM-dd').format(now);
     final body = {
@@ -139,7 +136,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
 
       if (response != null) {
         final data = response['data'];
-        
+
         final punchRecords = data['inOutHistory'] ?? [];
         setState(() {
           punches = punchRecords;
@@ -163,14 +160,17 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     }
     setState(() {
       isPunchedIn = punchedIn;
-      isLoading=false;
+      isLoading = false;
     });
   }
 
   void togglePunch() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => PunchScreen()),
+      MaterialPageRoute(
+          builder: (context) => PunchScreen(
+                mark: true,
+              )),
     );
     await _fetchWorkingHours();
   }
@@ -199,46 +199,43 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         }
       }
     }
-    
+
     startTimer(total);
     return total;
   }
 
-
   Color getColorForAttendance(Duration duration) {
-  // Convert config time string to Duration and sort descending
-  List<Map<String, dynamic>> sortedConfig = List.from(config)
-    ..sort((a, b) {
-      Duration durA = _parseDuration(a['time']);
-      Duration durB = _parseDuration(b['time']);
-      return durB.compareTo(durA); // Sort descending
-    });
+    // Convert config time string to Duration and sort descending
+    List<Map<String, dynamic>> sortedConfig = List.from(config)
+      ..sort((a, b) {
+        Duration durA = _parseDuration(a['time']);
+        Duration durB = _parseDuration(b['time']);
+        return durB.compareTo(durA); // Sort descending
+      });
 
-  for (var entry in sortedConfig) {
-    Duration threshold = _parseDuration(entry['time']);
-    if (duration >= threshold) {
-      return _hexToColor(entry['color']);
+    for (var entry in sortedConfig) {
+      Duration threshold = _parseDuration(entry['time']);
+      if (duration >= threshold) {
+        return _hexToColor(entry['color']);
+      }
     }
+
+    // Default color if no match
+    return Colors.red;
   }
 
-  // Default color if no match
-  return Colors.red;
-}
-
-Duration _parseDuration(String timeStr) {
-  final parts = timeStr.split(':').map(int.parse).toList();
-  return Duration(hours: parts[0], minutes: parts[1], seconds: parts[2]);
-}
-
-Color _hexToColor(String hex) {
-  hex = hex.replaceFirst('#', '');
-  if (hex.length == 6) {
-    hex = 'FF$hex'; // Add full opacity if not specified
+  Duration _parseDuration(String timeStr) {
+    final parts = timeStr.split(':').map(int.parse).toList();
+    return Duration(hours: parts[0], minutes: parts[1], seconds: parts[2]);
   }
-  return Color(int.parse(hex, radix: 16));
-}
 
-
+  Color _hexToColor(String hex) {
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) {
+      hex = 'FF$hex'; // Add full opacity if not specified
+    }
+    return Color(int.parse(hex, radix: 16));
+  }
 
   void startTimer(Duration initialDuration) {
     stopTimer();
@@ -252,7 +249,6 @@ Color _hexToColor(String hex) {
 
   void stopTimer() {
     _timer?.cancel();
-   
   }
 
   Color greetingIconColor(String greeting) {
@@ -263,8 +259,8 @@ Color _hexToColor(String hex) {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children:[ Scaffold(
+    return Stack(children: [
+      Scaffold(
         key: _scaffoldKey,
         drawer: _buildDrawer(),
         appBar: AppBar(
@@ -314,8 +310,7 @@ Color _hexToColor(String hex) {
         bottomNavigationBar: _buildBottomNavigationBar(),
       ),
       if (isLoading) const BookPageLoader(),
-      ]
-    );
+    ]);
   }
 
   Widget _buildDrawer() {
@@ -351,20 +346,44 @@ Color _hexToColor(String hex) {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _drawerItem("Home", Icons.home, MainMenuScreen()),
-                _drawerItem("Duty", Icons.watch_later, PunchScreen()),
-                _drawerItem("Visit", Icons.place, VisitListScreen()),
-                _drawerItem("Allowances", Icons.request_quote, PunchScreen()),
-                _drawerItem("Route Plan", Icons.route, CreatedRoutesPage()),
-                _drawerItem("Party", Icons.group, PartyScreen()),
-                _drawerItem("Orders", Icons.money, OrdersScreen()),
+                _drawerItem("Home", Icons.home, MainMenuScreen(),false),
+                _drawerItem("My Profile", Icons.home, ProfilePage(),false),
                 _drawerItem(
-                    "Specimen", Icons.bookmarks_sharp, SpecimenScreen()),
+                    "Attendance", Icons.watch_later, PunchScreen(mark: false),false),
+                _drawerItem("Visit", Icons.place, VisitListScreen(),false),
                 _drawerItem(
-                    "Notifications", Icons.notifications, NotificationScreen()),
-                _drawerItem("Map", Icons.map, AgentsMapScreen()),
+                    "Expenses",
+                    Icons.request_quote,
+                    ExpenseListScreen()
+                    // MainMenuScreen()
+                    ,false),
+                       _drawerItem(
+                    "Allowances",
+                    Icons.request_quote,
+                    // MainMenuScreen()
+                    TravelAllowanceScreen()
+                    ,false),
+                _drawerItem("Route Plan", Icons.route, CreatedRoutesPage(),false),
+                _drawerItem("Party", Icons.group, PartyScreen(),false),
+                _drawerItem("Orders", Icons.money, OrdersScreen(),false),
+                _drawerItem(
+                    "Specimen", Icons.bookmarks_sharp,
+                     SpecimenScreen()
+                    // MainMenuScreen()
+                    ,false),
+                    _drawerItem(
+                    "Approvals", Icons.approval_rounded,
+                    RequestsScreen()
+                    
+                     ,false),
+                _drawerItem(
+                    "Notifications", Icons.notifications,
+                    //  NotificationScreen()
+                    MainMenuScreen()
+                     ,false),
+                // _drawerItem("Map", Icons.map, AgentsMapScreen()),
                 Divider(thickness: 1),
-                _drawerItem("Log Out", Icons.power_settings_new, LoginScreen()),
+                _drawerItem("Log Out", Icons.power_settings_new, LoginScreen(),true),
               ],
             ),
           ),
@@ -373,7 +392,40 @@ Color _hexToColor(String hex) {
     );
   }
 
-  Widget _drawerItem(String title, IconData icon, Widget screen) {
+   void _logout() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Logout"),
+          content: const Text("Are you sure you want to logout?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove("user");
+                await prefs.remove("Token");
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                );
+              },
+              child: const Text("Logout"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _drawerItem(String title, IconData icon, Widget screen ,bool logout) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
       child: Card(
@@ -388,13 +440,20 @@ Color _hexToColor(String hex) {
               style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
           trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
           onTap: () {
+            if(!logout){
             Navigator.push(
                 context, MaterialPageRoute(builder: (context) => screen));
-          },
+          
+          }else{
+_logout();
+          }
+          }
         ),
       ),
     );
   }
+
+  
 
   Widget _topStatsRow() {
     return Row(
@@ -437,7 +496,10 @@ Color _hexToColor(String hex) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        AnimatedCircleTimer(time:formatDuration(totalWorkedDuration),hours: getColorForAttendance(totalWorkedDuration),flag: isPunchedIn),
+        AnimatedCircleTimer(
+            time: formatDuration(totalWorkedDuration),
+            hours: getColorForAttendance(totalWorkedDuration),
+            flag: isPunchedIn),
         ElevatedButton.icon(
           style: ElevatedButton.styleFrom(
             backgroundColor: isPunchedIn ? Colors.red : Colors.green[700],
@@ -454,8 +516,6 @@ Color _hexToColor(String hex) {
       ],
     );
   }
-
-
 
   Widget _buildBottomNavigationBar() {
     return BottomAppBar(
@@ -504,10 +564,30 @@ Color _hexToColor(String hex) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _analysisCard('Scheduled Visit', visitData['totalPrtyCount'].toString(), Icons.star),
-        _analysisCard('Completed Visits', visitData['visitedCount'].toString(), Icons.directions_walk),
-        _analysisCard('Running Visits', visitData['runningVisitCount'].toString(), Icons.run_circle_outlined),
-        _analysisCard('Pending visits', visitData['notVisitedCount'].toString(), Icons.pending_actions),
+        _analysisCard(
+            'Scheduled ',
+            visitData['totalPrtyCount'] == null
+                ? '0'
+                : visitData['totalPrtyCount'].toString(),
+            Icons.star),
+        _analysisCard(
+            'Completed ',
+            visitData['visitedCount'] == null
+                ? '0'
+                : visitData['visitedCount'].toString(),
+            Icons.directions_walk),
+        _analysisCard(
+            'Running ',
+            visitData['runningVisitCount'] == null
+                ? '0'
+                : visitData['runningVisitCount'].toString(),
+            Icons.run_circle_outlined),
+        _analysisCard(
+            'Pending ',
+            visitData['notVisitedCount'] == null
+                ? '0'
+                : visitData['notVisitedCount'].toString(),
+            Icons.pending_actions),
       ],
     );
   }
@@ -526,7 +606,10 @@ Color _hexToColor(String hex) {
               Text(value,
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
               SizedBox(height: 4),
-              Text(title, style: TextStyle(fontSize: 14)),
+              Text(title,
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500)),
+              Text("Visits",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w500)),
             ],
           ),
         ),

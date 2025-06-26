@@ -30,6 +30,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
   List<dynamic> asms = [];
   List<dynamic> rsms = [];
   List<dynamic> rms = [];
+
   List<dynamic> allUsers = [];
   bool isLoading = false;
   String? tagUserController = null;
@@ -43,10 +44,22 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
 
   File? _image;
   final ImagePicker _picker = ImagePicker();
+   Map<String, dynamic> userData = {};
+  getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user');
+    if (a!.isNotEmpty) {
+      setState(() {
+        userData = jsonDecode(a ?? "");
+        
+      });
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    getUserData();
     _fetchLocation();
     fetchPicklist();
   }
@@ -65,8 +78,9 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
         setState(() {
           rsms = data.where((e) => e['role'] == 'rsm').toList();
           asms = data.where((e) => e['role'] == 'asm').toList();
-          rms = data.where((e) => e['role'] == 'se').toList();
+          rms = data.where((e) => e['role'] == 'se' && userData['id']!=e['id']).toList();
           allUsers = data;
+          isLoading=false;
         });
       } else {
         throw Exception('Failed to load orders');
@@ -108,6 +122,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
           .toList();
       // seList=allUsers.where((e)=>e['role']=='se').toList();
       superwisorController = asms[0]['id'];
+         isLoading=false;
       // tagUserController = "";
     });
     //     }
@@ -188,6 +203,9 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
 
   fetchPicklist() async {
     final body = {};
+    setState(() {
+      isLoading=true;
+    });
 
     try {
       final response = await ApiService.post(
@@ -198,6 +216,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
         setState(() {
           visitTypeOptions.addAll(response['data']);
           visitType = widget.visit['visitType'];
+          isLoading=false;
         });
       } else {
         throw Exception('Failed to load orders');
@@ -237,7 +256,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
       request.fields['partyType'] = widget.visit['partyType'].toString();
       request.fields['start_lat'] = latitude.toString();
       request.fields['start_long'] = longitude.toString();
-      request.fields['tagUser'] = tagUserController ?? "";
+      request.fields['tag_User'] = tagUserController ?? "";
       request.fields['superwisor'] = superwisorController ?? "";
       request.fields['visitEntryType'] = visitType ?? "";
       request.fields['extra'] = extraController.text;
@@ -368,7 +387,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
                     ),
                     if (includeCompanion) ...[
                       _buildDropdown(
-                        'Select RSM',
+                        'Select VP',
                         rsms,
                         'id',
                         'name',
@@ -381,7 +400,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
                         },
                       ),
                       _buildDropdown(
-                        'Select ASM',
+                        'Select CH',
                         asms,
                         'id',
                         'name',
@@ -394,7 +413,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
                         },
                       ),
                       _buildDropdown(
-                        'Select SE',
+                        'Select RM',
                         rms,
                         'id',
                         'name',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
+import 'package:mittsure/newApp/hointervention.dart';
 import 'package:mittsure/services/apiService.dart';
 import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
 import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
@@ -8,7 +9,9 @@ import 'ReeviewAnswersScreen.dart';
 
 class ProductCategoryInput extends StatefulWidget {
   final payload;
-  const ProductCategoryInput({required this.payload});
+  final visit;
+  
+  const ProductCategoryInput({required this.payload,required this.visit});
 
   @override
   State<ProductCategoryInput> createState() => _ProductCategoryInputState();
@@ -20,13 +23,35 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
   List<String?> selectedCategories = [];
   List<List<dynamic>> questionList = [[]];
   List<dynamic> questions = [];
+
   String? interested;
+  String? selectedReason;
   int selectedindex = 0;
+  List<dynamic> reasons = [];
 
   @override
   void initState() {
     super.initState();
     fetchCategories();
+    fetchReason();
+  }
+
+  fetchReason() async {
+    try {
+      final response = await ApiService.post(
+        endpoint: '/picklist/getReasonList',
+        body: {},
+      );
+
+      if (response != null) {
+        final data = response['data'];
+        setState(() {
+          reasons = data;
+        });
+      }
+    } catch (error) {
+      print("Error fetching reasons: $error");
+    }
   }
 
   fetchCategories() async {
@@ -69,7 +94,8 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
   }
 
   getCategoryName(id) {
-    var b = categories.where((element) => element['id'].toString() == id).toList();
+    var b =
+        categories.where((element) => element['id'].toString() == id).toList();
     return b.isEmpty ? "" : b[0]['name'];
   }
 
@@ -89,173 +115,192 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => MainMenuScreen()),
-          (route) => false,
-        );
-        return false;
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text("Product Explained"),
-        ),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              children: [
-                Expanded(
-                  child: ListView(
-                    children: [
-                      Card(
-                        child: _buildDropdown(
-                          "School Interested",
-                          [
-                            {"name": 'Yes'},
-                            {"name": 'No'}
-                          ],
-                          "name",
-                          "name",
-                          interested,
-                          (value) {
-                            setState(() {
-                              interested = value;
-                            });
-                          },
-                        ),
-                      ),
-                      if (interested == 'Yes')
-                        ...List.generate(questionList.length, (index) {
-                          return index == selectedindex
-                              ? Column(
-                                  children: [
-                                    Card(
-                                      child: _buildDropdown(
-                                        "Select Product Category",
-                                        categories,
-                                        "id",
-                                        "name",
-                                        selectedCategories.length > index
-                                            ? selectedCategories[index]
-                                            : null,
-                                        (value) {
-                                          if (selectedCategories.length <= index) {
-                                            selectedCategories.add(value);
-                                          } else {
-                                            selectedCategories[index] = value;
-                                          }
-                                          selectedindex = index;
-                                          getQuestions(value);
-                                        },
-                                      ),
-                                    ),
-                                    ...questionList[index].map((q) => Card(
-                                          margin: EdgeInsets.symmetric(
-                                              vertical: 6, horizontal: 10),
-                                          child: Padding(
-                                            padding: const EdgeInsets.all(10),
-                                            child: _buildQuestionWidget(q, index),
-                                          ),
-                                        )),
-                                    if (questionList[index].isNotEmpty &&
-                                        questionList[index].last['final'] == 1)
-                                      Row(
-                                        children: [
-                                          ElevatedButton.icon(
-                                            onPressed: () {
-                                              setState(() {
-                                                answers.add({});
-                                                questionList.add([]);
-                                                selectedCategories.add(null);
-                                                selectedindex =
-                                                    questionList.length - 1;
-                                              });
-                                            },
-                                            icon: Icon(Icons.add),
-                                            label: Text("Add more"),
-                                          ),
-                                        ],
-                                      ),
-                                    Divider()
-                                  ],
-                                )
-                              : Card(
-                                  margin: EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 6),
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12.0),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Flexible(
-                                              child: Text(
-                                                getCategoryName(selectedCategories[index]) ?? "",
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 20),
-                                              ),
-                                            ),
-                                            Row(
-                                              children: [
-                                                IconButton(
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      selectedindex = index;
-                                                    });
-                                                  },
-                                                  icon: Icon(Icons.remove_red_eye_outlined),
-                                                ),
-                                                IconButton(
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      questionList.removeAt(index);
-                                                      answers.removeAt(index);
-                                                      selectedCategories.removeAt(index);
-                                                      if (selectedindex >= index && selectedindex > 0) {
-                                                        selectedindex--;
-                                                      }
-                                                    });
-                                                  },
-                                                  icon: Icon(Icons.delete_outline, color: Colors.red),
-                                                ),
-                                              ],
-                                            )
-                                          ],
-                                        ),
-                                        Text(
-                                          answers[index]['title'] ?? '',
-                                          style:
-                                              TextStyle(fontSize: 16, color: Colors.black87),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                        }),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Products', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.indigo,
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Column(
+            children: [
+              Expanded(
+                  child: ListView(children: [
+                Card(
+                  child: _buildDropdown(
+                    "Party Interested",
+                    [
+                      {"name": 'Yes'},
+                      {"name": 'No'}
                     ],
+                    "name",
+                    "name",
+                    interested,
+                    (value) {
+                      setState(() {
+                        interested = value;
+                      });
+                    },
                   ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () {
+                if (interested == 'Yes')
+                  ...List.generate(questionList.length, (index) {
+                    return index == selectedindex
+                        ? Card(
+                          child: Column(
+                              children: [
+                                _buildDropdown(
+                                  "Select Product Category",
+                                  categories,
+                                  "id",
+                                  "name",
+                                  selectedCategories.length > index
+                                      ? selectedCategories[index]
+                                      : null,
+                                  (value) {
+                                    if (selectedCategories.length <= index) {
+                                      selectedCategories.add(value);
+                                    } else {
+                                      selectedCategories[index] = value;
+                                    }
+                                    selectedindex = index;
+                                    getQuestions(value);
+                                  },
+                                ),
+                                ...questionList[index].map((q) => Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: _buildQuestionWidget(q, index),
+                                )),
+                                if (questionList[index].isNotEmpty &&
+                                    questionList[index].last['final'] == 1)
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      ElevatedButton.icon(
+                                        onPressed: () {
+                                          setState(() {
+                                            answers.add({});
+                                            questionList.add([]);
+                                            selectedCategories.add(null);
+                                            selectedindex =
+                                                questionList.length - 1;
+                                          });
+                                        },
+                                        icon: Icon(Icons.add),
+                                        label: Text("Add more"),
+                                      ),
+                                    ],
+                                  ),
+                                Divider()
+                              ],
+                            ),
+                        )
+                        : Card(
+                            margin: EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 6),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          getCategoryName(selectedCategories[
+                                                  index]) ??
+                                              "",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 20),
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          IconButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                selectedindex = index;
+                                              });
+                                            },
+                                            icon: Icon(Icons
+                                                .remove_red_eye_outlined),
+                                          ),
+                                          IconButton(
+                                            onPressed: () {
+                                              setState(() {
+                                                questionList.removeAt(index);
+                                                answers.removeAt(index);
+                                                selectedCategories
+                                                    .removeAt(index);
+                                                if (selectedindex >= index &&
+                                                    selectedindex > 0) {
+                                                  selectedindex--;
+                                                }
+                                              });
+                                            },
+                                            icon: Icon(Icons.delete_outline,
+                                                color: Colors.red),
+                                          ),
+                                        ],
+                                      )
+                                    ],
+                                  ),
+                                  Text(
+                                    answers[index]['title'] ?? '',
+                                    style: TextStyle(
+                                        fontSize: 16, color: Colors.black87),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                  }),
+                interested != null && interested!.toLowerCase() == 'yes'
+                    ? Container()
+                    : _buildDropdown(
+                        "Reason", reasons, "name", "name", selectedReason,
+                        (value) {
+                        setState(() {
+                          selectedReason = value;
+                        });
+                      })
+              ])),
+              ElevatedButton.icon(
+                onPressed: () {
+                  if (interested!.toLowerCase() == 'yes') {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ReviewAnswersScreen(answers: answers,payload:widget.payload),
+                        builder: (context) => ReviewAnswersScreen(
+                            answers: interested!.toLowerCase()=='yes'? answers:[],
+                            payload: widget.payload,
+                            category: interested!.toLowerCase()=='yes'? categories:[],
+                            visit: widget.visit,
+                            interested: selectedReason),
                       ),
                     );
-                  },
-                  icon: Icon(Icons.check),
-                  label: Text("Review"),
-                ),
-              ],
-            ),
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => HoInterventionScreen(
+                            answers: [],
+                            payload: widget.payload,
+                            visit: widget.visit,
+                            interested: selectedReason),
+                      ),
+                    );
+                  }
+                },
+                icon: Icon(Icons.remove_red_eye_outlined),
+                label: Text("Review"),
+              ),
+            ],
           ),
         ),
       ),
@@ -297,31 +342,46 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(question['question'],
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              MultiSelectDialogField(
-                items: options
-                    .map<MultiSelectItem<String>>(
+              Text(
+                question['question'],
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey), // Border color
+                  borderRadius:
+                      BorderRadius.circular(8), // Optional: rounded corners
+                ),
+                padding: EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 4), // Optional: inner spacing
+                child: MultiSelectDialogField(
+                  items: options
+                      .map<MultiSelectItem<String>>(
                         (opt) => MultiSelectItem<String>(
-                              opt['option'].toString(),
-                              opt['option'].toString(),
-                            ))
-                    .toList(),
-                title: Text("Select Options"),
-                selectedColor: Colors.blue,
-                initialValue: (answers[index][question['question']] ?? [])
-                    .map<String>((e) => e.toString())
-                    .toList(),
-                onConfirm: (values) {
-                  setState(() {
-                    if (question["title"] == 1 || question["title"] == "1") {
-                      answers[index]['title'] = values.join(",");
-                    }
-                    answers[index][question['question']] = values;
-                    nextQuestion(question['next_question_id']);
-                  });
-                },
-                chipDisplay: MultiSelectChipDisplay(),
+                          opt['option'].toString(),
+                          opt['option'].toString(),
+                        ),
+                      )
+                      .toList(),
+                  title: Text("Select Options"),
+                  selectedColor: Colors.blue,
+                  decoration:
+                      BoxDecoration(), // Needed to remove internal field's decoration
+                  initialValue: (answers[index][question['question']] ?? [])
+                      .map<String>((e) => e.toString())
+                      .toList(),
+                  onConfirm: (values) {
+                    setState(() {
+                      if (question["title"] == 1 || question["title"] == "1") {
+                        answers[index]['title'] = values.join(",");
+                      }
+                      answers[index][question['question']] = values;
+                      nextQuestion(question['next_question_id']);
+                    });
+                  },
+                  chipDisplay: MultiSelectChipDisplay(),
+                ),
               ),
             ],
           );
@@ -329,10 +389,17 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(question['question'],
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              // Text(question['question'],
+              //     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               DropdownButtonFormField<String>(
                 value: answers[index][question['question']]?.toString() ?? null,
+                decoration: InputDecoration(
+                  labelText: question['question'],
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                ),
                 items: options.map<DropdownMenuItem<String>>((opt) {
                   return DropdownMenuItem<String>(
                     value: opt['option'].toString(),
@@ -348,8 +415,9 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                   });
                   final selected = options
                       .firstWhere((opt) => opt['option'].toString() == value);
-                      print(question);
-                  nextQuestion(question['next_question_id']?? selected['next_question_id']);
+                  print(question);
+                  nextQuestion(question['next_question_id'] ??
+                      selected['next_question_id']);
                 },
               ),
             ],
@@ -361,26 +429,34 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(question['question'],
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            // Text(question['question'],
+            //     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             TextFormField(
               initialValue:
                   answers[index][question['question']]?.toString() ?? '',
+              decoration: InputDecoration(
+                  labelText: question['question'],
+                  border: OutlineInputBorder(
+                    borderSide: BorderSide(width: 1.0, color: Colors.black),
+                  ),
+                  hintText: "Enter Here",
+                  enabledBorder: OutlineInputBorder(
+                    borderSide: BorderSide(width: 1.0, color: Colors.black),
+                  )),
               onChanged: (val) {
                 if (question["title"] == 1 || question["title"] == "1") {
                   answers[index]['title'] = val;
                 }
                 answers[index][question['question']] = val;
               },
-              decoration: InputDecoration(hintText: "Enter your answer"),
             ),
-            ElevatedButton(
-              onPressed: () {
-                int? nextId = question['next_question_id'];
-                if (nextId != null) nextQuestion(nextId);
-              },
-              child: Text("Next"),
-            ),
+            // ElevatedButton(
+            //   onPressed: () {
+            //     int? nextId = question['next_question_id'];
+            //     if (nextId != null) nextQuestion(nextId);
+            //   },
+            //   child: Text("Next"),
+            // ),
           ],
         );
     }

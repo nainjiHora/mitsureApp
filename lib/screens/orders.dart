@@ -447,7 +447,7 @@ print(response);
                     child:DropdownButtonFormField<String>(
                       value: selectedRsm,
                       decoration: InputDecoration(
-                        labelText: 'Select RSM',
+                        labelText: 'Select VP',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       ),
@@ -479,7 +479,7 @@ print(response);
                     child: DropdownButtonFormField<String>(
                       value: selectedASM,
                       decoration: InputDecoration(
-                        labelText: 'Select ASM',
+                        labelText: 'Select CH',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                       ),

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/commonLayout.js.dart';
 import 'package:mittsure/screens/newOrder.dart';
+import 'package:mittsure/services/apiService.dart';
+import 'package:mittsure/services/utils.dart';
 
 class DistributorDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -13,13 +17,79 @@ class DistributorDetailsScreen extends StatefulWidget {
 }
 
 class _DistributorDetailsScreenState extends State<DistributorDetailsScreen> {
+
+
+bool isLoading=false;
+
+tagLocation() async {
+    print(widget.type);
+    return;
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return;
+
+      LocationPermission permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      final body = {
+        "lat": position.latitude.toString(),
+        "long": position.longitude.toString(),
+        "type": widget.type.toString()=='school'?'1':'0',
+        "id": widget.data['addressId']
+      };
+
+      final response = await ApiService.post(
+        endpoint: '/party/markLocation',
+        body: body,
+      );
+
+      print(response);
+
+      if (response != null && response['success'] == true) {
+        setState(() {
+          widget.data['lat'] = position.latitude;
+          widget.data['long'] = position.longitude;
+          DialogUtils.showCommonPopup(
+              context: context, message: "Location Marked", isSuccess: true);
+          isLoading = false;
+        });
+      } else {
+        DialogUtils.showCommonPopup(
+            context: context, message: response['message'], isSuccess: false);
+        setState(() {
+          isLoading = false;
+        });
+      }
+    } catch (error) {
+      DialogUtils.showCommonPopup(
+          context: context, message: "Something Went Wrong", isSuccess: false);
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
+
+    
+
+     
     final distributor=widget.data;
     return CommonLayout(
       currentIndex: 0,
         title: widget.type=='school'?distributor['schoolName']:distributor['DistributorName'],
-        child: ListView(
+        child:isLoading?BookPageLoader():  ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
           // Distributor Details Section
@@ -51,7 +121,7 @@ class _DistributorDetailsScreenState extends State<DistributorDetailsScreen> {
 
           
 SizedBox(height:20,),
- true
+ false
                 ? ElevatedButton.icon(
                     icon: Icon(
                       Icons.map,
@@ -62,10 +132,10 @@ SizedBox(height:20,),
                       backgroundColor: Colors.orange.shade400,
                     ),
                     onPressed: () {
-                    
+tagLocation();
                     },
                     label: Text(
-                      "Mark Location",
+                      "Tag Location",
                       style: TextStyle(color: Colors.white),
                     ),
                   )

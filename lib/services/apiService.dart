@@ -71,6 +71,7 @@ class ApiService {
           return json.decode(response.body);
         }
       } else {
+        print(response.body);
         throw Exception('Failed to load data: ${response.statusCode}');
       }
     } catch (e) {
