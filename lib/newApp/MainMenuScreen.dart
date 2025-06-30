@@ -363,16 +363,16 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     // MainMenuScreen()
                     TravelAllowanceScreen()
                     ,false),
-                _drawerItem("Route Plan", Icons.route, CreatedRoutesPage(),false),
+                _drawerItem("Route Plan", Icons.route, CreatedRoutesPage(userReq:false),false),
                 _drawerItem("Party", Icons.group, PartyScreen(),false),
-                _drawerItem("Orders", Icons.money, OrdersScreen(),false),
+                _drawerItem("Orders", Icons.money, OrdersScreen(userReq: false,),false),
                 _drawerItem(
                     "Specimen", Icons.bookmarks_sharp,
                      SpecimenScreen()
                     // MainMenuScreen()
                     ,false),
                     _drawerItem(
-                    "Approvals", Icons.approval_rounded,
+                    "Approval tray", Icons.approval_rounded,
                     RequestsScreen()
                     
                      ,false),
@@ -527,11 +527,11 @@ _logout();
         children: <Widget>[
           _bottomNavIcon(Icons.account_tree, 'Visits', 0, VisitListScreen()),
           _bottomNavIcon(
-              Icons.route_outlined, 'Routes', 1, CreatedRoutesPage()),
-          _bottomNavIcon(Icons.menu, 'Menu', 2, CreatedRoutesPage()),
+              Icons.route_outlined, 'Routes', 1, CreatedRoutesPage(userReq:false)),
+          _bottomNavIcon(Icons.menu, 'Menu', 2, CreatedRoutesPage(userReq:false)),
           _bottomNavIcon(Icons.group_add, 'Party', 3, PartyScreen()),
           _bottomNavIcon(
-              Icons.monetization_on_rounded, 'Sales', 4, OrdersScreen()),
+              Icons.monetization_on_rounded, 'Sales', 4, OrdersScreen(userReq: false,)),
         ],
       ),
     );

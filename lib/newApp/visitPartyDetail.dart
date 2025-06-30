@@ -359,8 +359,10 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       );
 
       if (response != null && response['success'] == true) {
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => CreatedRoutesPage()));
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => CreatedRoutesPage(userReq: false)));
       } else {
         throw Exception('Failed to load orders');
       }
@@ -371,6 +373,107 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
         isLoading = false;
       });
     }
+  }
+
+  void _approveRequest() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      final response = await ApiService.post(
+        endpoint: '/routeplan/approvePartialRouteNotification',
+        body: {
+          "isDirectApproval": false,
+          "approvalStatus": "1",
+          "route_line_items_id": widget.data['route_line_items_id'],
+          "id": widget.data['routeId']
+        },
+      );
+      setState(() {
+        isLoading = false;
+      });
+      if (response != null && response['status'] == false) {
+        DialogUtils.showCommonPopup(
+            context: context, message: "Approved Sucessfully", isSuccess: true);
+      }
+    } catch (e) {
+      print(e);
+      DialogUtils.showCommonPopup(
+          context: context, message: "Something Went Wrong", isSuccess: false);
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  void _rejectRequestWithRemark() {
+    final TextEditingController remarkController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Enter Rejection Remark"),
+        content: TextField(
+          controller: remarkController,
+          maxLines: 3,
+          decoration: InputDecoration(
+            hintText: "Type remark here...",
+            border: OutlineInputBorder(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final remark = remarkController.text.trim();
+              if (remark.isEmpty) return;
+
+              // Close the dialog first
+              Navigator.pop(context);
+
+              setState(() {
+                isLoading = true;
+              });
+
+              try {
+                final response = await ApiService.post(
+                  endpoint: '/routeplan/approvePartialRouteNotification',
+                  body: {
+                    "isDirectApproval": false,
+                    "approvalStatus": "2",
+                    "reason": remark,
+                    "route_line_items_id": widget.data['route_line_items_id'],
+                    "id": widget.data['routeId']
+                  },
+                );
+                setState(() {
+                  isLoading = false;
+                });
+                if (response != null && response['status'] == false) {
+                  DialogUtils.showCommonPopup(
+                      context: context, message: "Rejected ", isSuccess: true);
+                }
+              } catch (e) {
+                print(e);
+                DialogUtils.showCommonPopup(
+                    context: context,
+                    message: "Something Went Wrong",
+                    isSuccess: false);
+              } finally {
+                setState(() {
+                  isLoading = false;
+                });
+              }
+            },
+            child: Text("Submit"),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> startMeeting(String filter) async {
@@ -447,8 +550,10 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       );
 
       if (response != null && response['success'] == true) {
-        Navigator.push(context,
-            MaterialPageRoute(builder: (context) => CreatedRoutesPage()));
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => CreatedRoutesPage(userReq: false)));
       } else {
         throw Exception('Failed to load orders');
       }
@@ -505,6 +610,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
             builder: (context) => ItemListPage(
               date: widget.date,
               id: widget.data['routeId'],
+              userReq: false,
             ),
           ),
         );
@@ -629,7 +735,10 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                   SizedBox(
                     height: 20,
                   ),
-
+                  const Divider(),
+                  DetailsRow(
+                      label: 'Assigned RM',
+                      value: distributor['ownerName'] ?? 'N/A'),
                   // Additional Information Section
                   //           const SectionTitle(title: 'Additional Information'),
                   //           DetailsRow(label: 'PAN Number', value: distributor['panNumber'] ?? 'N/A'),
@@ -689,6 +798,64 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                           : Container(),
                     ],
                   ),
+                  SizedBox(
+                    height: 6,
+                  ),
+                  userData['role'] != 'se'
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            status == 0 && userData['role'] != 'se'
+                                ? ElevatedButton.icon(
+                                    icon: Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      fixedSize: Size(150, 50),
+                                      backgroundColor: Colors.green[900],
+                                    ),
+                                    onPressed: () {
+                                      showFormDialog(
+                                        context: context,
+                                        onSubmit: () {
+                                          _submitRoutes();
+                                        },
+                                      );
+                                    },
+                                    label: Text(
+                                      "Approve",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  )
+                                : Container(),
+                            status == 0 && userData['role'] != 'se'
+                                ? ElevatedButton.icon(
+                                    icon: Icon(
+                                      Icons.close,
+                                      color: Colors.white,
+                                    ),
+                                    style: ElevatedButton.styleFrom(
+                                      fixedSize: Size(150, 50),
+                                      backgroundColor: Colors.orange.shade600,
+                                    ),
+                                    onPressed: () {
+                                      showDeleteConfirmationDialog(
+                                        context: context,
+                                        onConfirm: () {
+                                          deleteRoutes();
+                                        },
+                                      );
+                                    },
+                                    label: Text(
+                                      "Reject",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  )
+                                : Container(),
+                          ],
+                        )
+                      : Container(),
                   SizedBox(
                     height: 6,
                   ),

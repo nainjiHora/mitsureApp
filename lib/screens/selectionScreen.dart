@@ -392,7 +392,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       if (response != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen()),
+          MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,)),
         );
       } else {
         throw Exception('Failed to load orders');
@@ -427,7 +427,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         if (flag) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => OrdersScreen()),
+            MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,)),
           );
         } else {
           consentDone(response["data1"]);

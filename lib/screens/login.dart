@@ -4,7 +4,8 @@ import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/screens/mainMenu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-
+// import 'package:device_info_plus/device_info_plus.dart';
+import 'dart:io';
 import 'home.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -51,8 +52,20 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setBool('rememberMe', false);
     }
   }
+// Future<String?> getDeviceId() async {
+//   final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
 
-  // API Call Function
+//   if (Platform.isAndroid) {
+//     AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+//     return androidInfo.id; // or use androidInfo.androidId (deprecated in Android 10+)
+//   } else if (Platform.isIOS) {
+//     IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+//     return iosInfo.identifierForVendor; // Unique ID on iOS
+//   }
+
+//   return null;
+// }
+  
   Future<void> signIn() async {
     final String username = _usernameController.text;
     final String password = _passwordController.text;
@@ -74,6 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
         body: jsonEncode({
           "username": username,
           "password": password,
+          "device_id":""
         }),
       );
 

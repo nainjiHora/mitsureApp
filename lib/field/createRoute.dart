@@ -174,7 +174,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
 
     try {
       final response = await ApiService.post(
-        endpoint: '/picklist/getRouteVisitType', // Use your API endpoint
+        endpoint: '/picklist/RoVisitType', // Use your API endpoint
         body: body,
       );
       if (response != null && response['status'] == false) {

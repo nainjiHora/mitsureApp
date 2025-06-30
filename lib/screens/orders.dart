@@ -11,6 +11,9 @@ import '../services/apiService.dart';
 import 'login.dart';
 
 class OrdersScreen extends StatefulWidget {
+  final bool userReq;
+
+  OrdersScreen({required this.userReq});
   @override
   _OrdersScreenState createState() => _OrdersScreenState();
 }
@@ -46,6 +49,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     });
     _fetchOrders(currentPage,selectedFilter);
   }
+
   _updateFilter(val,status){
 setState(() {
   selectedFilter=status;
@@ -296,8 +300,8 @@ selectedSE="";
 
   Future<void> _fetchOrders(pageN,status) async {
     final body = {
-      "pageNumber":pageN,
-      "approvalStatus":status,
+      "pageNumber":pageN-1,
+      "approvalStatus":widget.userReq?0:status,
       "recordPerPage":pageSize,
       "rsm":selectedRsm,
       "asm":selectedASM,
@@ -360,56 +364,26 @@ print(response);
 
   @override
   Widget build(BuildContext context) {
-    return CommonLayout(
+    return widget.userReq?
+    Scaffold(
+      body: getChildContent(),
+    ) 
+    :CommonLayout(
       currentIndex: 1,
       title:"Orders",
-      child: Container(
+      child:  getChildContent()
+    );
+  }
+
+  Widget getChildContent(){
+    return Container(
         color: Colors.grey[100],
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 12.0),
           child: Column(
             children: [
-              // Horizontal Scrollable Dates
-              // Container(
-              //   height: 80,
-              //   child: ListView.builder(
-              //     controller: _scrollController,
-              //     scrollDirection: Axis.horizontal,
-              //     itemCount: dates.length,
-              //     itemBuilder: (context, index) {
-              //       return GestureDetector(
-              //         onTap: () => _onDateSelected(dates[index]),
-              //         child: Padding(
-              //           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              //           child: Column(
-              //             mainAxisAlignment: MainAxisAlignment.center,
-              //             children: [
-              //               Text(
-              //                 days[index], // Day name (Mon, Tue, etc.)
-              //                 style: TextStyle(
-              //                   color: _selectedDate == dates[index] ? Colors.indigo[900] : Colors.black,
-              //                   fontSize: 12,
-              //                 ),
-              //               ),
-              //               CircleAvatar(
-              //                 radius: 17,
-              //                 backgroundColor: _selectedDate == dates[index] ? Colors.indigo[900] : Colors.transparent,
-              //                 child: Text(
-              //                   DateFormat('d').format(DateTime.parse(dates[index])), // Day of the month
-              //                   style: TextStyle(
-              //                     color: _selectedDate == dates[index] ? Colors.white : Colors.black,
-              //                     fontSize: 14,
-              //                   ),
-              //                 ),
-              //               ),
-              //             ],
-              //           ),
-              //         ),
-              //       );
-              //     },
-              //   ),
-              // ),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceAround,
+              
+              widget.userReq?Container():Row(mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildFilterButton("All", selectedFilter == 5, () {
                     _updateFilter(orders,5);
@@ -426,7 +400,7 @@ print(response);
                 }),
 
               ],),
-              Row(mainAxisAlignment: MainAxisAlignment.spaceAround,
+             widget.userReq?Container(): Row(mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _buildFilterButton("Shipped", selectedFilter ==3, () {
                     _updateFilter(orders,3);
@@ -586,7 +560,7 @@ print(response);
                       onTap: (){
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) =>OrderDetailsScreen(order: filteredOrders[index])), // Route to HomePage
+                          MaterialPageRoute(builder: (context) =>OrderDetailsScreen(order: filteredOrders[index],userReq: widget.userReq,)), // Route to HomePage
                         );
                       },
                       child: Card(
@@ -635,7 +609,7 @@ print(response);
             ],
           ),
         ),
-      ),
+      
 
     );
   }

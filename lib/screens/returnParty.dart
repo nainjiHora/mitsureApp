@@ -205,7 +205,7 @@ class _ReturnSearchPartyState extends State<ReturnSearchParty> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => OrderDetailsScreen(order: filteredOrders[index]),
+                          builder: (context) => OrderDetailsScreen(order: filteredOrders[index],userReq: false,),
                         ),
                       );
                     },

@@ -95,28 +95,28 @@ tagLocation() async {
           // Distributor Details Section
            SectionTitle(title: widget.type=='school'?'School Details':'Distributor Details'),
           DetailsRow(label: 'Name', value: widget.type=='school'?distributor['schoolName']:distributor['DistributorName'] ?? 'N/A'),
-          DetailsRow(label: 'GST Number', value: distributor['GSTno'] ?? 'N/A'),
-          DetailsRow(
-            label: 'Created At',
-            value: distributor['createdAt'] != null
-                ? distributor['createdAt'].toString().substring(0, 10)
-                : 'N/A',
-          ),
-          const Divider(),
+          // DetailsRow(label: 'GST Number', value: distributor['GSTno'] ?? 'N/A'),
+          // DetailsRow(
+          //   label: 'Created At',
+          //   value: distributor['createdAt'] != null
+          //       ? distributor['createdAt'].toString().substring(0, 10)
+          //       : 'N/A',
+          // ),
+          // const Divider(),
 
           // Address Section
-          const SectionTitle(title: 'Address Details'),
+          // const SectionTitle(title: 'Address Details'),
           DetailsRow(label: 'Pincode', value: distributor['Pincode'] ?? 'N/A'),
           DetailsRow(label: 'Address Line 1', value: distributor['AddressLine1'] ?? 'N/A'),
           DetailsRow(label: 'Landmark', value: distributor['Landmark'] ?? 'N/A'),
-          DetailsRow(label: 'Coordinates', value: distributor['Landmark'] ?? 'N/A'),
+          DetailsRow(label: 'Coordinates', value: "${distributor['lat']},${distributor['long']}" ?? 'N/A'),
           const Divider(),
 
           const SectionTitle(title: 'Contact Person Details'),
           DetailsRow(label: 'Name', value: distributor['name'] ?? 'N/A'),
           DetailsRow(label: 'Role', value: distributor['role'] ?? 'N/A'),
           DetailsRow(label: 'Contact Number', value: distributor['makerContact'] ?? 'N/A'),
-          DetailsRow(label: 'Email', value: distributor['email'] ?? 'N/A'),
+          DetailsRow(label: 'Email', value: distributor['email']??distributor['Email'] ?? 'N/A'),
           const Divider(),
 
           

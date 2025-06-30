@@ -189,7 +189,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
          Navigator.pushReplacement(
           cont,
           MaterialPageRoute(
-              builder: (context) => CreatedRoutesPage()),
+              builder: (context) => CreatedRoutesPage(userReq:false)),
         );
       } else {
         setState(() {

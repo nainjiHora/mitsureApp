@@ -115,7 +115,7 @@ class _ReturnItemsScreenState extends State<ReturnItemsScreen> {
           _showSuccessMessage("Return Requested",true);
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => OrdersScreen()),
+            MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,)),
           );
 
         } else {

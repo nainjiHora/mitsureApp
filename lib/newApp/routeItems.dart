@@ -11,7 +11,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ItemListPage extends StatefulWidget {
   final id;
   final date;
-  const ItemListPage({super.key, required this.id, this.date});
+
+  final bool userReq;
+  const ItemListPage({super.key, required this.id, this.date,required this.userReq});
 
   @override
   State<ItemListPage> createState() => _ItemListPageState();
@@ -34,17 +36,18 @@ class _ItemListPageState extends State<ItemListPage> {
   }
 
   Widget _buildStatusBadge(dynamic status) {
+    print(status);
     String label = '';
     Color color = Colors.grey;
 
     switch (status) {
       case 1:
-        label = 'Visit Started';
+        label = widget.userReq?'Approved':'Visit Started';
         color = Colors.orange;
         break;
       case 2:
-        label = 'Meeting Started';
-        color = Colors.blue;
+        label = widget.userReq?'Rejected':'Meeting Started';
+        color =widget.userReq?Colors.red: Colors.blue;
         break;
       case 3:
         label = 'Meeting Ended';
@@ -53,6 +56,10 @@ class _ItemListPageState extends State<ItemListPage> {
       case 4:
         label = 'Visit Completed';
         color = Colors.green;
+        break;
+      case 0:
+        label = widget.userReq? 'Pending':'Visit Completed';
+        color = Colors.orange;
         break;
       default:
         return const SizedBox(); // No badge for unknown status
@@ -167,9 +174,14 @@ class _ItemListPageState extends State<ItemListPage> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        Navigator.pushAndRemoveUntil(
+        widget.userReq? Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => CreatedRoutesPage()),
+          MaterialPageRoute(builder: (context) => MainMenuScreen()),
+          (route) => false, // remove all previous routes
+        )
+       : Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => CreatedRoutesPage(userReq:false)),
           (route) => false, // remove all previous routes
         );
         return false;
@@ -266,6 +278,7 @@ class _ItemListPageState extends State<ItemListPage> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             margin: const EdgeInsets.only(bottom: 12),
+                            
                             child: ListTile(
                               leading: const Icon(Icons.category,
                                   color: Colors.indigo),
@@ -274,7 +287,7 @@ class _ItemListPageState extends State<ItemListPage> {
                               subtitle: Text(
                                   "${item['partyType'] == 0 ? 'Distributor' : 'School'}-${item['partyId']}"),
                               trailing:
-                                  _buildStatusBadge(item['visited_status']),
+                                  widget.userReq?(item['status']): _buildStatusBadge(item['visited_status']),
                             ),
                           ),
                         );

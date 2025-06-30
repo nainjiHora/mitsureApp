@@ -13,7 +13,8 @@ import 'orders.dart';
 
 class OrderDetailsScreen extends StatefulWidget {
   final order;
-  OrderDetailsScreen({required this.order});
+  final bool userReq;
+  OrderDetailsScreen({required this.order,required this.userReq});
 
   @override
   State<OrderDetailsScreen> createState() => _OrderDetailsScreenState();
@@ -68,7 +69,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         });
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen()),
+          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq)),
         );
       } else {
         throw Exception('Failed to load orders');
@@ -397,7 +398,7 @@ id=widget.order['partyId'];
       if (response != null && response['status'] == true) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen()),
+          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,)),
         );
       } else {
 
@@ -521,7 +522,7 @@ setState(() {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen()),
+          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,)),
         );
       } else {
         throw Exception('Failed to load orders');

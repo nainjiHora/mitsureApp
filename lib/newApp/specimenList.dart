@@ -491,7 +491,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    SpecimenReList()) // remove all previous routes
+                                    SpecimenReList(userReq: false,)) // remove all previous routes
                             );
                       },
                       icon: Icon(Icons.add),
