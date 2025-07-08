@@ -24,8 +24,9 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
   List<List<dynamic>> questionList = [[]];
   List<dynamic> questions = [];
 
-  String? interested;
+  String? interested=null;
   String? selectedReason;
+  String? daysNeeded;
   int selectedindex = 0;
   List<dynamic> reasons = [];
 
@@ -128,22 +129,24 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
             children: [
               Expanded(
                   child: ListView(children: [
-                Card(
-                  child: _buildDropdown(
-                    "Party Interested",
-                    [
-                      {"name": 'Yes'},
-                      {"name": 'No'}
-                    ],
-                    "name",
-                    "name",
-                    interested,
-                    (value) {
-                      setState(() {
-                        interested = value;
-                      });
-                    },
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Text("In This Visit, did party show Interest in Products? ",style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                _buildDropdown(
+                  "Interested in Products",
+                  [
+                    {"name": 'Yes'},
+                    {"name": 'No'}
+                  ],
+                  "name",
+                  "name",
+                  interested,
+                  (value) {
+                    setState(() {
+                      interested = value;
+                    });
+                  },
                 ),
                 if (interested == 'Yes')
                   ...List.generate(questionList.length, (index) {
@@ -152,7 +155,7 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                           child: Column(
                               children: [
                                 _buildDropdown(
-                                  "Select Product Category",
+                                  "Select Product Group",
                                   categories,
                                   "id",
                                   "name",
@@ -262,13 +265,28 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                   }),
                 interested != null && interested!.toLowerCase() == 'yes'
                     ? Container()
-                    : _buildDropdown(
-                        "Reason", reasons, "name", "name", selectedReason,
-                        (value) {
-                        setState(() {
-                          selectedReason = value;
-                        });
-                      })
+                    : interested!=null? Column(
+                      children: [
+                        _buildDropdown(
+                            "Reason", reasons, "name", "name", selectedReason,
+                            (value) {
+                            setState(() {
+                              selectedReason = value;
+                            });
+                          }),
+                          Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text("How many more visits do you think are needed to close the deal ?",style: TextStyle(fontWeight: FontWeight.bold),),
+                          ),
+                           _buildDropdown(
+                            "", [{"name":"1"},{"name":"2"},{"name":"3"}], "name", "name", daysNeeded,
+                            (value) {
+                            setState(() {
+                              daysNeeded = value;
+                            });
+                          }),
+                      ],
+                    ):Container()
               ])),
               ElevatedButton.icon(
                 onPressed: () {

@@ -43,7 +43,7 @@ class _ItemListPageState extends State<ItemListPage> {
     switch (status) {
       case 1:
         label = widget.userReq?'Approved':'Visit Started';
-        color = Colors.orange;
+        color = widget.userReq?Colors.green:Colors.orange;
         break;
       case 2:
         label = widget.userReq?'Rejected':'Meeting Started';
@@ -58,14 +58,14 @@ class _ItemListPageState extends State<ItemListPage> {
         color = Colors.green;
         break;
       case 0:
-        label = widget.userReq? 'Pending':'Visit Completed';
+        label = widget.userReq? 'Pending':'';
         color = Colors.orange;
         break;
       default:
         return const SizedBox(); // No badge for unknown status
     }
 
-    return Container(
+    return widget.userReq ||status!=0? Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
@@ -80,7 +80,7 @@ class _ItemListPageState extends State<ItemListPage> {
           fontWeight: FontWeight.bold,
         ),
       ),
-    );
+    ):SizedBox(height: 0,);
   }
 
  Widget buildFilterChips() {
@@ -270,6 +270,7 @@ class _ItemListPageState extends State<ItemListPage> {
                                           type: item['partyType'],
                                           date: widget.date,
                                           visitStatus: item['visited_status'],
+                                          userReq: widget.userReq,
                                         )));
                           },
                           child: Card(
@@ -287,7 +288,7 @@ class _ItemListPageState extends State<ItemListPage> {
                               subtitle: Text(
                                   "${item['partyType'] == 0 ? 'Distributor' : 'School'}-${item['partyId']}"),
                               trailing:
-                                  widget.userReq?(item['status']): _buildStatusBadge(item['visited_status']),
+                                  widget.userReq?_buildStatusBadge(item['status']): _buildStatusBadge(item['visited_status']),
                             ),
                           ),
                         );

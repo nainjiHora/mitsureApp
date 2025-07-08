@@ -14,19 +14,7 @@ class NotificationScreen extends StatefulWidget {
 
 class _NotificationScreenState extends State<NotificationScreen> {
 
-   List<dynamic> notifications = [
-    {
-      "title": 'New Message',
-      "body": 'You have received a new message from John.',
-      "timestamp": DateTime.now().subtract(Duration(minutes: 5)),
-    },
-    {
-      "title": 'Order Update',
-      "body": 'Your order has been shipped and is on its way.',
-      "timestamp": DateTime.now().subtract(Duration(hours: 1)),
-}
-
-  ];
+   List<dynamic> notifications = [];
 
   Future<void> _fetchNOtification() async {
     final prefs = await SharedPreferences.getInstance();
@@ -46,6 +34,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
       );
 
 print(response['data']);
+print("pointuy");
       if (response != null) {
 
         final  data = response['data'];

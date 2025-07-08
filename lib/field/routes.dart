@@ -177,6 +177,8 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
   }
 
   Future<void> fetchRoutes() async {
+
+
     setState(() {
       isLoading = true;
     });
@@ -187,7 +189,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
       "ownerName": selectedSE,
       "rsm": selectedRsm,
       "asm": selectedASM,
-      "status": selectedFilter
+      "status": widget.userReq? selectedFilter:""
     };
 
     try {
@@ -199,6 +201,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
 
       if (response != null && response['status'] == false) {
         setState(() {
+          print(response['data1']);
           routeList = response['data'] ?? [];
           totalRecords = response['data1'] ?? 0;
         });
@@ -429,7 +432,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final totalPages = (totalRecords / perPage).floor();
+    final totalPages = (totalRecords / perPage).ceil();
 
     return WillPopScope(
       onWillPop: () async {

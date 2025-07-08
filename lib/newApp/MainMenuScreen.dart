@@ -42,6 +42,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   List<dynamic> config = [];
   bool isLoading = true;
   Map<String, dynamic> userData = {};
+   Map<String, dynamic> unique = {};
   Duration currentSessionDuration = Duration.zero;
 
   String get greeting {
@@ -65,6 +66,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         getRoutePartyCount(userData["id"]);
       });
       await _fetchWorkingHours();
+      fetchdashboardtopTiles();
       _updatePunchStatus();
     }
   }
@@ -93,6 +95,30 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         final data = response['data'];
         setState(() {
           visitData = data;
+        });
+      }
+    } catch (error) {
+      print("Error fetching working hours: $error");
+    }
+  }
+
+  fetchdashboardtopTiles() async {
+    try {
+      final response = await ApiService.post(
+        endpoint: '/visit/getCountVisit',
+        body: {"ownerId": userData['role']=='se'?userData['id']:"",
+        
+        "rsm": userData['role']=='rsm'?userData['id']:"",
+        "asm": userData['role']=='asm'?userData['id']:""},
+      );
+
+      if (response != null && response['success']==true) {
+        final data = response['data'];
+        setState(() {
+         print(data);
+         setState(() {
+           unique=data;
+         });
         });
       }
     } catch (error) {
@@ -312,6 +338,33 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       if (isLoading) const BookPageLoader(),
     ]);
   }
+ Widget _topStatsRow() {
+  return IntrinsicHeight( // Ensure all children have same height
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _infoBox(
+          title: "Party Assigned",
+          topValue: unique['schoolCount'].toString()??"",
+          bottomValue: unique['distributorCount'].toString()??"",
+          icon: Icons.group,
+        ),
+        _infoBox(
+          title: "Total Visits",
+          topValue: unique['totalSchoolVisit'].toString()??"",
+          bottomValue: unique['totalDistributorVisit'].toString()??"",
+          icon: Icons.visibility,
+        ),
+        _infoBox(
+          title: "Unique Visits",
+          topValue: unique['totalSchoolDistinctVisit'].toString()??"",
+          bottomValue: unique['totalDistributorDistinctVisit'].toString()??"",
+          icon: Icons.person_outline,
+        ),
+      ],
+    ),
+  );
+ }
 
   Widget _buildDrawer() {
     return Drawer(
@@ -371,15 +424,16 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                      SpecimenScreen()
                     // MainMenuScreen()
                     ,false),
+                    if(userData['role']!='se')
                     _drawerItem(
-                    "Approval tray", Icons.approval_rounded,
+                    "Approval Tray", Icons.approval_rounded,
                     RequestsScreen()
                     
                      ,false),
                 _drawerItem(
                     "Notifications", Icons.notifications,
-                    //  NotificationScreen()
-                    MainMenuScreen()
+                     NotificationScreen()
+                    // MainMenuScreen()
                      ,false),
                 // _drawerItem("Map", Icons.map, AgentsMapScreen()),
                 Divider(thickness: 1),
@@ -412,6 +466,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                 final prefs = await SharedPreferences.getInstance();
                 await prefs.remove("user");
                 await prefs.remove("Token");
+                await prefs.clear();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => LoginScreen()),
@@ -455,42 +510,63 @@ _logout();
 
   
 
-  Widget _topStatsRow() {
-    return Row(
-      children: [
-        _infoBox("Visits", "120", Icons.visibility),
-        _infoBox("Incentive", "₹1500", Icons.attach_money),
-        _infoBox("Orders", "75", Icons.shopping_cart),
-      ],
-    );
-  }
-
-  Widget _infoBox(String title, String value, IconData icon) {
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 6),
+Widget _infoBox({
+  required String title,
+  required String topValue,
+  required String bottomValue,
+  required IconData icon,
+}) {
+  return Expanded(
+    child: Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      elevation: 4,
+      margin: const EdgeInsets.all(8),
+      child: Padding(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.indigo[50],
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black12, blurRadius: 4, offset: Offset(2, 2))
-          ],
-        ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Ensure full vertical space is used
           children: [
-            Icon(icon, size: 28, color: Colors.yellow[900]),
-            SizedBox(height: 8),
-            Text(value,
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            SizedBox(height: 4),
-            Text(title, style: TextStyle(fontSize: 14)),
+            Column(
+              children: [
+                Icon(icon, size: 28, color: Colors.blueAccent),
+                const SizedBox(height: 6),
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const Divider(thickness: 1.2),
+              ],
+            ),
+            Column(
+              children: [
+                const Text(
+                  "School",
+                  style: TextStyle(color: Colors.black87, fontSize: 14),
+                ),
+                Text(
+                  topValue,
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  "Distributor",
+                  style: TextStyle(color: Colors.black87, fontSize: 14),
+                ),
+                Text(
+                  bottomValue,
+                  style: const TextStyle(color: Colors.black87, fontSize: 14),
+                ),
+              ],
+            )
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+ 
 
   Widget _attendanceSection() {
     return Row(

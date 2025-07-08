@@ -200,7 +200,7 @@ class _PunchScreenState extends State<PunchScreen> {
     final now = DateTime.now();
 
     Map<String, dynamic> body = {
-      "userId": selectedSE,
+      "userId": widget.mark? userData['id']:selectedSE,
       "month": month ?? now.month, // e.g., 6 for June
       "year": now.year, // e.g., 2025
     };
@@ -245,7 +245,8 @@ class _PunchScreenState extends State<PunchScreen> {
       followUpDate = now;
     });
     String formattedDate = DateFormat('yyyy-MM-dd').format(now);
-    final body = {"userId": selectedSE, "date": formattedDate};
+    final body = { "userId": widget.mark? userData['id']:selectedSE,
+     "date": formattedDate};
 
     try {
       final response = await ApiService.post(
@@ -372,6 +373,7 @@ class _PunchScreenState extends State<PunchScreen> {
       var request = http.MultipartRequest('POST', uri);
 
       request.fields.addAll({
+        "city" :jsonEncode(punchData['city']),
         "in_km": lastPunchIn ? "" : reading,
         "punch": lastPunchIn ? "out" : "in",
         "out_km": lastPunchIn ? reading : "",
@@ -823,7 +825,7 @@ class _PunchScreenState extends State<PunchScreen> {
                             ),
                           ),
                         SizedBox(height: 20),
-                        getAdminFilters(),
+                        !widget.mark? getAdminFilters():Container(),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.end,
                           children: [

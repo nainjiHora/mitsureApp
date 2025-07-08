@@ -170,12 +170,7 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
                     buildTextField(controller: makerContact, label: 'Maker Contact'),
 
                     SizedBox(height: 10),
-                    SwitchListTile(
-                      value: onboardForErp,
-                      title: Text('Onboard for ERP'),
-                      onChanged: (val) => setState(() => onboardForErp = val),
-                    ),
-                    SizedBox(height: 20),
+              
                     ElevatedButton(onPressed: submitForm, child: Text('Submit')),
                   ],
                 ),

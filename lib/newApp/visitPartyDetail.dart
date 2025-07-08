@@ -20,6 +20,7 @@ class RouteDetailsScreen extends StatefulWidget {
   final type;
   final date;
   final visitStatus;
+  final userReq;
   final visitId;
 
   RouteDetailsScreen(
@@ -27,6 +28,7 @@ class RouteDetailsScreen extends StatefulWidget {
       required this.data,
       required this.type,
       required this.date,
+      required this.userReq,
       required this.visitStatus,
       this.visitId});
 
@@ -61,8 +63,6 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   }
 
   fetchlastVisit() async {
-    print(widget.data);
-    print("ssssss");
     setState(() {
       isLoading = true;
     });
@@ -75,9 +75,12 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       );
 
       if (response != null && response['status'] == false) {
+    print(response);
+    print("ssssss");
         setState(() {
           visitCount = response['data']['totalCount'];
           latestVisit = response['data']['latestVisit'];
+          print(latestVisit);
         });
       } else {}
     } catch (error) {
@@ -506,11 +509,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
           isLoading = false;
           status = filter == 'end' ? 3 : 2;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text(filter == 'end' ? "Meeting Ended" : "Meeting Started")),
-        );
+        DialogUtils.showCommonPopup(context: context, message: filter == 'end' ? "Meeting Ended" : "Meeting Started", isSuccess: true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(response['message'])),
@@ -565,6 +564,14 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       });
     }
   }
+  getFVR(obj,key){
+    if(obj==null||obj==""){
+      return null;
+    }else{
+      final a=jsonDecode(obj);
+      return a[key].toString();
+    }
+  }
 
   bool isToday(String dateString) {
     final date = DateTime.parse(dateString); // Make sure format is 'yyyy-MM-dd'
@@ -610,7 +617,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
             builder: (context) => ItemListPage(
               date: widget.date,
               id: widget.data['routeId'],
-              userReq: false,
+              userReq: widget.userReq,
             ),
           ),
         );
@@ -698,27 +705,11 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                       value: widget.type == 1
                           ? distributor['schoolName']
                           : distributor['DistributorName'] ?? 'N/A'),
-                  DetailsRow(
-                      label: 'GST Number',
-                      value: distributor['GSTno'] ?? 'N/A'),
-                  DetailsRow(
-                    label: 'Created At',
-                    value: distributor['createdAt'] != null
-                        ? distributor['createdAt'].toString().substring(0, 10)
-                        : 'N/A',
-                  ),
-                  const Divider(),
-
-                  // Address Section
-                  const SectionTitle(title: 'Address Details'),
+                  
+                
                   DetailsRow(
                       label: 'Pincode', value: distributor['Pincode'] ?? 'N/A'),
-                  DetailsRow(
-                      label: 'Address Line ',
-                      value: distributor['AddressLine1'] ?? 'N/A'),
-                  DetailsRow(
-                      label: 'Landmark',
-                      value: distributor['Landmark'] ?? 'N/A'),
+                 
                   const Divider(),
 
                   const SectionTitle(title: 'Contact Person Details'),
@@ -731,6 +722,22 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                       value: distributor['makerContact'] ?? 'N/A'),
                   DetailsRow(
                       label: 'Email', value: distributor['email'] ?? 'N/A'),
+                  const Divider(),
+                  SizedBox(
+                    height: 20,
+                  ),
+                  const Divider(),
+                  
+                  const SectionTitle(title: 'Last Visit Details'),
+                  DetailsRow(
+                      label: 'HO Needed', value: latestVisit['ho_need']=='true'?'Yes':'No' ?? 'N/A'),
+                  DetailsRow(
+                      label: 'HO remark', value: latestVisit['ho_need_remark'] ?? 'N/A'),
+                  DetailsRow(
+                      label: 'Further Visit Required',
+                      value: getFVR(latestVisit['furtherVisitRequired'],'visit_required') ?? 'N/A'),
+                  DetailsRow(
+                      label: 'Reason', value: getFVR(latestVisit['furtherVisitRequired'],"reason") ?? 'N/A'),
                   const Divider(),
                   SizedBox(
                     height: 20,
@@ -816,12 +823,8 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                       backgroundColor: Colors.green[900],
                                     ),
                                     onPressed: () {
-                                      showFormDialog(
-                                        context: context,
-                                        onSubmit: () {
-                                          _submitRoutes();
-                                        },
-                                      );
+                                      _approveRequest();
+                                      
                                     },
                                     label: Text(
                                       "Approve",
@@ -840,12 +843,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                       backgroundColor: Colors.orange.shade600,
                                     ),
                                     onPressed: () {
-                                      showDeleteConfirmationDialog(
-                                        context: context,
-                                        onConfirm: () {
-                                          deleteRoutes();
-                                        },
-                                      );
+                                     _rejectRequestWithRemark();
                                     },
                                     label: Text(
                                       "Reject",

@@ -263,11 +263,11 @@ class _VisitListScreenState extends State<VisitListScreen> {
 
   Widget _buildVisitCard(dynamic visit) {
     final title = visit['schoolName'] ?? visit['DistributorName'] ?? 'Unnamed';
-    final subtitle = visit['partyId'];
-    final date = visit['startTime'];
-    final parsedDate =
-        DateTime.parse(date).toLocal(); // Convert from UTC to local time
-    final formattedDate = DateFormat('dd-MM-yyyy').format(parsedDate);
+    final subtitle = visit['partyId']??"";
+    final date = visit['startTime']??"";
+    final parsedDate =date!=null?
+        DateTime.parse(date).toLocal():null; 
+    final formattedDate = parsedDate!=null? DateFormat('dd-MM-yyyy').format(parsedDate):"";
 
     return TweenAnimationBuilder(
       duration: Duration(milliseconds: 500),

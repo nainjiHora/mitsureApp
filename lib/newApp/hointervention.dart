@@ -18,7 +18,10 @@ class HoInterventionScreen extends StatefulWidget {
   final visit;
 
   HoInterventionScreen(
-      {required this.payload, this.answers, required this.interested,required this.visit});
+      {required this.payload,
+      this.answers,
+      required this.interested,
+      required this.visit});
 
   @override
   _HoInterventionScreenState createState() => _HoInterventionScreenState();
@@ -28,12 +31,41 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
   bool hoInterventionNeeded = false;
   bool followUpRequired = false;
   bool mittsureAccountNeeded = false;
-  bool furtherVisit = false;
+  final _formKey = GlobalKey<FormState>();
+
+  // Controllers
+  final TextEditingController schoolName = TextEditingController();
+  final TextEditingController parentSchoolName = TextEditingController();
+  final TextEditingController addressLine1 = TextEditingController();
+  final TextEditingController addressLine2 = TextEditingController();
+  final TextEditingController district = TextEditingController();
+  final TextEditingController state = TextEditingController();
+  final TextEditingController pincode = TextEditingController();
+  final TextEditingController landmark = TextEditingController();
+  final TextEditingController strength = TextEditingController();
+  final TextEditingController email = TextEditingController();
+  final TextEditingController website = TextEditingController();
+  final TextEditingController makerName = TextEditingController();
+
+  final TextEditingController makerContact = TextEditingController();
+  List<dynamic> schoolTypeList = [];
+  List<dynamic> categoryList = [];
+  List<dynamic> mediumList = [];
+  List<dynamic> gradeList = [];
+  List<dynamic> customerTypeList = [];
+  List<dynamic> boardList = [];
+  List<dynamic> roles = [];
+
   bool skipOtp = true;
 
-  final _formKey = GlobalKey<FormState>();
-  final furtherformKey = GlobalKey<FormState>();
-  final TextEditingController furtherVisitController = TextEditingController();
+  final _schoolformKey = GlobalKey<FormState>();
+  String? selectedCategory = null;
+  String? selectedMedium = null;
+  String? selectedGrade = null;
+  String? selectedCustomerType = null;
+  String? selectedBoard = null;
+  String? selectedRole = null;
+
   final TextEditingController remarkController = TextEditingController();
   final TextEditingController followUpRemark = TextEditingController();
   final TextEditingController otherNumberController = TextEditingController();
@@ -51,6 +83,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
   Timer? _otpTimer;
   int _remainingSeconds = 30;
   bool _canResendOtp = false;
+  bool partyUpdateRequired = false;
   String selectedOption = 'Party';
   dynamic selectedValue;
   File? capturedImage;
@@ -67,6 +100,15 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
   Future<void> _submitRequest(BuildContext context) async {
     setState(() => isLoading = true);
+
+
+   
+   if (partyUpdateRequired && !_schoolformKey.currentState!.validate()) {
+      _showSnackbar("Please enter a Party Update Data", context);
+      setState(() => isLoading = false);
+      return;
+   }
+
 
     if (hoInterventionNeeded && remarkController.text.trim().isEmpty) {
       _showSnackbar("Please enter a remark.", context);
@@ -86,16 +128,6 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
         return;
       }
     }
-    if (furtherVisit &&
-        (furtherVisitController.text == "" ||
-            furtherVisitController.text == null)) {
-      setState(() => isLoading = false);
-      DialogUtils.showCommonPopup(
-          context: context,
-          message: "Please fill the reason for no visit required",
-          isSuccess: false);
-      return;
-    }
 
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.camera);
@@ -114,13 +146,17 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
       request.fields[key] = value;
     });
 
-   var a=distributors.where((element) => element['DistributorName']==prefDistributor.text.trim()).toList();
+    var a = distributors
+        .where((element) =>
+            element['DistributorName'] == prefDistributor.text.trim())
+        .toList();
 
-   if(a.length>0){
-    selectedValue=a[0]['distributorID'];
-   }
+    if (a.length > 0) {
+      selectedValue = a[0]['distributorID'];
+    }
 
-    request.fields['preferred_distributor']=jsonEncode({"id":selectedValue,"name":prefDistributor.text});
+    request.fields['preferred_distributor'] =
+        jsonEncode({"id": selectedValue, "name": prefDistributor.text});
 
     request.fields['otp_number'] = !skipOtp
         ? ""
@@ -129,9 +165,31 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
             : widget.payload.fields['phone'];
     request.fields['ho_need'] = hoInterventionNeeded.toString();
     request.fields['noVisitCount'] = '0';
+    request.fields['otpMode'] = selectedOption;
     request.fields['tentativeAmount'] = '0';
     request.fields['product_category'] = jsonEncode(pcat);
     request.fields['remark'] = followUpRemark.text;
+
+
+
+     if (partyUpdateRequired) {
+      request.fields['partyUpdate'] = partyUpdateRequired?'true':'false';
+       final partyUpdateData = {
+        "addressLine1": addressLine1.text,
+        "addressLine2": addressLine2.text,
+        "board": selectedBoard,
+        "email": email.text,
+        "grade": [selectedGrade],
+        "makerContact": makerContact.text,
+        "makerName": makerName.text,
+        "makerRole": selectedRole??"",
+        "medium": selectedMedium,
+        "pincode": pincode.text,
+        "schoolName": schoolName.text,
+        'distributor':jsonEncode({"id": selectedValue, "name": prefDistributor.text})
+      };
+       request.fields['partyUpdateData'] = jsonEncode(partyUpdateData);
+    }
 
     if (hoInterventionNeeded) {
       request.fields['ho_need_remark'] = remarkController.text.trim();
@@ -145,20 +203,19 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
     final accountFormJson = {
       "account_needed": mittsureAccountNeeded,
-      "school_name": mittsureAccountNeeded?schoolNameController.text.trim():"",
-      "contact_person":mittsureAccountNeeded? contactPersonController.text.trim():"",
-      "mobile":mittsureAccountNeeded? accountMobileController.text.trim():"",
-      "email":mittsureAccountNeeded? accountEmailController.text.trim():"",
-      "remarks":mittsureAccountNeeded? accountRemarksController.text.trim():"",
+      "school_name":
+          mittsureAccountNeeded ? schoolNameController.text.trim() : "",
+      "contact_person":
+          mittsureAccountNeeded ? contactPersonController.text.trim() : "",
+      "mobile":
+          mittsureAccountNeeded ? accountMobileController.text.trim() : "",
+      "email": mittsureAccountNeeded ? accountEmailController.text.trim() : "",
+      "remarks":
+          mittsureAccountNeeded ? accountRemarksController.text.trim() : "",
     };
     request.fields['mittstoreAccountNeeded'] = jsonEncode(accountFormJson);
 
-    final furvisit = {
-      "visit_required": !furtherVisit,
-      "reason": furtherVisitController.text.trim(),
-    };
-    request.fields['furtherVisitRequired'] = jsonEncode(furvisit);
-    request.fields['otp_skip']=!skipOtp?'Yes':'No';
+    request.fields['otp_skip'] = !skipOtp ? 'Yes' : 'No';
     request.files.add(await http.MultipartFile.fromPath(
       'end_image',
       capturedImage!.path,
@@ -195,6 +252,60 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
     }
   }
 
+  Future<void> fetchAllPicklists() async {
+    try {
+      final responses = await Future.wait([
+        ApiService.post(endpoint: '/picklist/getSchoolTypeList', body: {}),
+        ApiService.post(endpoint: '/picklist/getSchoolCategory', body: {}),
+        ApiService.post(endpoint: '/picklist/getMedium', body: {}),
+        ApiService.post(endpoint: '/picklist/getGrade', body: {}),
+        ApiService.post(endpoint: '/picklist/getCustomerTypeList', body: {}),
+        ApiService.post(endpoint: '/picklist/getBoard', body: {}),
+        ApiService.post(endpoint: '/picklist/getContactPersonRole', body: {}),
+      ]);
+
+      setState(() {
+        schoolTypeList = responses[0]['data'] ?? [];
+        categoryList = responses[1]['data'] ?? [];
+        mediumList = responses[2]['data'] ?? [];
+        gradeList = responses[3]['data'] ?? [];
+        customerTypeList = responses[4]['data'] ?? [];
+        boardList = responses[5]['data'] ?? [];
+        roles = responses[6]['data'];
+        final a = roles
+            .where((element) =>
+                element['roleName'] == widget.visit['decisionMakerRole'])
+            .toList();
+
+        if (a.length > 0) {
+          selectedRole = a[0]['contactPersonRoleId'];
+        }
+        print(mediumList);
+
+        final b = mediumList
+            .where((element) => element['mediumName'] == widget.visit['Medium'])
+            .toList();
+
+        if (b.length > 0) {
+          selectedMedium = b[0]['mediumTableId'];
+        }
+        print(boardList);
+        final c = boardList
+            .where((element) => element['boardName'] == widget.visit['Board'])
+            .toList();
+
+        if (c.length > 0) {
+          selectedBoard = c[0]['boardId'];
+        }
+        selectedGrade = widget.visit['Grade'];
+
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching picklists: $e');
+    }
+  }
+
   Future<void> _sendOtp(context) async {
     final prefs = await SharedPreferences.getInstance();
     final t = await prefs.getString('user');
@@ -216,9 +327,19 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
         _showOtpDialog(context);
       } else {
         _showPopup(response["message"], false, context);
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => MainMenuScreen()),
+          (_) => false,
+        );
       }
     } catch (error) {
-      _showPopup("Failed to send OTP. Please try again.", false, context);
+      _showPopup("Failed to send OTP. Please try later.", false, context);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => MainMenuScreen()),
+        (_) => false,
+      );
     }
   }
 
@@ -254,9 +375,19 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
     super.initState();
     print(widget.visit);
     print("po");
-    contactPersonController.text=widget.visit['makerName']??"";
-    accountMobileController.text=widget.visit['makerContact']??"";
-    schoolNameController.text=widget.visit['schoolName']??widget.visit['distributorName'];
+    fetchAllPicklists();
+    contactPersonController.text = widget.visit['makerName'] ?? "";
+    accountMobileController.text = widget.visit['makerContact'] ?? "";
+    schoolNameController.text =
+        widget.visit['schoolName'] ?? widget.visit['DistributorName'] ?? "";
+
+    email.text = widget.visit['schoolName'] ?? "N/A";
+    makerContact.text = widget.visit['makerContact'] ?? "N/A";
+    makerName.text = widget.visit['makerName'] ?? "N/A";
+    pincode.text = widget.visit['Pincode'] ?? "N/A";
+    addressLine2.text = widget.visit['AddressLine2'] ?? "N/A";
+    addressLine1.text = widget.visit['AddressLine1'] ?? "N/A";
+    schoolName.text = widget.visit['schoolName'] ?? "N/A";
 
     getUserData();
   }
@@ -387,7 +518,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Mittsure Account Details",
+                      Text("Mittstore Account Details",
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -450,41 +581,81 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                   ),
                 ),
               ),
-            Divider(height: 24),
             CheckboxListTile(
-              title: Text("Further visit not required"),
-              value: furtherVisit,
-              onChanged: (value) => setState(() => furtherVisit = value!),
+              title: Text("Party Update"),
+              value: partyUpdateRequired,
+              onChanged: (value) =>
+                  setState(() => partyUpdateRequired = value!),
             ),
-            if (furtherVisit)
+            Divider(height: 24),
+            if (partyUpdateRequired)
               Container(
                 margin: EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  border: Border.all(color: Colors.indigo),
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Form(
-                  key: furtherformKey,
+                  key: _schoolformKey,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      TextFormField(
-                        controller: furtherVisitController,
-                        maxLines: 1,
-                        decoration: InputDecoration(
-                          labelText: 'Why Not Required ?',
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (val) => val == null || val.trim().isEmpty
-                            ? "Required"
-                            : null,
-                      ),
+                      buildTextField(
+                          controller: schoolName, label: 'School Name'),
+                      buildTextField(
+                          controller: addressLine1, label: 'Address Line 1'),
+                      buildTextField(
+                          controller: addressLine2, label: 'Address Line 2'),
+                      buildTextField(controller: pincode, label: 'Pincode'),
+                      buildDropdownFromList(
+                          'Decision Maker Role',
+                          roles,
+                          'contactPersonRoleId',
+                          "roleName",
+                          selectedRole, (value) {
+                        selectedRole = value;
+                      }),
+                      buildTextField(
+                          controller: makerName, label: 'Maker Name'),
+                      buildTextField(
+                          controller: makerContact, label: 'Maker Contact'),
+                      buildTextField(controller: email, label: 'Email'),
+                      buildDropdownFromList(
+                          'Board',
+                          boardList,
+                          'boardId',
+                          'boardName',
+                          selectedBoard,
+                          (val) => setState(() => selectedBoard = val)),
+                      buildDropdownFromList(
+                          'Grade',
+                          gradeList,
+                          'gradeId',
+                          'gradeName',
+                          selectedGrade,
+                          (val) => setState(() => selectedGrade = val)),
+                      buildDropdownFromList(
+                          'Medium',
+                          mediumList,
+                          'mediumTableId',
+                          'mediumName',
+                          selectedMedium,
+                          (val) => setState(() => selectedMedium = val)),
                     ],
                   ),
                 ),
               ),
-              Text("Preferred Distributor",style: TextStyle(fontWeight: FontWeight.bold),),
+            Divider(height: 24),
+            Text(
+              "Preferred Distributor",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
             TypeAheadFormField<Map<String, dynamic>>(
               textFieldConfiguration: TextFieldConfiguration(
                 controller: prefDistributor,
                 decoration: InputDecoration(
-                  labelText: 'Enter or Select Distributor',
+                  labelText: 'Enter or Select Preferred Distributor',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -502,12 +673,11 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
               },
               onSuggestionSelected: (suggestion) {
                 prefDistributor.text = suggestion['DistributorName'];
-                // selectedValue = suggestion['distributorID']; 
+                // selectedValue = suggestion['distributorID'];
               },
-             
             ),
             CheckboxListTile(
-              title: Text("Verify With Otp"),
+              title: Text("Verify With OTP"),
               value: skipOtp,
               onChanged: (value) => setState(() => skipOtp = value!),
             ),
@@ -676,11 +846,59 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
         );
       } else {
         _showPopup("Incorrect OTP. Please try again.", false, context);
+        setState(() => isLoading = false);
       }
     } catch (_) {
       _showPopup("Failed to verify OTP. Please try again.", false, context);
+      setState(() => isLoading = false);
     } finally {
       setState(() => isLoading = false);
     }
+  }
+
+  Widget buildTextField(
+      {required TextEditingController controller, required String label}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
+        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+      ),
+    );
+  }
+
+  Widget buildDropdownFromList(
+    String label,
+    List<dynamic> items,
+    String keyId,
+    String keyName,
+    String? value,
+    ValueChanged<String?> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+        value: value,
+        items: items
+            .map((item) => DropdownMenuItem<String>(
+                  value: item[keyId].toString(),
+                  child: Text(item[keyName] ?? ""),
+                ))
+            .toList(),
+        onChanged: onChanged,
+        validator: (val) =>
+            val == null || val.isEmpty ? 'Please select $label' : null,
+      ),
+    );
   }
 }

@@ -62,6 +62,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
 
     final body = {
       "ownerId": id,
+      // "visitEndRequired":"yes"
     };
     if ((partyType == "1" && schools.length == 0) ||
         (partyType == "0" && distributors.length == 0)) {
@@ -174,9 +175,10 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
 
     try {
       final response = await ApiService.post(
-        endpoint: '/picklist/RoVisitType', // Use your API endpoint
+        endpoint: '/picklist/getRouteVisitType', // Use your API endpoint
         body: body,
       );
+      print(response);
       if (response != null && response['status'] == false) {
         setState(() {
           visitTypeOptions.addAll(response['data']);

@@ -4,7 +4,7 @@ import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/screens/mainMenu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-// import 'package:device_info_plus/device_info_plus.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'home.dart';
 
@@ -52,19 +52,20 @@ class _LoginScreenState extends State<LoginScreen> {
       await prefs.setBool('rememberMe', false);
     }
   }
-// Future<String?> getDeviceId() async {
-//   final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+Future<String?> getDeviceId() async {
+  final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
 
-//   if (Platform.isAndroid) {
-//     AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-//     return androidInfo.id; // or use androidInfo.androidId (deprecated in Android 10+)
-//   } else if (Platform.isIOS) {
-//     IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-//     return iosInfo.identifierForVendor; // Unique ID on iOS
-//   }
+  if (Platform.isAndroid) {
+    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+    print(androidInfo.id);
+    return androidInfo.id; // or use androidInfo.androidId (deprecated in Android 10+)
+  } else if (Platform.isIOS) {
+    IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+    return iosInfo.identifierForVendor; // Unique ID on iOS
+  }
 
-//   return null;
-// }
+  return null;
+}
   
   Future<void> signIn() async {
     final String username = _usernameController.text;
@@ -76,19 +77,27 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
+    final prefs = await SharedPreferences.getInstance();
+    final token=await prefs.getString("fcm");
+    print(token);
 
     // final String apiUrl = "https://mittsureone.com:3001/user/signin";
     // Replace with your API endpoint
     final String apiUrl = "https://mittsure.qdegrees.com:3001/user/signin";
     try {
+
+      var obj=jsonEncode({
+          "username": username,
+          "password": password,
+          "device_id":await getDeviceId(),
+          "fcm_token":token
+        });
+        print(obj);
+        print("fcmtoken");
       final response = await http.post(
         Uri.parse(apiUrl),
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "username": username,
-          "password": password,
-          "device_id":""
-        }),
+        body: obj
       );
 
       if (response.statusCode == 200) {

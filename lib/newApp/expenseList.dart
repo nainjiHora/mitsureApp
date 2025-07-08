@@ -35,7 +35,11 @@ class _ExpenseListScreenState extends State<ExpenseListScreen> {
   void initState() {
     super.initState();
     final today = DateTime.now();
-    _selectedDateRange = DateTimeRange(start: today, end: today);
+   
+_selectedDateRange = DateTimeRange(
+  start: today.subtract(const Duration(days: 6)),
+  end: today,
+);
     getUserData();
   }
 

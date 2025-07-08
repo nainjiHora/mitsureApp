@@ -32,6 +32,7 @@ class _PunchDetailsPopupState extends State<PunchDetailsPopup> {
   late String initialKM;
 
   String? selectedWorkType;
+    String? selectedcity;
   String? selectedVisitType;
   String? selectedVehicleType;
 
@@ -39,6 +40,7 @@ class _PunchDetailsPopupState extends State<PunchDetailsPopup> {
   List<dynamic> visitMode = [];
   List<dynamic> worktype = [];
   List<dynamic> transportMode = [];
+   List<dynamic> city = [];
 
   @override
   void initState() {
@@ -68,10 +70,12 @@ class _PunchDetailsPopupState extends State<PunchDetailsPopup> {
 
       if (response != null) {
         final data = response['data'];
+        print(data);
         setState(() {
           transportMode = data['transport_mode'];
           worktype = data['work_type'];
           visitMode = data['visit_mode'];
+          city = data['city'];
         });
       }
     } catch (error) {
@@ -122,6 +126,16 @@ class _PunchDetailsPopupState extends State<PunchDetailsPopup> {
                         setState(() {
                           selectedVisitType = value;
                           _formData['visitType'] = visitMode.firstWhere(
+                            (element) => element['id'].toString() == value,
+                            orElse: () => '',
+                          );
+                        });
+                      }),
+                       if (selectedVisitType == "5") 
+                      _buildDropdown("City", city, "id", "name", selectedcity, (value) {
+                        setState(() {
+                         selectedcity=value;
+                          _formData['city'] = city.firstWhere(
                             (element) => element['id'].toString() == value,
                             orElse: () => '',
                           );

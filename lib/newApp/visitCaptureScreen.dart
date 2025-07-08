@@ -286,6 +286,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
                     date: widget.date,
                     visitStatus: 1,
                     visitId: res['data']['visitId'],
+                    userReq: false,
                   )),
         );
       } else {
