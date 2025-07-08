@@ -35,7 +35,7 @@ class _KMReadingCameraScreenState extends State<KMReadingCameraScreen> {
     _cameras = await availableCameras();
     final camera = _cameras!
         .firstWhere((cam) => cam.lensDirection == CameraLensDirection.back);
-    _cameraController = CameraController(camera, ResolutionPreset.high);
+    _cameraController = CameraController(camera, ResolutionPreset.high,enableAudio: false);
     await _cameraController!.initialize();
     if (mounted) setState(() {});
   }

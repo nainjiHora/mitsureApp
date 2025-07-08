@@ -10,9 +10,10 @@ class ReorderRoutePage extends StatefulWidget {
   final List<dynamic> routes;
   final List<dynamic> schools;
   final List<dynamic> distributors;
+  final List<dynamic> visitType;
 
 
-  const ReorderRoutePage({super.key, required this.routes,required this.schools,required this.distributors});
+  const ReorderRoutePage({super.key, required this.routes,required this.schools,required this.distributors,required this.visitType});
 
   @override
   State<ReorderRoutePage> createState() => _ReorderRoutePageState();
@@ -26,7 +27,16 @@ class _ReorderRoutePageState extends State<ReorderRoutePage> {
   @override
   void initState() {
     super.initState();
+    print(widget.routes);
+    
     _routeList =widget.routes;
+  }
+
+  eNameById(id){
+    print(widget.visitType);
+   final a= widget.visitType.firstWhere((element) => element['routeVisitTypeID']==id);
+   print(a);
+   return a['routeVisitType'];
   }
 
   void _onReorder(int oldIndex, int newIndex) {
@@ -135,7 +145,7 @@ Widget build(BuildContext context) {
                   child: ListTile(
                     title: Text(getName(_routeList[index])),
                     subtitle: Text(
-                      "${_routeList[index]['visitType']} - ${_routeList[index]['partyType']} on "
+                      "${eNameById(_routeList[index]['visitType'])} on "
                       "${_routeList[index]['date'].day}/${_routeList[index]['date'].month}/${_routeList[index]['date'].year}",
                     ),
                     trailing: const Icon(Icons.drag_handle),

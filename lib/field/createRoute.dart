@@ -165,6 +165,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
         builder: (_) => ReorderRoutePage(
             routes: selectedparty,
             schools: schools,
+            visitType:visitTypeOptions,
             distributors: distributors),
       ),
     );
@@ -311,74 +312,55 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
                     ),
                   ],
                 ),
+               Expanded(
+  child: selectedparty.isNotEmpty
+      ? ListView.builder(
+          itemCount: selectedparty.length,
+          itemBuilder: (context, index) {
+            final item = selectedparty[index];
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
                 Container(
-                  height: 55 * (selectedparty.length).toDouble(),
-                  width: double.infinity,
-                  child: selectedparty.length > 0
-                      ? ListView.builder(
-                          itemCount: selectedparty.length,
-                          itemBuilder: (context, index) {
-                            final item = selectedparty[index];
-                            return Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Container(
-                                  width: 300,
-                                  margin: const EdgeInsets.symmetric(
-                                      vertical: 5,
-                                      horizontal:
-                                          10), // Add some spacing around rows
-                                  padding: const EdgeInsets.all(
-                                      8), // Add padding inside the row
-                                  decoration: BoxDecoration(
-                                    color: Colors.blue[
-                                        50], // Light blue background color
-                                    border: Border.all(
-                                        color: Colors.blue,
-                                        width: 1), // Blue border
-                                    borderRadius: BorderRadius.circular(
-                                        8), // Rounded corners
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceAround,
-                                    children: [
-                                      Text(
-                                        getName(item).length > 10
-                                            ? getName(item)
-                                                    .toString()
-                                                    .substring(0, 26) +
-                                                "..."
-                                            : getName(item),
-                                        style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight
-                                                .bold), // Add styling to the text
-                                      ),
-                                      SizedBox(
-                                          width:
-                                              56), // Add spacing between elements
-                                    ],
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      selectedparty.removeAt(index);
-                                    });
-                                  },
-                                  child: Icon(
-                                    Icons.delete,
-                                    color: Colors.red,
-                                  ),
-                                )
-                              ],
-                            );
-                          },
-                          physics: NeverScrollableScrollPhysics(),
-                        )
-                      : Text("No Products Added"),
+                  width: 300,
+                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    border: Border.all(color: Colors.blue, width: 1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Text(
+                        getName(item).length > 10
+                            ? getName(item).toString().substring(0, 22) + "..."
+                            : getName(item),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 56),
+                    ],
+                  ),
                 ),
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedparty.removeAt(index);
+                    });
+                  },
+                  child: const Icon(Icons.delete, color: Colors.red),
+                ),
+              ],
+            );
+          },
+        )
+      : const Center(child: Text("No Products Added")),
+),
+
               ],
             ),
           ),

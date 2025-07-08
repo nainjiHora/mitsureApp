@@ -723,26 +723,21 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                   DetailsRow(
                       label: 'Email', value: distributor['email'] ?? 'N/A'),
                   const Divider(),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  const Divider(),
+                
+                  
                   
                   const SectionTitle(title: 'Last Visit Details'),
                   DetailsRow(
-                      label: 'HO Needed', value: latestVisit['ho_need']=='true'?'Yes':'No' ?? 'N/A'),
+                      label: 'HO Action Needed', value: latestVisit['ho_need']=='true'?'Yes':'No' ?? 'N/A'),
                   DetailsRow(
-                      label: 'HO remark', value: latestVisit['ho_need_remark'] ?? 'N/A'),
+                      label: 'HO Remark', value: latestVisit['ho_need_remark'] ?? 'N/A'),
                   DetailsRow(
                       label: 'Further Visit Required',
                       value: getFVR(latestVisit['furtherVisitRequired'],'visit_required') ?? 'N/A'),
                   DetailsRow(
                       label: 'Reason', value: getFVR(latestVisit['furtherVisitRequired'],"reason") ?? 'N/A'),
                   const Divider(),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  const Divider(),
+                 
                   DetailsRow(
                       label: 'Assigned RM',
                       value: distributor['ownerName'] ?? 'N/A'),

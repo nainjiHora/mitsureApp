@@ -42,7 +42,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   List<dynamic> config = [];
   bool isLoading = true;
   Map<String, dynamic> userData = {};
-   Map<String, dynamic> unique = {};
+  Map<String, dynamic> unique = {};
   Duration currentSessionDuration = Duration.zero;
 
   String get greeting {
@@ -88,7 +88,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     try {
       final response = await ApiService.post(
         endpoint: '/routePlan/getRoutesPartyCount',
-        body: {"ownerId": id},
+        body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:""},
       );
 
       if (response != null) {
@@ -106,19 +106,20 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     try {
       final response = await ApiService.post(
         endpoint: '/visit/getCountVisit',
-        body: {"ownerId": userData['role']=='se'?userData['id']:"",
-        
-        "rsm": userData['role']=='rsm'?userData['id']:"",
-        "asm": userData['role']=='asm'?userData['id']:""},
+        body: {
+          "ownerId": userData['role'] == 'se' ? userData['id'] : "",
+          "rsm": userData['role'] == 'rsm' ? userData['id'] : "",
+          "asm": userData['role'] == 'asm' ? userData['id'] : ""
+        },
       );
 
-      if (response != null && response['success']==true) {
+      if (response != null && response['success'] == true) {
         final data = response['data'];
         setState(() {
-         print(data);
-         setState(() {
-           unique=data;
-         });
+          print(data);
+          setState(() {
+            unique = data;
+          });
         });
       }
     } catch (error) {
@@ -320,15 +321,15 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               ),
               SizedBox(height: 10),
               _topStatsRow(),
-              SizedBox(height: 30),
+              SizedBox(height: 18),
               Text("Attendance",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              SizedBox(height: 20),
+              SizedBox(height: 18),
               _attendanceSection(),
-              SizedBox(height: 30),
+              SizedBox(height: 18),
               Text("Analysis",
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              SizedBox(height: 16),
+              SizedBox(height: 14),
               _dashboardCards(),
             ],
           ),
@@ -338,33 +339,36 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       if (isLoading) const BookPageLoader(),
     ]);
   }
- Widget _topStatsRow() {
-  return IntrinsicHeight( // Ensure all children have same height
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _infoBox(
-          title: "Party Assigned",
-          topValue: unique['schoolCount'].toString()??"",
-          bottomValue: unique['distributorCount'].toString()??"",
-          icon: Icons.group,
-        ),
-        _infoBox(
-          title: "Total Visits",
-          topValue: unique['totalSchoolVisit'].toString()??"",
-          bottomValue: unique['totalDistributorVisit'].toString()??"",
-          icon: Icons.visibility,
-        ),
-        _infoBox(
-          title: "Unique Visits",
-          topValue: unique['totalSchoolDistinctVisit'].toString()??"",
-          bottomValue: unique['totalDistributorDistinctVisit'].toString()??"",
-          icon: Icons.person_outline,
-        ),
-      ],
-    ),
-  );
- }
+
+  Widget _topStatsRow() {
+    return IntrinsicHeight(
+      // Ensure all children have same height
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _infoBox(
+            title: "Party Assigned",
+            topValue: unique['schoolCount'].toString() ?? "",
+            bottomValue: unique['distributorCount'].toString() ?? "",
+            icon: Icons.group,
+          ),
+          _infoBox(
+            title: "Total Visits",
+            topValue: unique['totalSchoolVisit'].toString() ?? "",
+            bottomValue: unique['totalDistributorVisit'].toString() ?? "",
+            icon: Icons.visibility,
+          ),
+          _infoBox(
+            title: "Unique Visits",
+            topValue: unique['totalSchoolDistinctVisit'].toString() ?? "",
+            bottomValue:
+                unique['totalDistributorDistinctVisit'].toString() ?? "",
+            icon: Icons.person_outline,
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildDrawer() {
     return Drawer(
@@ -399,45 +403,55 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _drawerItem("Home", Icons.home, MainMenuScreen(),false),
-                _drawerItem("My Profile", Icons.home, ProfilePage(),false),
-                _drawerItem(
-                    "Attendance", Icons.watch_later, PunchScreen(mark: false),false),
-                _drawerItem("Visit", Icons.place, VisitListScreen(),false),
+                _drawerItem("Home", Icons.home, MainMenuScreen(), false),
+                _drawerItem("My Profile", Icons.home, ProfilePage(), false),
+                _drawerItem("Attendance", Icons.watch_later,
+                    PunchScreen(mark: false), false),
+                _drawerItem("Visit", Icons.place, VisitListScreen(), false),
                 _drawerItem(
                     "Expenses",
                     Icons.request_quote,
                     ExpenseListScreen()
                     // MainMenuScreen()
-                    ,false),
-                       _drawerItem(
+                    ,
+                    false),
+                _drawerItem(
                     "Allowances",
                     Icons.request_quote,
                     // MainMenuScreen()
-                    TravelAllowanceScreen()
-                    ,false),
-                _drawerItem("Route Plan", Icons.route, CreatedRoutesPage(userReq:false),false),
-                _drawerItem("Party", Icons.group, PartyScreen(),false),
-                _drawerItem("Orders", Icons.money, OrdersScreen(userReq: false,),false),
+                    TravelAllowanceScreen(),
+                    false),
+                _drawerItem("Route Plan", Icons.route,
+                    CreatedRoutesPage(userReq: false), false),
+                _drawerItem("Party", Icons.group, PartyScreen(), false),
                 _drawerItem(
-                    "Specimen", Icons.bookmarks_sharp,
-                     SpecimenScreen()
-                    // MainMenuScreen()
-                    ,false),
-                    if(userData['role']!='se')
-                    _drawerItem(
-                    "Approval Tray", Icons.approval_rounded,
-                    RequestsScreen()
-                    
-                     ,false),
+                    "Orders",
+                    Icons.money,
+                    OrdersScreen(
+                      userReq: false,
+                    ),
+                    false),
                 _drawerItem(
-                    "Notifications", Icons.notifications,
-                     NotificationScreen()
+                    "Specimen",
+                    Icons.bookmarks_sharp,
+                    SpecimenScreen()
                     // MainMenuScreen()
-                     ,false),
+                    ,
+                    false),
+                if (userData['role'] != 'se')
+                  _drawerItem("Approval Tray", Icons.approval_rounded,
+                      RequestsScreen(), false),
+                _drawerItem(
+                    "Notifications",
+                    Icons.notifications,
+                    NotificationScreen()
+                    // MainMenuScreen()
+                    ,
+                    false),
                 // _drawerItem("Map", Icons.map, AgentsMapScreen()),
                 Divider(thickness: 1),
-                _drawerItem("Log Out", Icons.power_settings_new, LoginScreen(),true),
+                _drawerItem(
+                    "Log Out", Icons.power_settings_new, LoginScreen(), true),
               ],
             ),
           ),
@@ -446,7 +460,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     );
   }
 
-   void _logout() {
+  void _logout(cont) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -462,15 +476,32 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop(); // Close the dialog
-                final prefs = await SharedPreferences.getInstance();
+
+                Navigator.of(context).pop();
+                try {
+                  setState(() {
+                    isLoading=true;
+                  });
+                  final response = await ApiService.post(
+                    endpoint: '/user/signout',
+                    body: {},
+                  );
+
+                  if (response != null) {
+                    final prefs = await SharedPreferences.getInstance();
+
                 await prefs.remove("user");
                 await prefs.remove("Token");
-                await prefs.clear();
+                await prefs.remove('vehicleType');
                 Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                  cont,
+                  MaterialPageRoute(builder: (cont) => LoginScreen()),
                 );
+                  }
+                } catch (error) {
+                  print("Error in logout: $error");
+                } // Close the dialog
+               
               },
               child: const Text("Logout"),
             ),
@@ -480,7 +511,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     );
   }
 
-  Widget _drawerItem(String title, IconData icon, Widget screen ,bool logout) {
+  Widget _drawerItem(String title, IconData icon, Widget screen, bool logout) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
       child: Card(
@@ -488,85 +519,81 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 1,
         child: ListTile(
-          dense: true,
-          contentPadding: EdgeInsets.symmetric(horizontal: 12),
-          leading: Icon(icon, color: Colors.indigo[700]),
-          title: Text(title,
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-          trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-          onTap: () {
-            if(!logout){
-            Navigator.push(
-                context, MaterialPageRoute(builder: (context) => screen));
-          
-          }else{
-_logout();
-          }
-          }
-        ),
+            dense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 12),
+            leading: Icon(icon, color: Colors.indigo[700]),
+            title: Text(title,
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+            trailing:
+                Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
+            onTap: () {
+              if (!logout) {
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (context) => screen));
+              } else {
+                _logout(context);
+              }
+            }),
       ),
     );
   }
 
-  
-
-Widget _infoBox({
-  required String title,
-  required String topValue,
-  required String bottomValue,
-  required IconData icon,
-}) {
-  return Expanded(
-    child: Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 4,
-      margin: const EdgeInsets.all(8),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween, // Ensure full vertical space is used
-          children: [
-            Column(
-              children: [
-                Icon(icon, size: 28, color: Colors.blueAccent),
-                const SizedBox(height: 6),
-                Text(
-                  title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const Divider(thickness: 1.2),
-              ],
-            ),
-            Column(
-              children: [
-                const Text(
-                  "School",
-                  style: TextStyle(color: Colors.black87, fontSize: 14),
-                ),
-                Text(
-                  topValue,
-                  style: const TextStyle(color: Colors.black87, fontSize: 14),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  "Distributor",
-                  style: TextStyle(color: Colors.black87, fontSize: 14),
-                ),
-                Text(
-                  bottomValue,
-                  style: const TextStyle(color: Colors.black87, fontSize: 14),
-                ),
-              ],
-            )
-          ],
+  Widget _infoBox({
+    required String title,
+    required String topValue,
+    required String bottomValue,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Card(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 4,
+        margin: const EdgeInsets.all(8),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment
+                .spaceBetween, // Ensure full vertical space is used
+            children: [
+              Column(
+                children: [
+                  // Icon(icon, size: 28, color: Colors.blueAccent),
+                  // const SizedBox(height: 6),
+                  Text(
+                    title,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                  const Divider(thickness: 1.2),
+                ],
+              ),
+              Column(
+                children: [
+                  const Text(
+                    "School",
+                    style: TextStyle(color: Colors.black87, fontSize: 14),
+                  ),
+                  Text(
+                    topValue,
+                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    "Distributor",
+                    style: TextStyle(color: Colors.black87, fontSize: 14),
+                  ),
+                  Text(
+                    bottomValue,
+                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                  ),
+                ],
+              )
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
-
- 
+    );
+  }
 
   Widget _attendanceSection() {
     return Row(
@@ -602,12 +629,18 @@ Widget _infoBox({
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: <Widget>[
           _bottomNavIcon(Icons.account_tree, 'Visits', 0, VisitListScreen()),
+          _bottomNavIcon(Icons.route_outlined, 'Routes', 1,
+              CreatedRoutesPage(userReq: false)),
           _bottomNavIcon(
-              Icons.route_outlined, 'Routes', 1, CreatedRoutesPage(userReq:false)),
-          _bottomNavIcon(Icons.menu, 'Menu', 2, CreatedRoutesPage(userReq:false)),
+              Icons.menu, 'Menu', 2, CreatedRoutesPage(userReq: false)),
           _bottomNavIcon(Icons.group_add, 'Party', 3, PartyScreen()),
           _bottomNavIcon(
-              Icons.monetization_on_rounded, 'Sales', 4, OrdersScreen(userReq: false,)),
+              Icons.monetization_on_rounded,
+              'Sales',
+              4,
+              OrdersScreen(
+                userReq: false,
+              )),
         ],
       ),
     );
