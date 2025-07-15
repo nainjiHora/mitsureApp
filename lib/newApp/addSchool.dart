@@ -145,29 +145,29 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    buildTextField(controller: schoolName, label: 'School Name'),
-                    buildDropdownFromList('School Type', schoolTypeList, 'id', 'name', selectedSchoolType, (val) => setState(() => selectedSchoolType = val)),
-                    buildTextField(controller: parentSchoolName, label: 'Parent School Name'),
-                    buildDropdownFromList('Board', boardList, 'boardId', 'boardName', selectedBoard, (val) => setState(() => selectedBoard = val)),
-                    buildDropdownFromList('Medium', mediumList, 'mediumTableId', 'mediumName', selectedMedium, (val) => setState(() => selectedMedium = val)),
-                    buildDropdownFromList('Category', categoryList, 'id', 'name', selectedCategory, (val) => setState(() => selectedCategory = val)),
-                    buildDropdownFromList('Customer Type', customerTypeList, 'id', 'name', selectedCustomerType, (val) => setState(() => selectedCustomerType = val)),
-                    buildDropdownFromList('Grade', gradeList, 'gradeId', 'gradeName', selectedGrade, (val) => setState(() => selectedGrade = val)),
-                    buildTextField(controller: addressLine1, label: 'Address Line 1'),
-                    buildTextField(controller: addressLine2, label: 'Address Line 2'),
-                    buildTextField(controller: district, label: 'District'),
-                    buildTextField(controller: state, label: 'State'),
-                    buildTextField(controller: pincode, label: 'Pincode'),
-                    buildTextField(controller: landmark, label: 'Landmark'),
-                    buildTextField(controller: strength, label: 'Strength'),
-                    buildTextField(controller: email, label: 'Email'),
-                    buildTextField(controller: website, label: 'Website'),
+                    buildTextField(controller: schoolName, label: 'School Name',req: true),
+                    buildDropdownFromList('School Type', schoolTypeList, 'id', 'name', selectedSchoolType, (val) => setState(() => selectedSchoolType = val),true),
+                    buildTextField(controller: parentSchoolName, label: 'Parent School Name',req: false),
+                    buildDropdownFromList('Board', boardList, 'boardId', 'boardName', selectedBoard, (val) => setState(() => selectedBoard = val),false),
+                    buildDropdownFromList('Medium', mediumList, 'mediumTableId', 'mediumName', selectedMedium, (val) => setState(() => selectedMedium = val),false),
+                    buildDropdownFromList('Category', categoryList, 'id', 'name', selectedCategory, (val) => setState(() => selectedCategory = val),false),
+                    buildDropdownFromList('Customer Type', customerTypeList, 'id', 'name', selectedCustomerType, (val) => setState(() => selectedCustomerType = val),true),
+                    buildDropdownFromList('Grade', gradeList, 'gradeId', 'gradeName', selectedGrade, (val) => setState(() => selectedGrade = val),false),
+                    buildTextField(controller: addressLine1, label: 'Address Line 1',req: true),
+                    buildTextField(controller: addressLine2, label: 'Address Line 2',req:false),
+                    buildTextField(controller: district, label: 'District',req:true),
+                    buildTextField(controller: state, label: 'State',req:true),
+                    buildTextField(controller: pincode, label: 'Pincode',req:true),
+                    buildTextField(controller: landmark, label: 'Landmark',req:false),
+                    buildTextField(controller: strength, label: 'Strength',req:false),
+                    buildTextField(controller: email, label: 'Email',req:false),
+                    buildTextField(controller: website, label: 'Website',req:false),
                     buildDropdownFromList('Decision Maker Role', roles, 'contactPersonRoleId', "roleName", selectedRole, (value) { 
                       selectedRole=value;
-                    }),
+                    },true),
                     
-                    buildTextField(controller: makerName, label: 'Maker Name'),
-                    buildTextField(controller: makerContact, label: 'Maker Contact'),
+                    buildTextField(controller: makerName, label: 'Decision Maker Name',req:true),
+                    buildTextField(controller: makerContact, label: 'Decision Maker Contact Number',req:true),
 
                     SizedBox(height: 10),
               
@@ -179,7 +179,7 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
     );
   }
 
-  Widget buildTextField({required TextEditingController controller, required String label}) {
+  Widget buildTextField({required TextEditingController controller, required String label,required bool req}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: TextFormField(
@@ -188,7 +188,7 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
           labelText: label,
           border: OutlineInputBorder(),
         ),
-        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+        validator: (val) => (val == null || val.isEmpty)&&req ? 'Required' : null,
       ),
     );
   }
@@ -199,7 +199,7 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
     String keyId,
     String keyName,
     String? value,
-    ValueChanged<String?> onChanged,
+    ValueChanged<String?> onChanged, bool req
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -217,7 +217,7 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
                 ))
             .toList(),
         onChanged: onChanged,
-        validator: (val) => val == null || val.isEmpty ? 'Please select $label' : null,
+        validator: (val) => (val == null || val.isEmpty )&&req? 'Please select $label' : null,
       ),
     );
   }

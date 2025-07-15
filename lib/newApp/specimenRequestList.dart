@@ -383,7 +383,7 @@ class _SpecimenReListState extends State<SpecimenReList> {
                             child: DropdownButtonFormField<String>(
                               value: selectedRsm,
                               decoration: InputDecoration(
-                                labelText: 'Select VP',
+                                labelText: 'Select HO',
                                 border: OutlineInputBorder(),
                                 contentPadding: EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 8),
@@ -425,7 +425,7 @@ class _SpecimenReListState extends State<SpecimenReList> {
                             child: DropdownButtonFormField<String>(
                               value: selectedASM,
                               decoration: InputDecoration(
-                                labelText: 'Select CH',
+                                labelText: 'Select ARM',
                                 border: OutlineInputBorder(),
                                 contentPadding: EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 8),

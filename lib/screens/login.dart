@@ -4,7 +4,7 @@ import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/screens/mainMenu.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:device_info_plus/device_info_plus.dart';
+// import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import 'home.dart';
 
@@ -53,16 +53,16 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 Future<String?> getDeviceId() async {
-  final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+  // final DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
 
-  if (Platform.isAndroid) {
-    AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
-    print(androidInfo.id);
-    return androidInfo.id; // or use androidInfo.androidId (deprecated in Android 10+)
-  } else if (Platform.isIOS) {
-    IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
-    return iosInfo.identifierForVendor; // Unique ID on iOS
-  }
+  // if (Platform.isAndroid) {
+  //   AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+  //   print(androidInfo.id);
+  //   return androidInfo.id; // or use androidInfo.androidId (deprecated in Android 10+)
+  // } else if (Platform.isIOS) {
+  //   IosDeviceInfo iosInfo = await deviceInfo.iosInfo;
+  //   return iosInfo.identifierForVendor; // Unique ID on iOS
+  // }
 
   return null;
 }

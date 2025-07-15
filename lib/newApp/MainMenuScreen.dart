@@ -677,7 +677,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             'Scheduled ',
             visitData['totalPrtyCount'] == null
                 ? '0'
-                : visitData['totalPrtyCount'].toString(),
+                : visitData['totalPartyCount'].toString(),
             Icons.star),
         _analysisCard(
             'Completed ',

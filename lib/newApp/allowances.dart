@@ -118,7 +118,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
                           child: DropdownButtonFormField<String>(
                             value: selectedRsm,
                             decoration: InputDecoration(
-                              labelText: 'Select VP',
+                              labelText: 'Select HO',
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 8),
@@ -128,7 +128,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
                             items: [
                               DropdownMenuItem<String>(
                                 value: '', // Blank value for "All"
-                                child: Text('Select VP',
+                                child: Text('Select HO',
                                     style: TextStyle(
                                         fontSize: 14, color: Colors.black)),
                               ),
@@ -160,7 +160,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
                           child: DropdownButtonFormField<String>(
                             value: selectedASM,
                             decoration: InputDecoration(
-                              labelText: 'Select CH',
+                              labelText: 'Select ARM',
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 8),
@@ -170,7 +170,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
                             items: [
                               DropdownMenuItem<String>(
                                 value: '', // Blank value for "All"
-                                child: Text('Select CH',
+                                child: Text('Select ARM',
                                     style: TextStyle(
                                         fontSize: 14, color: Colors.black)),
                               ),
@@ -372,7 +372,9 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
       final response = await ApiService.post(
         endpoint: '/expense/getExpenseTA',
         body: {
-          "userId": userData['id'],
+          "userId": selectedSE,
+          "rsm":selectedRsm,
+          "asm":selectedASM,
           "fromDate":
               "${_dateRange!.start.year}-${_dateRange!.start.month}-${_dateRange!.start.day}",
           "toDate":
@@ -381,6 +383,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
       );
       if (response != null) {
         final data = response['data'];
+        print(data);
         setState(() => taData = data);
       }
     } catch (error) {
@@ -396,7 +399,9 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
       final response = await ApiService.post(
         endpoint: '/expense/getExpenseDA',
         body: {
-          "userId": userData['id'],
+         "userId": selectedSE,
+          "rsm":selectedRsm,
+          "asm":selectedASM,
           "fromDate":
               "${_dateRange!.start.year}-${_dateRange!.start.month}-${_dateRange!.start.day}",
           "toDate":
@@ -405,6 +410,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
       );
       if (response != null) {
         final data = response['data'];
+        print(data);
         setState(() => daData = data);
       }
     } catch (error) {
@@ -508,69 +514,113 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
   }
 
   Widget _buildTAList(List<dynamic> data) {
-    if (data.isEmpty) return _buildNoRecordsWidget("No TA records found.");
+  if (data.isEmpty) return _buildNoRecordsWidget("No TA records found.");
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: data.length,
-      itemBuilder: (context, index) {
-        final item = data[index];
-        return Card(
-          elevation: 2,
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "TA Entry #${index + 1}",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
+  return ListView.builder(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    itemCount: data.length,
+    itemBuilder: (context, index) {
+      final item = data[index];
+      return Card(
+        elevation: 2,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "TA Entry #${index + 1}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
                     ),
-                    Text(
-                      formatDateFromString(item['visitDate']),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
-                      ),
+                  ),
+                  Text(
+                    formatDateFromString(item['visitDate']),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade700,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                // Divider line
-                Divider(color: Colors.grey.shade300, thickness: 1),
-                const SizedBox(height: 12),
-                // Info Rows
-                _infoRow(
-                  icon: Icons.directions_walk,
-                  label: "User Input KM",
-                  value: "${item['km_difference']}",
-                ),
-                const SizedBox(height: 8),
-                _infoRow(
-                  icon: Icons.map_outlined,
-                  label: "System Generated KM",
-                  value: "${item['systemGenerated_distance']}",
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              userData['role']!='se'? Text(
+                    item['name']??"",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ):Container(),
+              Divider(color: Colors.grey.shade300, thickness: 1),
+              const SizedBox(height: 12),
 
-// A helper widget for consistent row formatting
+              // Real Tabular Layout
+              Table(
+                border: TableBorder.all(color: Colors.grey.shade300),
+                columnWidths: const {
+                  0: FlexColumnWidth(),
+                  1: FlexColumnWidth(),
+                },
+                children: [
+                  // Header Row
+                  const TableRow(
+                    decoration: BoxDecoration(color: Color(0xFFEFEFEF)),
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          "User Input KM",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          "System Generated KM",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Data Row
+                  TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          "${item['km_difference']}",
+                          softWrap: true,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          "${item['systemGenerated_distance']}",
+                          softWrap: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
+
   Widget _infoRow({
     required IconData icon,
     required String label,
@@ -601,73 +651,119 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
     );
   }
 
-  Widget _buildDAList(List<dynamic> data) {
-    if (data.isEmpty) return _buildNoRecordsWidget("No DA records found.");
-    print(data);
+ Widget _buildDAList(List<dynamic> data) {
+  if (data.isEmpty) return _buildNoRecordsWidget("No DA records found.");
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: data.length,
-      itemBuilder: (context, index) {
-        final item = data[index];
-        print(item);
-        final cityCategory = item['city'] == null || item['city'] == 'null'
-            ? ''
-            : (jsonDecode(item['city'])['category'] ?? '');
+  return ListView.builder(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    itemCount: data.length,
+    itemBuilder: (context, index) {
+      final item = data[index];
 
-        return Card(
-          elevation: 2,
-          margin: const EdgeInsets.only(bottom: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "DA Entry #${index + 1}",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
+      final cityCategory = item['city'] == null || item['city'] == 'null'
+          ? ''
+          : (jsonDecode(item['city'])['category'] ?? '');
+
+      return Card(
+        elevation: 2,
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header Row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "DA Entry #${index + 1}",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
                     ),
-                    Text(
-                      formatDateFromString(item['attendanceDate']),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey.shade700,
-                      ),
+                  ),
+                  Text(
+                    formatDateFromString(item['attendanceDate']),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey.shade700,
                     ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Divider(color: Colors.grey.shade300, thickness: 1),
-                const SizedBox(height: 12),
-                // Info Rows
-                _infoRow(
-                  icon: Icons.location_on_outlined,
-                  label: "Visit Type",
-                  value: item['visitType'] ?? '-',
-                ),
-                const SizedBox(height: 8),
-                _infoRow(
-                  icon: Icons.location_city,
-                  label: "City Category",
-                  value: cityCategory,
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              userData['role']!='se'? Text(
+                    item['name']??"",
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ):Container(),
+              Divider(color: Colors.grey.shade300, thickness: 1),
+              const SizedBox(height: 12),
+
+              // Real Tabular Layout (2 columns)
+              Table(
+                border: TableBorder.all(color: Colors.grey.shade300),
+                columnWidths: const {
+                  0: FlexColumnWidth(),
+                  1: FlexColumnWidth(),
+                },
+                children: [
+                  // Header Row
+                  const TableRow(
+                    decoration: BoxDecoration(color: Color(0xFFEFEFEF)),
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          "Visit Type",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          "City Category",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Data Row
+                  TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          item['visitType'] ?? '-',
+                          softWrap: true,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          cityCategory,
+                          softWrap: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
+
+
 
   Widget _buildNoRecordsWidget(String message) {
     return Center(

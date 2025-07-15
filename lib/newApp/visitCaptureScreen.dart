@@ -65,29 +65,33 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
   }
 
   _fetChAllRSM() async {
-    try {
-      setState(() {
-        isLoading = true;
-      });
-      final response =
-          await ApiService.post(endpoint: '/user/getUsers', body: {});
-
-      if (response != null) {
-        final data = response['data'];
-
+    if(allUsers.length==0) {
+      try {
         setState(() {
-          rsms = data.where((e) => e['role'] == 'rsm').toList();
-          asms = data.where((e) => e['role'] == 'asm').toList();
-          rms = data.where((e) => e['role'] == 'se' && userData['id']!=e['id']).toList();
-          allUsers = data;
-          isLoading=false;
+          isLoading = true;
         });
-      } else {
-        throw Exception('Failed to load orders');
-      }
-    } catch (error) {
-      print("Error fetching ojbjbjbjjrders: $error");
-    } finally {}
+        final response =
+        await ApiService.post(endpoint: '/user/getUsers', body: {});
+
+        if (response != null) {
+          final data = response['data'];
+
+          setState(() {
+            rsms = data.where((e) => e['role'] == 'rsm').toList();
+            asms = data.where((e) => e['role'] == 'asm').toList();
+            rms = data.where((e) =>
+            e['role'] == 'se' &&
+                userData['id'] != e['id']).toList();
+            allUsers = data;
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      } catch (error) {
+        print("Error fetching ojbjbjbjjrders: $error");
+      } finally {}
+    }
   }
 
   _fetchAsm(id) async {
@@ -95,68 +99,26 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
       isLoading = true;
     });
 
-    //   try {
 
-    //     if(id!="") {
-    //       final response = await ApiService.post(
-    //         endpoint: '/user/getUserListBasedOnId'
-    //         ,
-    //         body: {"userId": id},
-    //       );
-
-    //       if (response != null) {
-    //         final data = response['data'];
-    //         setState(() {
-    //           asmList = data;
-    //           selectedSE="";
-    //           seList=response['data1'];
-    //           isLoading = false;
-    //         });
-    //       } else {
-    //         throw Exception('Failed to load orders');
-    //       }
-    //     }else{
     setState(() {
       asms = allUsers
           .where((e) => e['role'] == 'asm' && e['reportingManager'] == id)
           .toList();
-      // seList=allUsers.where((e)=>e['role']=='se').toList();
+
       superwisorController = asms[0]['id'];
          isLoading=false;
-      // tagUserController = "";
-    });
-    //     }
-    //   } catch (error) {
-    //     print("Error fetching ojbjbjbjjrders: $error");
-    //   } finally {
 
-    //   }
+    });
+
   }
 
   _fetchSe(id) async {
-    //   _fetchOrders(currentPage);
-    //   try {
+
+      try {
     setState(() {
       isLoading = true;
     });
-    //     if(id!="") {
-    //       final response = await ApiService.post(
-    //         endpoint: '/user/getUserListBasedOnId'
-    //         ,
-    //         body: {"userId": id},
-    //       );
 
-    //       if (response != null) {
-    //         final data = response['data'];
-    //         setState(() {
-
-    //           seList=data;
-    //           isLoading = false;
-    //         });
-    //       } else {
-    //         throw Exception('Failed to load orders');
-    //       }
-    //     }else{
     setState(() {
       rms = allUsers
           .where((e) => e['role'] == 'se' && e['reportingManager'] == id)
@@ -164,14 +126,14 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
       tagUserController = rms[0]['id'];
       isLoading = false;
     });
-    //     }
-    //   } catch (error) {
-    //     print("Error fetching orders: $error");
-    //   } finally {
-    //     setState(() {
-    //       isLoading = false;
-    //     });
-    //   }
+
+      } catch (error) {
+        print("Error fetching orders: $error");
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
   }
 
   Future<void> _fetchLocation() async {
@@ -383,12 +345,17 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
                         });
                         if (includeCompanion) {
                           await _fetChAllRSM();
+                        }else{
+                          rsmController=null;
+                          tagUserController=null;
+                          superwisorController=null;
+
                         }
                       },
                     ),
                     if (includeCompanion) ...[
                       _buildDropdown(
-                        'Select VP',
+                        'Select HO',
                         rsms,
                         'id',
                         'name',
@@ -401,7 +368,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
                         },
                       ),
                       _buildDropdown(
-                        'Select CH',
+                        'Select ARM',
                         asms,
                         'id',
                         'name',

@@ -201,7 +201,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
 
       if (response != null && response['status'] == false) {
         setState(() {
-          print(response['data1']);
+          print(response);
           routeList = response['data'] ?? [];
           totalRecords = response['data1'] ?? 0;
         });
@@ -213,6 +213,28 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
         isLoading = false;
       });
     }
+  }
+
+  Widget _buildStatusBadge(dynamic item) {
+
+    String label = 'Tagged Route';
+    Color color = Colors.cyan;
+    return  userData['id']==item['tagged_id']? Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    ):SizedBox(height: 0,);
   }
 
   Widget _buildFilterButton(String text, bool isSelected, VoidCallback onTap) {
@@ -342,12 +364,18 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}",
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "${date.day.toString().padLeft(2, '0')}-${date.month.toString().padLeft(2, '0')}-${date.year}",
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      _buildStatusBadge(route)
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -486,7 +514,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
                                     child: DropdownButtonFormField<String>(
                                       value: selectedRsm,
                                       decoration: InputDecoration(
-                                        labelText: 'Select VP',
+                                        labelText: 'Select HO',
                                         border: OutlineInputBorder(),
                                         contentPadding: EdgeInsets.symmetric(
                                             horizontal: 10, vertical: 8),
@@ -530,7 +558,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
                                     child: DropdownButtonFormField<String>(
                                       value: selectedASM,
                                       decoration: InputDecoration(
-                                        labelText: 'Select CH',
+                                        labelText: 'Select ARM',
                                         border: OutlineInputBorder(),
                                         contentPadding: EdgeInsets.symmetric(
                                             horizontal: 10, vertical: 8),

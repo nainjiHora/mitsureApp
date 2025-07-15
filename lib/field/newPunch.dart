@@ -551,7 +551,7 @@ class _PunchScreenState extends State<PunchScreen> {
                             child: DropdownButtonFormField<String>(
                               value: selectedRsm,
                               decoration: InputDecoration(
-                                labelText: 'Select VP',
+                                labelText: 'Select HO',
                                 border: OutlineInputBorder(),
                                 contentPadding: EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 8),
@@ -561,7 +561,7 @@ class _PunchScreenState extends State<PunchScreen> {
                               items: [
                                 DropdownMenuItem<String>(
                                   value: '', // Blank value for "All"
-                                  child: Text('Select VP',
+                                  child: Text('Select HO',
                                       style: TextStyle(
                                           fontSize: 14, color: Colors.black)),
                                 ),
@@ -593,7 +593,7 @@ class _PunchScreenState extends State<PunchScreen> {
                             child: DropdownButtonFormField<String>(
                               value: selectedASM,
                               decoration: InputDecoration(
-                                labelText: 'Select CH',
+                                labelText: 'Select ARM',
                                 border: OutlineInputBorder(),
                                 contentPadding: EdgeInsets.symmetric(
                                     horizontal: 10, vertical: 8),
@@ -603,7 +603,7 @@ class _PunchScreenState extends State<PunchScreen> {
                               items: [
                                 DropdownMenuItem<String>(
                                   value: '', // Blank value for "All"
-                                  child: Text('Select CH',
+                                  child: Text('Select ARM',
                                       style: TextStyle(
                                           fontSize: 14, color: Colors.black)),
                                 ),
@@ -787,25 +787,38 @@ class _PunchScreenState extends State<PunchScreen> {
                                 });
                                 return;
                               } else {
-                                final prefs =
-                                    await SharedPreferences.getInstance();
-                                bool flag =
-                                    await prefs.getBool('vehicleType') ?? false;
+                                bool flag=false;
+                                if(lastPunchIn){
+                                 try{
+                                   final res=await ApiService.post(endpoint: "/attendance/getUserInKm", body: {
+                                     "userId":userData['id']
+                                   });
+                                   if(res['success']==true){
+                                     if(res['data']['in_km']!=''&&res['data']['in_km']!=null){
+                                       flag=true;
+                                     }
+                                   }
 
-                                setState(() {
+                                 }
+                                 catch(e){
+                                   print(e);
+                                 }
+                                }
+                                setState((){
                                   if (reasonData['vehicleType'] != null &&
                                       reasonData['vehicleType'] != "" &&
                                       reasonData['vehicleType']['min_time'] ==
                                           '1') {
                                     meterCamera = true;
                                   } else {
+
                                     meterCamera = flag;
                                   }
                                   cameraScreen = true;
                                 });
                               }
                             },
-                            icon: Icon(lastPunchIn ? Icons.logout : Icons.login,
+                              icon: Icon(lastPunchIn ? Icons.logout : Icons.login,
                                 size: 26, color: Colors.white),
                             label: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 14),

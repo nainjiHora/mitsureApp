@@ -179,6 +179,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
       request.fields['followUpDate'] = followUpDate ?? "";
       request.fields['visitOutcome'] = visitOutcome ?? "";
       request.fields['nextStep'] = nextStep ?? "";
+      request.fields['partyType'] = widget.type;
 
       // request.files.add(
       //   await http.MultipartFile.fromPath(

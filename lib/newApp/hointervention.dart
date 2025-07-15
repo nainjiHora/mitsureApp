@@ -216,11 +216,11 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
     request.fields['mittstoreAccountNeeded'] = jsonEncode(accountFormJson);
 
     request.fields['otp_skip'] = !skipOtp ? 'Yes' : 'No';
-    request.files.add(await http.MultipartFile.fromPath(
-      'end_image',
-      capturedImage!.path,
-      filename: basename(capturedImage!.path),
-    ));
+    // request.files.add(await http.MultipartFile.fromPath(
+    //   'end_image',
+    //   capturedImage!.path,
+    //   filename: basename(capturedImage!.path),
+    // ));
 
     try {
       print(request.fields);
@@ -231,15 +231,13 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
       if (response.statusCode >= 200 &&
           response.statusCode < 300 &&
           res['status'] == false) {
-        if (skipOtp) {
-          _sendOtp(context);
-        } else {
+
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => MainMenuScreen()),
             (_) => false,
           );
-        }
+
       } else {
         DialogUtils.showCommonPopup(
             context: context, message: res['message'], isSuccess: false);
@@ -581,6 +579,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                   ),
                 ),
               ),
+              if(widget.payload['partyType']==1||widget.payload['partyType']=="1")
             CheckboxListTile(
               title: Text("Party Update"),
               value: partyUpdateRequired,

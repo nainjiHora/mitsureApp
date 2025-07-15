@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:mittsure/field/createRoute.dart';
 import 'package:mittsure/field/routes.dart';
 import 'package:mittsure/services/apiService.dart';
+import 'package:mittsure/services/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ReorderRoutePage extends StatefulWidget {
@@ -11,9 +12,10 @@ class ReorderRoutePage extends StatefulWidget {
   final List<dynamic> schools;
   final List<dynamic> distributors;
   final List<dynamic> visitType;
+  final String tagPartner;
 
 
-  const ReorderRoutePage({super.key, required this.routes,required this.schools,required this.distributors,required this.visitType});
+  const ReorderRoutePage({super.key, required this.routes,required this.schools,required this.distributors,required this.tagPartner,required this.visitType});
 
   @override
   State<ReorderRoutePage> createState() => _ReorderRoutePageState();
@@ -68,6 +70,7 @@ void _submitReorderedRoutes() async {
    if (hasData) {
      id = jsonDecode(prefs.getString('user') ?? "")['id'];
    }else{
+    print("okok");
      return;
    }
 final List<Map<dynamic, dynamic>> serializableRoutes = _routeList
@@ -90,7 +93,8 @@ print(serializableRoutes);
      "ownerId": id,
      "date":serializableRoutes[0]['date'],
      "routeVisitId":widget.routes[0]['partyType'],
-     "partyList":serializableRoutes
+     "partyList":serializableRoutes,
+     "tagged_id":widget.tagPartner
    };
 
 print(body);
@@ -119,6 +123,7 @@ print(body);
      }
    } catch (error) {
      print("Error fetchidddddng orders: $error");
+     DialogUtils.showCommonPopup(context: context, message: "Something Went Wrong !!", isSuccess: false);
    } finally {
      setState(() {
        isLoading = false;
@@ -129,7 +134,11 @@ print(body);
 @override
 Widget build(BuildContext context) {
   return Scaffold(
-    appBar: AppBar(title: const Text('Reorder Parties')),
+    appBar: AppBar(
+      iconTheme: IconThemeData(color:Colors.white),
+      title: const Text('Review Parties',style: TextStyle(color: Colors.white),),
+    backgroundColor: Colors.indigo.shade900,),
+    
     body: Column(
       children: [
         Expanded(

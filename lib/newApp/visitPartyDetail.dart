@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -40,6 +41,13 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   Map<dynamic, dynamic> distributor = {};
   int visitCount = 0;
   var latestVisit = {};
+  String selectedOption = 'Party';
+  Timer? _otpTimer;
+  int _remainingSeconds = 30;
+  bool _canResendOtp = false;
+  bool skipOtp = true;
+  final TextEditingController otherNumberController = TextEditingController();
+  final TextEditingController otpController = TextEditingController();
   List<dynamic> visitTypeOptions = [
     {"routeVisitType": "Select Visit Type", "routeVisitTypeID": ""}
   ];
@@ -75,8 +83,8 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       );
 
       if (response != null && response['status'] == false) {
-    print(response);
-    print("ssssss");
+        print(response);
+        print("ssssss");
         setState(() {
           visitCount = response['data']['totalCount'];
           latestVisit = response['data']['latestVisit'];
@@ -337,6 +345,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    print(widget.data);
     fetchPicklist();
     fetchlastVisit();
     getUserData();
@@ -397,8 +406,21 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       });
       if (response != null && response['status'] == false) {
         DialogUtils.showCommonPopup(
-            context: context, message: "Approved Sucessfully", isSuccess: true);
+            context: context, message: "Approved Sucessfully", isSuccess: true,onOkPressed: (){
+              Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemListPage(
+              date: widget.date,
+              id: widget.data['routeId'],
+              userReq: widget.userReq,
+            ),
+          ),
+        );
+            });
       }
+       
+      
     } catch (e) {
       print(e);
       DialogUtils.showCommonPopup(
@@ -407,6 +429,177 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       setState(() {
         isLoading = false;
       });
+    }
+  }
+
+  Future<void> _sendOtp(cont) async {
+    final prefs = await SharedPreferences.getInstance();
+    final t = await prefs.getString('user');
+    var id = t != null ? jsonDecode(t)['id'] : "";
+
+    var body = {
+      "mobile": selectedOption == 'Other'
+          ? otherNumberController.text
+          : widget.data['makerContact'],
+      "token": id
+    };
+
+    try {
+      final response =
+          await ApiService.post(endpoint: '/user/sendOtp', body: body);
+      if (response != null && response['status'] == false) {
+        setState(() => isLoading = false);
+        _startOtpTimer();
+        _showOtpDialog(context);
+      } else {
+        _showPopup(response["message"], false, context);
+      }
+    } catch (error) {
+      _showPopup("Failed to send OTP. Please try later.", false, context);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => MainMenuScreen()),
+        (_) => false,
+      );
+    }
+  }
+
+  void _showPopup(String message, bool success, cont) {
+    DialogUtils.showCommonPopup(
+        context: cont, message: message, isSuccess: success);
+  }
+
+  void _startOtpTimer() {
+    setState(() {
+      _remainingSeconds = 30;
+      _canResendOtp = false;
+    });
+
+    _otpTimer?.cancel();
+    _otpTimer = Timer.periodic(Duration(seconds: 1), (timer) {
+      if (_remainingSeconds > 0) {
+        setState(() => _remainingSeconds--);
+      } else {
+        setState(() => _canResendOtp = true);
+        _otpTimer?.cancel();
+      }
+    });
+  }
+
+  void _showOtpDialog(BuildContext cont) {
+    late StateSetter dialogSetState;
+    int remainingSeconds = 120;
+    bool canResendOtp = false;
+    Timer? timer;
+
+    void startTimer() {
+      timer = Timer.periodic(Duration(seconds: 1), (t) {
+        if (remainingSeconds > 1) {
+          remainingSeconds--;
+          dialogSetState(() {});
+        } else {
+          t.cancel();
+          canResendOtp = true;
+          dialogSetState(() {});
+        }
+      });
+    }
+
+    showDialog(
+      context: cont,
+      barrierDismissible: false,
+      builder: (_) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            dialogSetState = setState;
+            if (timer == null) startTimer();
+
+            return AlertDialog(
+              title: Text("Enter OTP"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: otpController,
+                    keyboardType: TextInputType.number,
+                    maxLength: 6,
+                    decoration: InputDecoration(hintText: "Enter 6-digit OTP"),
+                  ),
+                  SizedBox(height: 8),
+                  canResendOtp
+                      ? TextButton(
+                          onPressed: () {
+                            timer?.cancel();
+                            Navigator.pop(context);
+                            _sendOtp(cont);
+                          },
+                          child: Text("Resend OTP"),
+                        )
+                      : Text("Resend in $remainingSeconds seconds"),
+                ],
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState((){
+                      skipOtp=false;
+                    });
+                    startMeeting("end");
+                  },
+                  child: Text("Skip"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    if (otpController.text.length == 6) {
+                      timer?.cancel();
+                      Navigator.pop(context);
+                      _submitOtp(cont);
+                    } else {
+                      _showSnackbar("Please enter a valid 6-digit OTP", cont);
+                    }
+                  },
+                  child: Text("Submit"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showSnackbar(String msg, cont) {
+    ScaffoldMessenger.of(cont).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _submitOtp(cont) async {
+    
+    var body = {
+      "mobile": selectedOption == 'Other'
+          ? otherNumberController.text
+          : widget.data['phone'],
+      "otp": otpController.text,
+      "visitId": widget.data['visitId'] ?? widget.visitId,
+    };
+
+    try {
+     
+      final response = await ApiService.post(
+        endpoint: '/visit/verifyOtpForVisit',
+        body: body,
+      );
+
+      if (response != null && response['status'] == false) {
+        startMeeting("end");
+      } else {
+        _showPopup("Incorrect OTP. Please try again.", false, context);
+        setState(() => isLoading = false);
+      }
+    } catch (_) {
+      _showPopup("Failed to verify OTP. Please try again.", false, context);
+      setState(() => isLoading = false);
+    } finally {
+      setState(() => isLoading = false);
     }
   }
 
@@ -458,7 +651,18 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                 });
                 if (response != null && response['status'] == false) {
                   DialogUtils.showCommonPopup(
-                      context: context, message: "Rejected ", isSuccess: true);
+                      context: context, message: "Rejected ", isSuccess: true,onOkPressed: (){
+                        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ItemListPage(
+              date: widget.date,
+              id: widget.data['routeId'],
+              userReq: widget.userReq,
+            ),
+          ),
+        );
+                      });
                 }
               } catch (e) {
                 print(e);
@@ -480,9 +684,6 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   }
 
   Future<void> startMeeting(String filter) async {
-    setState(() {
-      isLoading = true;
-    });
     final prefs = await SharedPreferences.getInstance();
     final hasData = prefs.getString('user') != null;
     var id = "";
@@ -494,10 +695,21 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
 
     final body = {
       "id": widget.data['visitId'] ?? widget.visitId, // visit id
-      "ownerId": id
+      "ownerId": id,
+      'otp_skip': !skipOtp ? 'Yes' : 'No',
+      'otpMode': selectedOption,
+      'otp_number': !skipOtp
+          ? ""
+          : selectedOption == 'Other'
+              ? otherNumberController.text
+              : widget.data['makerContact']
     };
 
+
     try {
+    setState(() {
+      isLoading = true;
+    });
       final response = await ApiService.post(
         endpoint: filter == "end"
             ? '/visit/endMeetingVisit'
@@ -509,7 +721,10 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
           isLoading = false;
           status = filter == 'end' ? 3 : 2;
         });
-        DialogUtils.showCommonPopup(context: context, message: filter == 'end' ? "Meeting Ended" : "Meeting Started", isSuccess: true);
+        DialogUtils.showCommonPopup(
+            context: context,
+            message: filter == 'end' ? "Meeting Ended" : "Meeting Started",
+            isSuccess: true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(response['message'])),
@@ -564,11 +779,12 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       });
     }
   }
-  getFVR(obj,key){
-    if(obj==null||obj==""){
+
+  getFVR(obj, key) {
+    if (obj == null || obj == "") {
       return null;
-    }else{
-      final a=jsonDecode(obj);
+    } else {
+      final a = jsonDecode(obj);
       return a[key].toString();
     }
   }
@@ -581,6 +797,112 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
         date.day == now.day;
   }
 
+  void _showOtpBottomSheet(cont) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                top: 16,
+                left: 16,
+                right: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    CheckboxListTile(
+                      title: const Text("Verify With OTP"),
+                      value: skipOtp,
+                      onChanged: (value) =>
+                          setModalState(() => skipOtp = value!),
+                    ),
+                    if (skipOtp) ...[
+                      const SizedBox(height: 10),
+                      const Text(
+                        "OTP Mode",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      ListTile(
+                        title: const Text('Registered Mobile Number'),
+                        leading: Radio(
+                          value: 'Party',
+                          groupValue: selectedOption,
+                          onChanged: (value) => setModalState(
+                              () => selectedOption = value.toString()),
+                        ),
+                      ),
+                      ListTile(
+                        title: const Text('Other'),
+                        leading: Radio(
+                          value: 'Other',
+                          groupValue: selectedOption,
+                          onChanged: (value) => setModalState(
+                              () => selectedOption = value.toString()),
+                        ),
+                      ),
+                      if (selectedOption == 'Other')
+                        TextField(
+                          controller: otherNumberController,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(
+                            labelText: "Enter phone number",
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                    ],
+                    const SizedBox(height: 20),
+                    Row(children: [
+                      SizedBox(width: 150,
+                        child: ElevatedButton(
+                          
+                          style: ButtonStyle(backgroundColor: MaterialStateProperty.all(Colors.green)),
+                        
+                          onPressed: () {
+                            if(skipOtp){
+                            _sendOtp(cont);
+                            
+                            Navigator.pop(context);
+                            }else{
+                              startMeeting("end");
+                            }
+                          },
+                          child:  Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Icon(Icons.arrow_circle_right,color: Colors.white,),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text("Proceed",style: TextStyle(color: Colors.white)),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                     
+                    ]),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   void showEndPopup(BuildContext context) {
     showDialog(
       context: context,
@@ -590,8 +912,8 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
           actions: [
             TextButton(
               onPressed: () {
-                startMeeting("end");
                 Navigator.of(context).pop();
+                _showOtpBottomSheet(context);
               },
               child: Text('Yes'),
             ),
@@ -705,11 +1027,10 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                       value: widget.type == 1
                           ? distributor['schoolName']
                           : distributor['DistributorName'] ?? 'N/A'),
-                  
-                
+
                   DetailsRow(
                       label: 'Pincode', value: distributor['Pincode'] ?? 'N/A'),
-                 
+
                   const Divider(),
 
                   const SectionTitle(title: 'Contact Person Details'),
@@ -723,21 +1044,28 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                   DetailsRow(
                       label: 'Email', value: distributor['email'] ?? 'N/A'),
                   const Divider(),
-                
-                  
-                  
+
                   const SectionTitle(title: 'Last Visit Details'),
                   DetailsRow(
-                      label: 'HO Action Needed', value: latestVisit['ho_need']=='true'?'Yes':'No' ?? 'N/A'),
+                      label: 'HO Action Needed',
+                      value: latestVisit['ho_need'] == 'true'
+                          ? 'Yes'
+                          : 'No' ?? 'N/A'),
                   DetailsRow(
-                      label: 'HO Remark', value: latestVisit['ho_need_remark'] ?? 'N/A'),
+                      label: 'HO Remark',
+                      value: latestVisit['ho_need_remark'] ?? 'N/A'),
                   DetailsRow(
                       label: 'Further Visit Required',
-                      value: getFVR(latestVisit['furtherVisitRequired'],'visit_required') ?? 'N/A'),
+                      value: getFVR(latestVisit['furtherVisitRequired'],
+                              'visit_required') ??
+                          'N/A'),
                   DetailsRow(
-                      label: 'Reason', value: getFVR(latestVisit['furtherVisitRequired'],"reason") ?? 'N/A'),
+                      label: 'Reason',
+                      value: getFVR(
+                              latestVisit['furtherVisitRequired'], "reason") ??
+                          'N/A'),
                   const Divider(),
-                 
+
                   DetailsRow(
                       label: 'Assigned RM',
                       value: distributor['ownerName'] ?? 'N/A'),
@@ -807,7 +1135,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                       ? Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
-                            status == 0 && userData['role'] != 'se'
+                            widget.data['status'] == 0 && userData['role'] != 'se'
                                 ? ElevatedButton.icon(
                                     icon: Icon(
                                       Icons.check,
@@ -819,7 +1147,6 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                     ),
                                     onPressed: () {
                                       _approveRequest();
-                                      
                                     },
                                     label: Text(
                                       "Approve",
@@ -827,7 +1154,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                     ),
                                   )
                                 : Container(),
-                            status == 0 && userData['role'] != 'se'
+                            widget.data['status'] == 0 && userData['role'] != 'se'
                                 ? ElevatedButton.icon(
                                     icon: Icon(
                                       Icons.close,
@@ -838,7 +1165,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                                       backgroundColor: Colors.orange.shade600,
                                     ),
                                     onPressed: () {
-                                     _rejectRequestWithRemark();
+                                      _rejectRequestWithRemark();
                                     },
                                     label: Text(
                                       "Reject",

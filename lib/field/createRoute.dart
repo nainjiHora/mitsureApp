@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/services/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -20,6 +22,17 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
     {"routeVisitType": "Select Visit Type", "routeVisitTypeID": ""}
   ];
   bool isLoading = false;
+  String? tagUserController = null;
+  final TextEditingController prefDistributor = TextEditingController();
+  List<dynamic> asms = [];
+  List<dynamic> rsms = [];
+  List<dynamic> rms = [];
+  Map<String, dynamic> userData = {};
+  List<dynamic> allUsers = [];
+  String? superwisorController = null;
+  String? rsmController = null;
+  final _formKey = GlobalKey<FormState>();
+  bool includeCompanion = false;
   String? visitType = "";
   String? partyType = '';
   String? selectedSchool;
@@ -105,14 +118,89 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
     final now = DateTime.now();
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: now.add(const Duration(days: 1)),
-      firstDate: now.add(const Duration(days: 1)),
+      initialDate: now.add(const Duration(days: 0)),
+      firstDate: now.add(const Duration(days: 0)),
       lastDate: now.add(const Duration(days: 7)),
     );
     if (picked != null) {
       setState(() {
         selectedDate = picked;
       });
+    }
+  }
+  getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user');
+    if (a!.isNotEmpty) {
+      setState(() {
+        userData = jsonDecode(a ?? "");
+
+      });
+    }
+  }
+  _fetChAllRSM() async {
+    if(allUsers.length==0)
+    try {
+      setState(() {
+        isLoading = true;
+      });
+      final response =
+      await ApiService.post(endpoint: '/user/getUsers', body: {});
+
+      if (response != null) {
+        final data = response['data'];
+
+        setState(() {
+          // rsms = data.where((e) => e['role'] == 'rsm').toList();
+          // asms = data.where((e) => e['role'] == 'asm').toList();
+print(data);
+          rms = data
+              .where((e) =>( e['cluster'] == userData['cluster']) && userData['id'] != e['id'])
+              .toList();
+          print(userData);
+          allUsers = data;
+          isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load orders');
+      }
+    } catch (error) {
+      print("Error fetching ojbjbjbjjrders: $error");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  _fetchAsm(id) async {
+    try {
+      setState(() {
+        asms = allUsers
+            .where((e) => e['role'] == 'asm' && e['reportingManager'] == id)
+            .toList();
+
+        // superwisorController = asms[0]['id'];
+        isLoading = false;
+        // tagUserController = "";
+      });
+    } catch (error) {
+      print("Error fetching ojbjbjbjjrders: $error");
+    } finally {}
+  }
+
+  _fetchSe(id) async {
+    try {
+      setState(() {
+
+        rms = allUsers
+            .where((e) => e['role'] == 'se' && e['reportingManager'] == id && e['id']!=userData['id'])
+            .toList();
+        // tagUserController = rms[0]['id'];
+        isLoading = false;
+      });
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -133,6 +221,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
         );
         return;
       } else {
+        print("Dassd");
         setState(() {
           selectedparty.add({
             'visitType': visitType,
@@ -165,7 +254,8 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
         builder: (_) => ReorderRoutePage(
             routes: selectedparty,
             schools: schools,
-            visitType:visitTypeOptions,
+            visitType: visitTypeOptions,
+            tagPartner:tagUserController??superwisorController??"",
             distributors: distributors),
       ),
     );
@@ -197,6 +287,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
     // TODO: implement initState
     super.initState();
     fetchPicklist();
+    getUserData();
   }
 
   removeParty(filter, id) {
@@ -223,152 +314,317 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
     return Stack(
       children: [
         Scaffold(
+           resizeToAvoidBottomInset: true,
           appBar: AppBar(title: const Text('Create Route')),
           body: Padding(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildDropdown(
-                    'Visit Type',
-                    visitTypeOptions,
-                    "routeVisitTypeID",
-                    'routeVisitType',
-                    visitType,
-                    (val) => setState(() {
-                          visitType = val;
-                        })),
-                const SizedBox(height: 12),
-                TextFormField(
-                  readOnly: true,
-                  onTap: () {
-                    selectedparty.length > 0 ? null : _pickDate();
-                  },
-                  decoration: InputDecoration(
-                    hintText: selectedDate == null
-                        ? 'Choose date'
-                        : "${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
-                    suffixIcon: const Icon(Icons.calendar_today),
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 14),
-                  ),
+              child:LayoutBuilder(
+              
+               builder: (context, constraints) {
+          return SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
                 ),
-                const SizedBox(height: 12),
-                _buildDropdown(
-                    'Party Type',
-                    [
-                      {"id": "", "name": "Select Party Type"},
-                      {"id": "1", "name": "School"},
-                      {"id": "0", "name": "Distributor"}
-                    ],
-                    "id",
-                    'name',
-                    partyType, (val) {
-                  setState(() => partyType = val);
-                  _fetchOrders(int.parse(val ?? '0'));
-                }),
-                const SizedBox(height: 12),
-                partyType == '1'
-                    ? _buildDropdown(
-                        'Select School',
-                        filteredSchools,
-                        "schoolId",
-                        'schoolName',
-                        selectedSchool,
-                        (val) => setState(() {
-                              selectedSchool = val;
-                            }))
-                    : _buildDropdown(
-                        'Select Distributor',
-                        filteredDistributors,
-                        "distributorID",
-                        'DistributorName',
-                        selectedSchool,
-                        (val) => setState(() {
-                              selectedSchool = val;
-                            })),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    ElevatedButton.icon(
-                      onPressed: _addRoute,
-                      icon: const Icon(Icons.add),
-                      label: const Text('Add'),
-                    ),
-                    ElevatedButton(
-                      onPressed: _goToNextPage,
-                      child: const Text('Next'),
-                    ),
-                  ],
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Selected Parties",
-                      style:
-                          TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-                    ),
-                  ],
-                ),
-               Expanded(
-  child: selectedparty.isNotEmpty
-      ? ListView.builder(
-          itemCount: selectedparty.length,
-          itemBuilder: (context, index) {
-            final item = selectedparty[index];
-            return Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  width: 300,
-                  margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.blue[50],
-                    border: Border.all(color: Colors.blue, width: 1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Text(
-                        getName(item).length > 10
-                            ? getName(item).toString().substring(0, 22) + "..."
-                            : getName(item),
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        CheckboxListTile(
+                        title: Text('Tag Colleague'),
+                        value: includeCompanion,
+                        onChanged: (value) async {
+                          setState(() {
+                            includeCompanion = value ?? false;
+                          });
+                          if (includeCompanion) {
+                            await _fetChAllRSM();
+                          }else{
+                            rsmController=null;
+                            tagUserController=null;
+                            superwisorController=null;
+                  
+                          }
+                        },
+                      ),
+                      if (includeCompanion) ...[
+                        // Padding(
+                        //   padding: const EdgeInsets.all(8.0),
+                        //   child: _buildDropdown(
+                        //     'Select HO',
+                        //     rsms,
+                        //     'id',
+                        //     'name',
+                        //     rsmController,
+                        //         (value) {
+                        //       setState(() {
+                        //         rsmController = value;
+                        //         superwisorController=null;
+                        //         tagUserController=null;
+                        //         _fetchAsm(value);
+                        //       });
+                        //     },
+                        //   ),
+                        // ),
+                        // Padding(
+                        //   padding: const EdgeInsets.all(8.0),
+                        //   child: _buildDropdown(
+                        //     'Select ARM',
+                        //     asms,
+                        //     'id',
+                        //     'name',
+                        //     superwisorController,
+                        //         (value) {
+                        //       setState(() {
+                        //         superwisorController = value;
+                        //
+                        //         tagUserController=null;
+                        //         _fetchSe(value);
+                        //       });
+                        //     },
+                        //   ),
+                        // ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10.0),
+                          child: _buildDropdown(
+                            'Select Colleague',
+                            rms,
+                            'id',
+                            'name',
+                            tagUserController,
+                                (value) {
+                              setState(() {
+                                tagUserController = value;
+                              });
+                            },
+                          ),
+                        ),
+                      ],
+                      _buildDropdown(
+                          'Visit Type',
+                          visitTypeOptions,
+                          "routeVisitTypeID",
+                          'routeVisitType',
+                          visitType,
+                          (val) => setState(() {
+                                visitType = val;
+                              })),
+                      const SizedBox(height: 12),
+                      TextFormField(
+                        readOnly: true,
+                        onTap: () {
+                          selectedparty.length > 0 ? null : _pickDate();
+                        },
+                        decoration: InputDecoration(
+                          hintText: selectedDate == null
+                              ? 'Choose date'
+                              : "${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
+                          suffixIcon: const Icon(Icons.calendar_today),
+                          border: const OutlineInputBorder(),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 14),
                         ),
                       ),
-                      const SizedBox(width: 56),
+                      const SizedBox(height: 12),
+                      _buildDropdown(
+                          'Party Type',
+                          [
+                            {"id": "", "name": "Select Party Type"},
+                            {"id": "1", "name": "School"},
+                            {"id": "0", "name": "Distributor"}
+                          ],
+                          "id",
+                          'name',
+                          partyType, (val) {
+                        setState(() { partyType = val;prefDistributor.clear();});
+                        _fetchOrders(int.parse(val ?? '0'));
+                      }),
+                      const SizedBox(height: 12),
+                      // partyType == '1'
+                      //     ? _buildDropdown(
+                      //         'Select School',
+                      //         filteredSchools,
+                      //         "schoolId",
+                      //         'schoolName',
+                      //         selectedSchool,
+                      //         (val) => setState(() {
+                      //               selectedSchool = val;
+                      //             }))
+                      //     : _buildDropdown(
+                      //         'Select Distributor',
+                      //         filteredDistributors,
+                      //         "distributorID",
+                      //         'DistributorName',
+                      //         selectedSchool,
+                      //         (val) => setState(() {
+                      //               selectedSchool = val;
+                      //             })),
+                       partyType == '1'
+                           ?
+                  // Text(
+                  //   "Preferred Distributor",
+                  //   style: TextStyle(fontWeight: FontWeight.bold),
+                  // ),
+                  TypeAheadFormField<Map<String, dynamic>>(
+                    textFieldConfiguration: TextFieldConfiguration(
+                      controller: prefDistributor,
+                      decoration: InputDecoration(
+                        labelText: 'Search School',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    suggestionsCallback: (pattern) {
+                      return schools
+                          .where((dist) => dist['schoolName']
+                              .toLowerCase()
+                              .contains(pattern.toLowerCase()))
+                          .cast<Map<String, dynamic>>();
+                    },
+                    itemBuilder: (context, suggestion) {
+                      return ListTile(
+                        title: Text(suggestion['schoolName']),
+                      );
+                    },
+                    onSuggestionSelected: (suggestion) {
+                     
+                      setState(() {
+                        selectedSchool=suggestion['schoolId'];
+                         prefDistributor.text = suggestion['schoolName'];
+                      });
+                    },
+                  )
+                          : TypeAheadFormField<Map<String, dynamic>>(
+                    textFieldConfiguration: TextFieldConfiguration(
+                      controller: prefDistributor,
+                      decoration: InputDecoration(
+                        labelText: 'Search Distributor',
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                    suggestionsCallback: (pattern) {
+                      return distributors
+                          .where((dist) => dist['DistributorName']
+                              .toLowerCase()
+                              .contains(pattern.toLowerCase()))
+                          .cast<Map<String, dynamic>>();
+                    },
+                    itemBuilder: (context, suggestion) {
+                      return ListTile(
+                        title: Text(suggestion['DistributorName']),
+                      );
+                    },
+                    onSuggestionSelected: (suggestion) {
+                     
+                      setState(() {
+                        selectedSchool=suggestion['distributorID'];
+                         prefDistributor.text = suggestion['DistributorName'];
+                      });
+                    },
+                  ),
+                      const SizedBox(height: 20),
+                  
+                      ElevatedButton.icon(
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(Colors.indigo.shade600),
+                          minimumSize: MaterialStateProperty.all(const Size(180, 48)), // width: 180, height: 48
+                        ),
+                        onPressed: _addRoute,
+                        icon: const Icon(Icons.add, color: Colors.white),
+                        label: const Text('Add', style: TextStyle(color: Colors.white)),
+                      ),
+                  
+                  
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Selected Parties",
+                              style:
+                                  TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: selectedparty.isNotEmpty
+                            ? ListView.builder(
+                                itemCount: selectedparty.length,
+                                itemBuilder: (context, index) {
+                                  final item = selectedparty[index];
+                                  return Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Container(
+                                        width: 300,
+                                        margin: const EdgeInsets.symmetric(
+                                            vertical: 5, horizontal: 10),
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue[50],
+                                          border: Border.all(
+                                              color: Colors.blue, width: 1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            Text(
+                                              getName(item).length > 22
+                                                  ? getName(item)
+                                                          .toString()
+                                                          .substring(0, 21) +
+                                                      "..."
+                                                  : getName(item),
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 56),
+                                          ],
+                                        ),
+                                      ),
+                                      GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            selectedparty.removeAt(index);
+                                          });
+                                        },
+                                        child: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              )
+                            : const Center(child: Text("No Products Added")),
+                      ),
+                      ElevatedButton.icon(
+                        style: ButtonStyle(
+                          backgroundColor: MaterialStateProperty.all(Colors.green),
+                          minimumSize: MaterialStateProperty.all(const Size(180, 48)), // width: 180, height: 48
+                        ),
+                        onPressed: _goToNextPage,
+                        icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                        label: const Text('Proceed', style: TextStyle(color: Colors.white)),
+                      ),
+                  
                     ],
                   ),
                 ),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedparty.removeAt(index);
-                    });
-                  },
-                  child: const Icon(Icons.delete, color: Colors.red),
-                ),
-              ],
+              ),
             );
-          },
-        )
-      : const Center(child: Text("No Products Added")),
-),
-
-              ],
-            ),
-          ),
+  })
+  ),
         ),
         if (isLoading) const BookPageLoader(),
       ],
     );
   }
+
+
 
   Widget _buildDropdown(String label, List<dynamic> items, keyId, keyName,
       String? value, ValueChanged<String?> onChanged) {

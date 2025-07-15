@@ -348,7 +348,7 @@ class _PartyScreenState extends State<PartyScreen> {
                   child:DropdownButtonFormField<String>(
                     value: selectedRsm,
                     decoration: InputDecoration(
-                      labelText: 'Select VP',
+                      labelText: 'Select HO',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
@@ -380,7 +380,7 @@ class _PartyScreenState extends State<PartyScreen> {
                   child: DropdownButtonFormField<String>(
                     value: selectedASM,
                     decoration: InputDecoration(
-                      labelText: 'Select CH',
+                      labelText: 'Select ARM',
                       border: OutlineInputBorder(),
                       contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     ),
