@@ -324,6 +324,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
             MaterialPageRoute(
               builder: (context) => ItemListPage(
                 id: route['routeId'],
+                
                 date: route['date'],
                 userReq: widget.userReq,
               ),
@@ -399,6 +400,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
                           builder: (context) => ItemListPage(
                             id: route['routeId'],
                             date: route['date'],
+                            
                             userReq: widget.userReq,
                           ),
                         ),
@@ -727,7 +729,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
                           ),
                         ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Column(
                       children: [
                         Text("Page ${currentPage + 1} of $totalPages",
@@ -761,8 +763,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
                   ),
                 ],
               ),
-        floatingActionButton: userData['role'] == 'se'
-            ? FloatingActionButton(
+        floatingActionButton: FloatingActionButton(
                 backgroundColor: Colors.indigo[900],
                 onPressed: () {
                   Navigator.push(
@@ -775,7 +776,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
                   color: Colors.white,
                 ),
               )
-            : null,
+            ,
       ),
     );
   }

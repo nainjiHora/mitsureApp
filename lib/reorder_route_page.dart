@@ -13,9 +13,10 @@ class ReorderRoutePage extends StatefulWidget {
   final List<dynamic> distributors;
   final List<dynamic> visitType;
   final String tagPartner;
+  final selectedRM;
 
 
-  const ReorderRoutePage({super.key, required this.routes,required this.schools,required this.distributors,required this.tagPartner,required this.visitType});
+  const ReorderRoutePage({super.key, required this.routes,required this.selectedRM,required this.schools,required this.distributors,required this.tagPartner,required this.visitType});
 
   @override
   State<ReorderRoutePage> createState() => _ReorderRoutePageState();
@@ -66,11 +67,11 @@ void _submitReorderedRoutes() async {
    });
    final prefs = await SharedPreferences.getInstance();
    final hasData = prefs.getString('user') != null;
-   var id = "";
+   var user = {};
    if (hasData) {
-     id = jsonDecode(prefs.getString('user') ?? "")['id'];
+     user = jsonDecode(prefs.getString('user') ?? "");
    }else{
-    print("okok");
+    
      return;
    }
 final List<Map<dynamic, dynamic>> serializableRoutes = _routeList
@@ -90,11 +91,11 @@ final List<Map<dynamic, dynamic>> serializableRoutes = _routeList
 print(serializableRoutes);
 
    final body = {
-     "ownerId": id,
+     "ownerId": user['role']=='se'?user['id']:widget.selectedRM,
      "date":serializableRoutes[0]['date'],
      "routeVisitId":widget.routes[0]['partyType'],
      "partyList":serializableRoutes,
-     "tagged_id":widget.tagPartner
+     "tagged_id":widget.tagPartner,
    };
 
 print(body);

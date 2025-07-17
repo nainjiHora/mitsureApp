@@ -129,14 +129,6 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
       }
     }
 
-    final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: ImageSource.camera);
-    if (pickedFile == null) {
-      _showSnackbar("Please capture an image before submitting.", context);
-      setState(() => isLoading = false);
-      return;
-    }
-    capturedImage = File(pickedFile.path);
 
     final pcat = {"interested": widget.interested, "data": widget.answers};
     final uri = Uri.parse('https://mittsure.qdegrees.com:3001/visit/endVisit');
@@ -216,11 +208,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
     request.fields['mittstoreAccountNeeded'] = jsonEncode(accountFormJson);
 
     request.fields['otp_skip'] = !skipOtp ? 'Yes' : 'No';
-    // request.files.add(await http.MultipartFile.fromPath(
-    //   'end_image',
-    //   capturedImage!.path,
-    //   filename: basename(capturedImage!.path),
-    // ));
+    
 
     try {
       print(request.fields);
@@ -579,7 +567,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                   ),
                 ),
               ),
-              if(widget.payload['partyType']==1||widget.payload['partyType']=="1")
+              if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
             CheckboxListTile(
               title: Text("Party Update"),
               value: partyUpdateRequired,
@@ -650,6 +638,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
               "Preferred Distributor",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
+            SizedBox(height: 10,),
             TypeAheadFormField<Map<String, dynamic>>(
               textFieldConfiguration: TextFieldConfiguration(
                 controller: prefDistributor,
@@ -675,64 +664,23 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                 // selectedValue = suggestion['distributorID'];
               },
             ),
-            CheckboxListTile(
-              title: Text("Verify With OTP"),
-              value: skipOtp,
-              onChanged: (value) => setState(() => skipOtp = value!),
-            ),
-            if (skipOtp)
-              Column(
-                children: [
-                  Text("OTP Mode",
-                      style:
-                          TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  ListTile(
-                    title: Text('Registered Mobile Number'),
-                    leading: Radio(
-                      value: 'Party',
-                      groupValue: selectedOption,
-                      onChanged: (value) =>
-                          setState(() => selectedOption = value.toString()),
-                    ),
-                  ),
-                  ListTile(
-                    title: Text('Other'),
-                    leading: Radio(
-                      value: 'Other',
-                      groupValue: selectedOption,
-                      onChanged: (value) =>
-                          setState(() => selectedOption = value.toString()),
-                    ),
-                  ),
-                  if (selectedOption == 'Other')
-                    TextField(
-                      controller: otherNumberController,
-                      keyboardType: TextInputType.phone,
-                      decoration: InputDecoration(
-                          labelText: "Enter phone number",
-                          border: OutlineInputBorder()),
-                    ),
-                ],
-              ),
-            SizedBox(height: 20),
+
+            SizedBox(height: 20,),
+           
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: isLoading
                     ? null
                     : () {
-                        if (selectedOption == 'Other' &&
-                            otherNumberController.text.isEmpty) {
-                          _showSnackbar(
-                              "Please enter the phone number.", context);
-                        } else {
+                        
                           _submitRequest(context);
-                        }
+                        
                       },
                 icon: isLoading
                     ? CircularProgressIndicator(color: Colors.white)
-                    : Icon(Icons.camera_alt, color: Colors.white),
-                label: Text("Capture Image & Submit",
+                    : Icon(Icons.edit_note_outlined, color: Colors.white),
+                label: Text("End visit",
                     style: TextStyle(color: Colors.white)),
                 style: ElevatedButton.styleFrom(
                   padding: EdgeInsets.symmetric(vertical: 14),

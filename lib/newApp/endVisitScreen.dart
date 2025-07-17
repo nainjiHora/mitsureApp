@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -125,6 +126,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
   }
 
   Future<void> _submitForm(cont) async {
+    // try{
     if (_formKey.currentState!.validate() &&
         latitude != null &&
         longitude != null) {
@@ -179,15 +181,9 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
       request.fields['followUpDate'] = followUpDate ?? "";
       request.fields['visitOutcome'] = visitOutcome ?? "";
       request.fields['nextStep'] = nextStep ?? "";
-      request.fields['partyType'] = widget.type;
+      request.fields['partyType'] = widget.type.toString();
 
-      // request.files.add(
-      //   await http.MultipartFile.fromPath(
-      //     'end_image',
-      //     _image!.path,
-      //     filename: basename(_image!.path),
-      //   ),
-      // );
+     
       print(request.fields);
 
       if(furtherVisit == 'true'){
@@ -218,36 +214,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
       );
       }
 
-      return;
-      final response = await request.send();
-      var respons = await http.Response.fromStream(response);
-
-      final res = jsonDecode(respons.body);
-      print(res);
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300 &&
-          res['status'] == false) {
-        // Navigator.pushReplacement(
-        //   cont,
-        //   MaterialPageRoute(
-        //       builder: (context) => RouteDetailsScreen(
-        //           data: widget.visit, type: widget.type, date: widget.date,visitStatus: 4,)),
-        // );
-        Navigator.pushReplacement(
-          cont,
-          MaterialPageRoute(
-              builder: (context) => CreatedRoutesPage(userReq: false)),
-        );
-      } else {
-        setState(() {
-          isLoading = false;
-        });
-        DialogUtils.showCommonPopup(
-            context: cont, message: res['message'], isSuccess: false);
-        // ScaffoldMessenger.of(cont).showSnackBar(
-        //   SnackBar(content: Text(res['message'])),
-        // );
-      }
+     
     } else {
       setState(() {
         isLoading = false;
@@ -256,6 +223,14 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
         SnackBar(content: Text('Please fill all fields and capture image')),
       );
     }
+  // }catch(e){
+  //     print(widget.type);
+  //     print("dasda");
+  //    setState(() {
+  //       isLoading = false;
+  //     });
+  //   DialogUtils.showCommonPopup(context: cont, message: e.toString(), isSuccess: false);
+  // }
   }
 
   Widget _buildDropdown(String label, List<dynamic> items, keyId, keyName,
@@ -281,11 +256,17 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller) {
+  Widget _buildTextField(String label, TextEditingController controller,String? type) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3.0),
       child: TextFormField(
         controller: controller,
+          keyboardType: type!=null&&type == "number"
+                                      ? TextInputType.number
+                                      : TextInputType.text,
+                                  inputFormatters:  type!=null&&type == "number"
+                                      ? [FilteringTextInputFormatter.digitsOnly]
+                                      : [],
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(
@@ -339,8 +320,8 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
                 key: _formKey,
                 child: ListView(
                   children: [
-                    _buildTextField('Contact Person', contactPersonController),
-                    _buildTextField('Mobile Number', phoneNumberController),
+                    _buildTextField('Contact Person', contactPersonController,"text"),
+                    _buildTextField('Mobile Number', phoneNumberController,"number"),
                     _buildDropdown(
                         'Visit Status',
                         dropdowns['statusType'],

@@ -414,6 +414,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
               date: widget.date,
               id: widget.data['routeId'],
               userReq: widget.userReq,
+            
             ),
           ),
         );
@@ -659,6 +660,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
               date: widget.date,
               id: widget.data['routeId'],
               userReq: widget.userReq,
+              
             ),
           ),
         );
@@ -940,6 +942,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
               date: widget.date,
               id: widget.data['routeId'],
               userReq: widget.userReq,
+             
             ),
           ),
         );

@@ -6,6 +6,7 @@ import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/visitPartyDetail.dart';
 import 'package:mittsure/services/apiService.dart';
+import 'package:mittsure/services/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ItemListPage extends StatefulWidget {
@@ -13,7 +14,8 @@ class ItemListPage extends StatefulWidget {
   final date;
 
   final bool userReq;
-  const ItemListPage({super.key, required this.id, this.date,required this.userReq});
+  const ItemListPage(
+      {super.key, required this.id, this.date, required this.userReq});
 
   @override
   State<ItemListPage> createState() => _ItemListPageState();
@@ -23,7 +25,7 @@ class _ItemListPageState extends State<ItemListPage> {
   List<dynamic> allItems = [];
   String selectedStatus = 'All';
   List<dynamic> filteredItems = [];
-
+ bool alreadytagged=false;
   int currentPage = 0;
   int perPage = 10;
   String selectedType = 'All';
@@ -33,6 +35,20 @@ class _ItemListPageState extends State<ItemListPage> {
   void initState() {
     super.initState();
     fetchRouteitems();
+   
+    getUserData();
+  }
+
+  Map<String, dynamic> userData = {};
+  getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user');
+    if (a!.isNotEmpty) {
+      setState(() {
+        print(a);
+        userData = jsonDecode(a ?? "");
+      });
+    }
   }
 
   Widget _buildStatusBadge(dynamic status) {
@@ -42,12 +58,12 @@ class _ItemListPageState extends State<ItemListPage> {
 
     switch (status) {
       case 1:
-        label = widget.userReq?'Approved':'Visit Started';
-        color = widget.userReq?Colors.green:Colors.orange;
+        label = widget.userReq ? 'Approved' : 'Visit Started';
+        color = widget.userReq ? Colors.green : Colors.orange;
         break;
       case 2:
-        label = widget.userReq?'Rejected':'Meeting Started';
-        color =widget.userReq?Colors.red: Colors.blue;
+        label = widget.userReq ? 'Rejected' : 'Meeting Started';
+        color = widget.userReq ? Colors.red : Colors.blue;
         break;
       case 3:
         label = 'Meeting Ended';
@@ -58,57 +74,60 @@ class _ItemListPageState extends State<ItemListPage> {
         color = Colors.green;
         break;
       case 0:
-        label = widget.userReq? 'Pending':'';
+        label = widget.userReq ? 'Pending' : '';
         color = Colors.orange;
         break;
       default:
         return const SizedBox(); // No badge for unknown status
     }
 
-    return widget.userReq ||status!=0? Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        border: Border.all(color: color),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-    ):SizedBox(height: 0,);
+    return widget.userReq || status != 0
+        ? Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              border: Border.all(color: color),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          )
+        : SizedBox(
+            height: 0,
+          );
   }
 
- Widget buildFilterChips() {
-  List<Map<String, dynamic>> statuses = [
-    {"name": 'All', "id": "", "color": Colors.indigo},
-    {"name": 'Approved', "id": "1", "color": Colors.green.shade600},
-    {"name": 'Pending', "id": "0", "color": Colors.yellow.shade600},
-    {"name": 'Rejected', "id": "2", "color": Colors.red}
-  ];
+  Widget buildFilterChips() {
+    List<Map<String, dynamic>> statuses = [
+      {"name": 'All', "id": "", "color": Colors.indigo},
+      {"name": 'Approved', "id": "1", "color": Colors.green.shade600},
+      {"name": 'Pending', "id": "0", "color": Colors.yellow.shade600},
+      {"name": 'Rejected', "id": "2", "color": Colors.red}
+    ];
 
-  return Wrap(
-    spacing: 8,
-    children: statuses.map((status) {
-      final isSelected = selectedStatus == status['id'];
-      return ChoiceChip(
-        label: Text(status['name'] ?? ""),
-        selected: isSelected,
-        selectedColor: status['color'] ?? Colors.indigo,
-        checkmarkColor: Colors.white,
-        labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.black,
-        ),
-        onSelected: (_) => onStatusChange(status['id'] ?? ""),
-      );
-    }).toList(),
-  );
-}
-
+    return Wrap(
+      spacing: 8,
+      children: statuses.map((status) {
+        final isSelected = selectedStatus == status['id'];
+        return ChoiceChip(
+          label: Text(status['name'] ?? ""),
+          selected: isSelected,
+          selectedColor: status['color'] ?? Colors.indigo,
+          checkmarkColor: Colors.white,
+          labelStyle: TextStyle(
+            color: isSelected ? Colors.white : Colors.black,
+          ),
+          onSelected: (_) => onStatusChange(status['id'] ?? ""),
+        );
+      }).toList(),
+    );
+  }
 
   void onStatusChange(String status) {
     setState(() {
@@ -117,9 +136,9 @@ class _ItemListPageState extends State<ItemListPage> {
       if (status == "") {
         filteredItems = allItems;
       } else {
-        
-        filteredItems =
-            allItems.where((element) => element['status'].toString() == status).toList();
+        filteredItems = allItems
+            .where((element) => element['status'].toString() == status)
+            .toList();
       }
     });
   }
@@ -143,6 +162,7 @@ class _ItemListPageState extends State<ItemListPage> {
       if (response != null && response['status'] == false) {
         setState(() {
           allItems = response['data'] ?? [];
+          // alreadytagged=response['data1']??false;
           onStatusChange("");
         });
       }
@@ -155,35 +175,49 @@ class _ItemListPageState extends State<ItemListPage> {
     }
   }
 
-  // List<Map<String, String>> get paginatedItems {
-  //   int start = currentPage * perPage;
-  //   int end = start + perPage;
-  //   return filteredItems.sublist(
-  //       start, end > filteredItems.length ? filteredItems.length : end);
-  // }
+  tagMe() async {
+    setState(() {
+        isLoading=true;
+      });
+    try {
 
-  // int get totalPages => (filteredItems.length / perPage).ceil();
+      final response = await ApiService.post(
+          endpoint: '/routePlan/updateTaggedUser',
+          body: {"routeId": widget.id, "taggedId": userData['id']});
 
-  // void goToPage(int page) {
-  //   setState(() {
-  //     currentPage = page;
-  //   });
-  // }
+      if (response != null && response['status'] == false) {
+        setState(() {
+          alreadytagged=true;
+        });
+        DialogUtils.showCommonPopup(
+            context: context, message: response["message"], isSuccess: true);
+      }
+    } catch (e) {
+       DialogUtils.showCommonPopup(
+            context: context, message: "Something Went Wrong", isSuccess: false);
+    }finally{
+      setState(() {
+        isLoading=false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        widget.userReq? Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => MainMenuScreen()),
-          (route) => false, // remove all previous routes
-        )
-       : Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => CreatedRoutesPage(userReq:false)),
-          (route) => false, // remove all previous routes
-        );
+        widget.userReq
+            ? Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => MainMenuScreen()),
+                (route) => false, // remove all previous routes
+              )
+            : Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => CreatedRoutesPage(userReq: false)),
+                (route) => false, // remove all previous routes
+              );
         return false;
       },
       child: Scaffold(
@@ -204,99 +238,119 @@ class _ItemListPageState extends State<ItemListPage> {
             ),
           ],
         ),
-        body:  isLoading
-          ? Center(
-              child: BookPageLoader(),
-            )
-          : Column(
-          children: [
-            // Filters and Page Size
-            // Padding(
-            //   padding: const EdgeInsets.all(8),
-            //   child: Row(
-            //     children: [
-            //       Expanded(
-            //         child: Wrap(
-            //           spacing: 8,
-            //           children: itemTypes.map((type) {
-            //             final isSelected = selectedType == type;
-            //             return ChoiceChip(
-            //               label: Text(type),
-            //               selected: isSelected,
-            //               selectedColor: Colors.indigo,
-            //               checkmarkColor: Colors.white,
-            //               labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
-            //               onSelected: (_) {
-            //                 selectedType = type;
-            //                 _applyFilters();
-            //               },
-            //             );
-            //           }).toList(),
-            //         ),
-            //       ),
-            //       const SizedBox(width: 10),
-
-            //     ],
-            //   ),
-            // ),
-
-            // Item List
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 1),
-              child: Row(
+        body: isLoading
+            ? Center(
+                child: BookPageLoader(),
+              )
+            : Column(
                 children: [
-                  Expanded(child: buildFilterChips()),
-                  const SizedBox(width: 10),
+                  // Filters and Page Size
+                  // Padding(
+                  //   padding: const EdgeInsets.all(8),
+                  //   child: Row(
+                  //     children: [
+                  //       Expanded(
+                  //         child: Wrap(
+                  //           spacing: 8,
+                  //           children: itemTypes.map((type) {
+                  //             final isSelected = selectedType == type;
+                  //             return ChoiceChip(
+                  //               label: Text(type),
+                  //               selected: isSelected,
+                  //               selectedColor: Colors.indigo,
+                  //               checkmarkColor: Colors.white,
+                  //               labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.black),
+                  //               onSelected: (_) {
+                  //                 selectedType = type;
+                  //                 _applyFilters();
+                  //               },
+                  //             );
+                  //           }).toList(),
+                  //         ),
+                  //       ),
+                  //       const SizedBox(width: 10),
+
+                  //     ],
+                  //   ),
+                  // ),
+
+                  // Item List
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 8.0, horizontal: 1),
+                    child: Row(
+                      children: [
+                        Expanded(child: buildFilterChips()),
+                        const SizedBox(width: 10),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: filteredItems.isEmpty
+                        ? const Center(child: Text("No items found."))
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                            itemCount: filteredItems.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredItems[index];
+                              return GestureDetector(
+                                onTap: () {
+                                  print(item);
+
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (context) =>
+                                              RouteDetailsScreen(
+                                                data: item,
+                                                type: item['partyType'],
+                                                date: widget.date,
+                                                visitStatus:
+                                                    item['visited_status'],
+                                                userReq: widget.userReq,
+                                              )));
+                                },
+                                child: Card(
+                                  elevation: 3,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  child: ListTile(
+                                    leading: const Icon(Icons.category,
+                                        color: Colors.indigo),
+                                    title: Text(item['DistributorName'] ??
+                                        item['schoolName']),
+                                    subtitle: Text(
+                                        "${item['partyType'] == 0 ? 'Distributor' : 'School'}-${item['partyId']}"),
+                                    trailing: widget.userReq
+                                        ? _buildStatusBadge(item['status'])
+                                        : _buildStatusBadge(
+                                            item['visited_status']),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+if(userData['role']!='se' && !alreadytagged)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton.icon(
+                      style: ButtonStyle(
+                        backgroundColor:
+                            MaterialStateProperty.all(Colors.deepOrange),
+                        minimumSize: MaterialStateProperty.all(
+                            const Size(180, 48)), // width: 180, height: 48
+                      ),
+                      onPressed: tagMe,
+                      icon: const Icon(Icons.person_2, color: Colors.white),
+                      label: const Text('Tag Me ',
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
                 ],
               ),
-            ),
-            Expanded(
-              child: filteredItems.isEmpty
-                  ? const Center(child: Text("No items found."))
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-                      itemCount: filteredItems.length,
-                      itemBuilder: (context, index) {
-                        final item = filteredItems[index];
-                        return GestureDetector(
-                          onTap: () {
-                            print(item);
-
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => RouteDetailsScreen(
-                                          data: item,
-                                          type: item['partyType'],
-                                          date: widget.date,
-                                          visitStatus: item['visited_status'],
-                                          userReq: widget.userReq,
-                                        )));
-                          },
-                          child: Card(
-                            elevation: 3,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            
-                            child: ListTile(
-                              leading: const Icon(Icons.category,
-                                  color: Colors.indigo),
-                              title: Text(item['DistributorName'] ??
-                                  item['schoolName']),
-                              subtitle: Text(
-                                  "${item['partyType'] == 0 ? 'Distributor' : 'School'}-${item['partyId']}"),
-                              trailing:
-                                  widget.userReq?_buildStatusBadge(item['status']): _buildStatusBadge(item['visited_status']),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
       ),
     );
   }
