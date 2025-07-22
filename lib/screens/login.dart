@@ -81,7 +81,7 @@ Future<String?> getDeviceId() async {
     final token=await prefs.getString("fcm");
     print(token);
 
-    // final String apiUrl = "https://mittsureone.com:3001/user/signin";
+    // final String apiUrl = "https://mittsure.qdegrees.com:3001/user/signin";
     // Replace with your API endpoint
     final String apiUrl = "https://mittsure.qdegrees.com:3001/user/signin";
     try {

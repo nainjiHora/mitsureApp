@@ -318,7 +318,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
 
     try {
       final response = await ApiService.post(
-        endpoint: '/user/sendOtp',
+        endpoint: '/user/sendOtpForOrder',
         body: body,
       );
       if (response != null && response['status'] == false) {

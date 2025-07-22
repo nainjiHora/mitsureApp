@@ -127,7 +127,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         'POST',
         Uri.parse(
             'https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
-        // Uri.parse('https://mittsureone.com:3001/user/uploadMultipleImages'),
+        // Uri.parse('https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
       );
 
       request.files.add(

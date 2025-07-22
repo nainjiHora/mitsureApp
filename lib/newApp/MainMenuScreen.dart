@@ -90,6 +90,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         endpoint: '/routePlan/getRoutesPartyCount',
         body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:""},
       );
+      
 
       if (response != null) {
         final data = response['data'];
@@ -98,7 +99,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         });
       }
     } catch (error) {
-      print("Error fetching working hours: $error");
+      print("Error fetching jhjhj working hours: $error");
     }
   }
 
@@ -116,14 +117,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       if (response != null && response['success'] == true) {
         final data = response['data'];
         setState(() {
-          print(data);
+          
           setState(() {
             unique = data;
           });
         });
       }
     } catch (error) {
-      print("Error fetching working hours: $error");
+      print("Error fetching working 67 hours: $error");
     }
   }
 
@@ -135,15 +136,16 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       );
 
       if (response != null) {
+      
         final data = response['data'];
         setState(() {
-          print(data);
+          
           config = data;
           getUserData();
         });
       }
     } catch (error) {
-      print("Error fetching working hours: $error");
+      print("Error fetching working 989 hours: $error");
     }
   }
 
@@ -160,7 +162,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         endpoint: '/attendance/getAttendanceDetailsByDate',
         body: body,
       );
-
+       
       if (response != null) {
         final data = response['data'];
 
@@ -171,7 +173,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         _updatePunchStatus();
       }
     } catch (error) {
-      print("Error fetching working hours: $error");
+      
+      print("Error fetching wodasdarking hours: $error");
     }
   }
 

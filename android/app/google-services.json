@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "343640688503",
-    "project_id": "mittsure-405a5",
-    "storage_bucket": "mittsure-405a5.firebasestorage.app"
+    "project_number": "119566626892",
+    "project_id": "mittsureoneapp",
+    "storage_bucket": "mittsureoneapp.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:343640688503:android:22ea9315426fee38b70372",
+        "mobilesdk_app_id": "1:119566626892:android:43ce82a12eb77dc2d144e9",
         "android_client_info": {
           "package_name": "com.mittsure.sales"
         }
@@ -15,26 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyDUBVFabxMEF0_G_7KdvnoA9EFQIBxyVtI"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:343640688503:android:ddb28ec40c1a4c5ab70372",
-        "android_client_info": {
-          "package_name": "com.sales.mittsure"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyDUBVFabxMEF0_G_7KdvnoA9EFQIBxyVtI"
+          "current_key": "AIzaSyDYBlJXWW4ObuTMaKCPV0xzFNkHz15zBh8"
         }
       ],
       "services": {
