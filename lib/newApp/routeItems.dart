@@ -204,6 +204,33 @@ class _ItemListPageState extends State<ItemListPage> {
     }
   }
 
+    UntagMe() async {
+    setState(() {
+        isLoading=true;
+      });
+    try {
+
+      final response = await ApiService.post(
+          endpoint: '/routePlan/updateUnTaggedUser',
+          body: {"routeId": widget.id, "taggedId": userData['id']});
+
+      if (response != null && response['status'] == false) {
+        setState(() {
+          alreadytagged=false;
+        });
+        DialogUtils.showCommonPopup(
+            context: context, message: response["message"], isSuccess: true);
+      }
+    } catch (e) {
+       DialogUtils.showCommonPopup(
+            context: context, message: "Something Went Wrong", isSuccess: false);
+    }finally{
+      setState(() {
+        isLoading=false;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -335,7 +362,7 @@ class _ItemListPageState extends State<ItemListPage> {
                             },
                           ),
                   ),
-if(userData['role']=='asm' && !alreadytagged)
+if(userData['role']=='asm' && alreadytagged)
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton.icon(
@@ -345,12 +372,30 @@ if(userData['role']=='asm' && !alreadytagged)
                         minimumSize: MaterialStateProperty.all(
                             const Size(180, 48)), // width: 180, height: 48
                       ),
+                      onPressed: UntagMe,
+                      icon: const Icon(Icons.person_2, color: Colors.white),
+                      label: const Text('Untag Me ',
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                  if(userData['role']=='asm' && !alreadytagged)
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: ElevatedButton.icon(
+                      style: ButtonStyle(
+                        backgroundColor:
+                            MaterialStateProperty.all(Colors.green),
+                        minimumSize: MaterialStateProperty.all(
+                            const Size(180, 48)), // width: 180, height: 48
+                      ),
                       onPressed: tagMe,
                       icon: const Icon(Icons.person_2, color: Colors.white),
                       label: const Text('Tag Me ',
                           style: TextStyle(color: Colors.white)),
                     ),
                   ),
+ 
+
                 ],
               ),
       ),

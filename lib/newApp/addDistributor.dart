@@ -126,8 +126,7 @@ class _AddDistributorFormState extends State<AddDistributorForm> {
                      selectedSeries=values;
                     });
                   }),
-                    buildTextField(controller: district, label: 'District'),
-                    buildTextField(controller: state, label: 'State'),
+                   
                     buildTextField(controller: pincode, label: 'Pincode'),
                     buildTextField(controller: landmark, label: 'Landmark'),
                     buildTextField(controller: email, label: 'Email'),

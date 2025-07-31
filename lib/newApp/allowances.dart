@@ -370,9 +370,9 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
     setState(() => isLoading = true);
     try {
       final response = await ApiService.post(
-        endpoint: '/expense/getExpenseTA',
+        endpoint: '/expense/getExpenseTADA',
         body: {
-          "userId": selectedSE,
+          "ownerName": selectedSE,
           "rsm":selectedRsm,
           "asm":selectedASM,
           "fromDate":
@@ -462,10 +462,10 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
           unselectedLabelColor: Colors.white70,
           controller: _tabController,
           tabs: const [
-            Tab(text: "Travel Allowance"),
-            Tab(
-              text: "Daily Allowance",
-            ),
+            Tab(text: "Allowance"),
+            // Tab(
+            //   text: "Daily Allowance",
+            // ),
           ],
         ),
       ),
@@ -504,7 +504,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
                 controller: _tabController,
                 children: [
                   _buildTAList(taData),
-                  _buildDAList(daData),
+                  // _buildDAList(daData),
                 ],
               ),
             ),

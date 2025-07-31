@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/services/apiService.dart';
@@ -33,71 +34,132 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  Future<void> tagBaseLocation() async {
-    setState(() {
-      loading = true;
-    });
-    try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        return showSnackbar('Location services are disabled.');
-      }
-
-      var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-
-      if (permission == LocationPermission.deniedForever ||
-          permission == LocationPermission.denied) {
-        DialogUtils.showCommonPopup(
-            context: context,
-            message: 'Location permissions are denied.',
-            isSuccess: false);
-      }
-
-      final position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-
-      var body = {
-        "ownerId": userData!['id'],
-        "latitude": position.latitude,
-        "longitude": position.longitude,
-        "data": jsonEncode({
-          "party": userData!['id'],
-          "lat": position.latitude,
-          "long": position.longitude,
-          
-        })
-      };
-      final response = await ApiService.post(
-          endpoint: "/user/addBaseLocatioForUser", body: body);
-
-      print(response);
-      if (response != null && response['status'] == false) {
-        setState(() {
-          userData!['latitude'] = position.latitude;
-          userData!['longitude'] = position.longitude;
-        });
-
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setString('user', jsonEncode(userData));
-        DialogUtils.showCommonPopup(
-            context: context, message: response['message'], isSuccess: true);
-      } else {
-        DialogUtils.showCommonPopup(
-            context: context, message: response['message'], isSuccess: false);
-      }
-    } catch (e) {
-      print(e);
-      DialogUtils.showCommonPopup(
-          context: context, message: 'Something Went Wrong', isSuccess: false);
-    } finally {
-      setState(() {
-        loading = false;
-      });
+ Future<void> tagBaseLocation() async {
+  setState(() {
+    loading = true;
+  });
+  try {
+    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      showSnackbar('Location services are disabled.');
+      return;
     }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.deniedForever ||
+        permission == LocationPermission.denied) {
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: 'Location permissions are denied.',
+        isSuccess: false,
+      );
+      return;
+    }
+
+    final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+
+    // 🧭 Step 1: Reverse Geocode
+    List<Placemark> placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    if (placemarks.isEmpty) {
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: 'Unable to fetch address. Try again.',
+        isSuccess: false,
+      );
+      return;
+    }
+  
+
+    final Placemark place = placemarks.first;
+  print(place);
+    final address = '${place.subThoroughfare}, ${place.thoroughfare}, ${place.subLocality}, ${place.locality}, ${place.postalCode}';
+
+    // ✅ Step 2: Show confirmation dialog
+    bool? confirm = await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Confirm Address"),
+        content: Text("Do you want to tag this location?\n\n$address"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text("Yes, Tag"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
+    // 🛰 Step 3: Proceed with tagBaseLocation API
+    var body = {
+      "ownerId": userData!['id'],
+      "latitude": position.latitude,
+      "longitude": position.longitude,
+      "data": jsonEncode({
+        "party": userData!['id'],
+        "lat": position.latitude,
+        "long": position.longitude,
+      })
+    };
+
+    final response = await ApiService.post(
+      endpoint: "/user/addBaseLocatioForUser",
+      body: body,
+    );
+
+    if (response != null && response['status'] == false) {
+      setState(() {
+        userData!['latitude'] = position.latitude;
+        userData!['longitude'] = position.longitude;
+      });
+
+      final prefs = await SharedPreferences.getInstance();
+      prefs.setString('user', jsonEncode(userData));
+
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: response['message'],
+        isSuccess: true,
+      );
+    } else {
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: response['message'],
+        isSuccess: false,
+      );
+    }
+  } catch (e) {
+    print(e);
+    print("above weeroor");
+    DialogUtils.showCommonPopup(
+      context: context,
+      message: 'Something went wrong',
+      isSuccess: false,
+    );
+  } finally {
+    setState(() {
+      loading = false;
+    });
   }
+}
+
 
   Future<void> releaseBaseLocation() async {
     setState(() {

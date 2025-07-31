@@ -50,6 +50,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
   // Dummy counters
   int presentCount = 0;
+  int leaveCount = 0;
   int absentCount = 0;
   int halfDayCount = 0;
   bool meterCamera = false;
@@ -219,6 +220,7 @@ class _PunchScreenState extends State<PunchScreen> {
           selectedMonth = body['month'];
           halfDayCount = data['half_day'];
           presentCount = data['full_day'];
+          leaveCount = data['leave'];
           absentCount = data['absent'];
           isLoadingCards = false;
         });
@@ -240,6 +242,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
   Future<void> _fetchWorkingHours(date) async {
     DateTime now =date?? DateTime.now();
+    
     setState(() {
       isLoading = true;
       followUpDate = now;
@@ -507,7 +510,7 @@ class _PunchScreenState extends State<PunchScreen> {
             SizedBox(height: 8),
             Text(title,
                 style: TextStyle(
-                    fontSize: 16, fontWeight: FontWeight.bold, color: color)),
+                    fontSize: 12, fontWeight: FontWeight.bold, color: color)),
             Text(count.toString(),
                 style: TextStyle(
                     fontSize: 20, fontWeight: FontWeight.bold, color: color)),
@@ -521,6 +524,8 @@ class _PunchScreenState extends State<PunchScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    int currentMonth = DateTime.now().month;
+    selectedMonth=currentMonth;
     getUserData();
   }
 
@@ -690,6 +695,71 @@ class _PunchScreenState extends State<PunchScreen> {
       ],
     );
   }
+  Future<void> selectDateRange(BuildContext context) async {
+  final DateTime now = DateTime.now();
+  final DateTimeRange? picked = await showDateRangePicker(
+    context: context,
+    firstDate: DateTime(now.year - 1), // earliest date selectable
+    lastDate: DateTime(now.year + 1), // latest date selectable
+    initialDateRange: DateTimeRange(
+      start: now.subtract(Duration(days: 7)),
+      end: now,
+    ),
+  );
+
+  if (picked != null) {
+    markleave(picked);
+  }
+}
+
+markleave(DateTimeRange picked)async{
+  try{
+    setState(() {
+      isLoading=true;
+    });
+   var body = {
+      "ownerId": userData!['id'],
+      "startDate":picked.start.toString().substring(0,11),
+      "endDate":picked.end.toString().substring(0,11)
+      
+    };
+    print(body);
+  
+    final response = await ApiService.post(
+      endpoint: "/attendance/markLeaveInAttendance",
+      body: body,
+    );
+
+    if (response != null && response['status'] == false) {
+      
+
+      
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: response['message'],
+        isSuccess: true,
+      );
+      _fetchMonthlyAttendance(selectedMonth);
+    } else {
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: response['message'],
+        isSuccess: false,
+      );
+    }
+  } catch (e) {
+    
+    DialogUtils.showCommonPopup(
+      context: context,
+      message: 'Something went wrong',
+      isSuccess: false,
+    );
+  } finally {
+    setState(() {
+      isLoading = false;
+    });
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -837,6 +907,31 @@ class _PunchScreenState extends State<PunchScreen> {
                                   borderRadius: BorderRadius.circular(16)),
                             ),
                           ),
+                          if (widget.mark) SizedBox(height: 10),
+                          if (widget.mark)
+                          ElevatedButton.icon(
+                            onPressed: () async {
+                             selectDateRange(context);
+                            },
+                              icon: Icon(Icons.power_off,
+                                size: 26, color: Colors.white),
+                            label: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              child: Text(
+                                  "Mark Leave",
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white)),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                   const Color.fromARGB(255, 249, 180, 4),
+                              minimumSize: Size(double.infinity, 56),
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16)),
+                            ),
+                          ),
                         SizedBox(height: 20),
                         !widget.mark? getAdminFilters():Container(),
                         Row(
@@ -857,10 +952,14 @@ class _PunchScreenState extends State<PunchScreen> {
                               : [
                                   buildSummaryCard("Present", presentCount,
                                       Colors.green, Icons.check_circle),
-                                  buildSummaryCard("Absent", absentCount,
-                                      Colors.red, Icons.cancel),
                                   buildSummaryCard("Half Day", halfDayCount,
                                       Colors.orange, Icons.access_time),
+                                  buildSummaryCard("Leave", leaveCount,
+                                      Colors.blueAccent, Icons.access_time),
+                                      
+                                  buildSummaryCard("Absent", absentCount,
+                                      Colors.red, Icons.cancel),
+                                      
                                 ],
                         ),
                         SizedBox(height: 20),

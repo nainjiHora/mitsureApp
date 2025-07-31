@@ -156,8 +156,10 @@ class _CommonLayoutState extends State<CommonLayout> {
             _onTabSelected(index > 2 ? index - 1 : index); // Adjust for the home button in the middle
           }
         },
-        selectedItemColor: Colors.indigo[900],
-        unselectedItemColor: Colors.grey,
+        backgroundColor: Colors.indigo[900],
+        selectedItemColor: Colors.white,
+     
+        unselectedItemColor: Colors.white,
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(

@@ -24,8 +24,10 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
   bool isLoading = false;
   String? tagUserController = null;
   final TextEditingController prefDistributor = TextEditingController();
+  final TextEditingController selectedRouteController = TextEditingController();
   final TextEditingController rmController = TextEditingController();
   List<dynamic> asms = [];
+  List<dynamic> routeNames = [];
   List<dynamic> rsms = [];
   List<dynamic> rms = [];
   List<dynamic> rmsOnly = [];
@@ -39,6 +41,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
   String? partyType = '';
   String? selectedRM = '';
   String? selectedSchool;
+    String? selectedRoute;
   DateTime? selectedDate;
   List<dynamic> selectedparty = [];
 
@@ -64,17 +67,25 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
   }
 
   Future<void> _fetchOrders(int pageNumber, {String? filter}) async {
+
+    if(userData['role'] != 'se' && (selectedRM==''||selectedRM==null)){
+      DialogUtils.showCommonPopup(context: context, message: "Assign RM or ARM First", isSuccess: false);
+      return;
+
+    }
     setState(() {
       isLoading = true;
     });
-   
 
     final body = {
-      "ownerId": userData['role']!="se"?selectedRM:userData['id'],
+      "ownerId": userData['role'] != "se" ? selectedRM : userData['id'],
+      "routeName":selectedRoute??"",
       // "visitEndRequired":"yes"
     };
+    print(body);
+    print("bodyforoute");
     if ((partyType == "1" && schools.length == 0) ||
-        (partyType == "0" && distributors.length == 0)) {
+        (partyType == "0" && distributors.length == 0)||true) {
       try {
         final response = await ApiService.post(
           endpoint:
@@ -87,6 +98,8 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
             if (partyType == "1") {
               filteredSchools = data;
               schools = data;
+              print(schools.length);
+              print("dadadeee");
             } else {
               filteredDistributors = data;
               distributors = data;
@@ -157,10 +170,11 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
                     (e['cluster'] == userData['cluster']) &&
                     userData['id'] != e['id'])
                 .toList();
-                rmsOnly = data
+            rmsOnly = data
                 .where((e) =>
-                    (e['cluster'] == userData['cluster']) &&
-                    userData['id'] != e['id']&&e['role']=='se')
+                    ((e['cluster'] == userData['cluster']) &&
+                    userData['id'] != e['id'] &&
+                    e['role'] == 'se') || e['id']==userData['id'])
                 .toList();
             print(userData);
             allUsers = data;
@@ -264,7 +278,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
             visitType: visitTypeOptions,
             tagPartner: tagUserController ?? superwisorController ?? "",
             distributors: distributors,
-            selectedRM:selectedRM),
+            selectedRM: selectedRM),
       ),
     );
   }
@@ -296,6 +310,28 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
     super.initState();
     fetchPicklist();
     getUserData();
+    fetchAllRouteNames();
+  }
+
+  fetchAllRouteNames() async {
+    final body = {};
+
+    try {
+      final response = await ApiService.post(
+        endpoint: '/picklist/getAllRouteNames',
+        body: body,
+      );
+      print(response);
+      if (response != null && response['status'] == true) {
+        setState(() {
+          routeNames.addAll(response['data']);
+        
+
+        });
+      }
+    } catch (error) {
+      print("Error fetcffdfdhing orders: $error");
+    }
   }
 
   removeParty(filter, id) {
@@ -475,6 +511,37 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
                         _fetchOrders(int.parse(val ?? '0'));
                       }),
                       const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: TypeAheadFormField<String>(
+                          textFieldConfiguration: TextFieldConfiguration(
+                            controller: selectedRouteController,
+                            decoration: InputDecoration(
+                              labelText: 'Search Route',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          suggestionsCallback: (pattern) {
+                            return routeNames
+                                .where((route) => route
+                                    .toLowerCase()
+                                    .contains(pattern.toLowerCase()))
+                                .cast<String>();
+                          },
+                          itemBuilder: (context, suggestion) {
+                            return ListTile(
+                              title: Text(suggestion),
+                            );
+                          },
+                          onSuggestionSelected: (suggestion) {
+                            setState(() {
+                              selectedRouteController.text=suggestion;
+                              selectedRoute=suggestion;
+                              _fetchOrders(1);
+                            });
+                          },
+                        ),
+                      ),
                       // partyType == '1'
                       //     ? _buildDropdown(
                       //         'Select School',

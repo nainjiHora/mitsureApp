@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/Party.dart';
 import 'dart:convert';
 import 'package:mittsure/services/apiService.dart';
@@ -88,6 +89,7 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
   }
 
   void submitForm() async {
+    try{
     if (_formKey.currentState!.validate()) {
       final payload = {
         "addressLine1": addressLine1.text,
@@ -115,6 +117,9 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
         "website": website.text,
         "created_role": "rm"
       };
+      setState(() {
+        isLoading=true;
+      });
 
       final response =await ApiService.post(endpoint: "/party/addPartySchool", body: payload);
 
@@ -128,8 +133,17 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
                         );
       });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add school')));
+         DialogUtils.showCommonPopup(context: context, message: "Failed to add school", isSuccess: false);
+        
       }
+    }
+    }catch(e){
+       DialogUtils.showCommonPopup(context: context, message: "Something Went Wrong, Please Check Pincode", isSuccess: false);
+    }
+    finally{
+      setState(() {
+        isLoading=false;
+      });
     }
   }
 
@@ -138,13 +152,14 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
     return Scaffold(
       appBar: AppBar(title: Text('Add School')),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? Center(child: BookPageLoader())
           : SingleChildScrollView(
               padding: EdgeInsets.all(16),
               child: Form(
                 key: _formKey,
                 child: Column(
                   children: [
+                    
                     buildTextField(controller: schoolName, label: 'School Name',req: true),
                     buildDropdownFromList('School Type', schoolTypeList, 'id', 'name', selectedSchoolType, (val) => setState(() => selectedSchoolType = val),true),
                     buildTextField(controller: parentSchoolName, label: 'Parent School Name',req: false),
@@ -155,8 +170,6 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
                     buildDropdownFromList('Grade', gradeList, 'gradeId', 'gradeName', selectedGrade, (val) => setState(() => selectedGrade = val),false),
                     buildTextField(controller: addressLine1, label: 'Address Line 1',req: true),
                     buildTextField(controller: addressLine2, label: 'Address Line 2',req:false),
-                    buildTextField(controller: district, label: 'District',req:true),
-                    buildTextField(controller: state, label: 'State',req:true),
                     buildTextField(controller: pincode, label: 'Pincode',req:true),
                     buildTextField(controller: landmark, label: 'Landmark',req:false),
                     buildTextField(controller: strength, label: 'Strength',req:false),

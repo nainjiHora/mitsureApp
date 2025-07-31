@@ -167,7 +167,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         icon: Icons.notes_outlined,
       ),
       _VisitField(
-        label: 'Remark',
+        label: 'Extra Notes',
         value: _visitData['extra'] as String?,
         icon: Icons.comment_outlined,
       ),

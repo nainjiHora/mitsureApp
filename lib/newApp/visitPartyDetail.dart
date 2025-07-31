@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:mittsure/field/routes.dart';
@@ -145,6 +146,49 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
 
       Position position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.high);
+
+              List<Placemark> placemarks = await placemarkFromCoordinates(
+      position.latitude,
+      position.longitude,
+    );
+
+    if (placemarks.isEmpty) {
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: 'Unable to fetch address. Try again.',
+        isSuccess: false,
+      );
+      return;
+    }
+  
+
+    final Placemark place = placemarks.first;
+ 
+    final address = '${place.subThoroughfare}, ${place.thoroughfare}, ${place.subLocality}, ${place.locality}, ${place.postalCode}';
+
+    // ✅ Step 2: Show confirmation dialog
+    bool? confirm = await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text("Confirm Address"),
+        content: Text("Do you want to tag this location?\n\n$address"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text("Yes, Tag"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) {
+      return;
+    }
+
       final body = {
         "lat": position.latitude.toString(),
         "long": position.longitude.toString(),
@@ -1182,7 +1226,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                   SizedBox(
                     height: 6,
                   ),
-                  userData['role'] == 'se' &&
+                  (userData['role'] == 'se'||userData['role']=='asm') &&
                           status == 0 &&
                           widget.data['status'] == 1 &&
                           isToday(widget.date) &&
@@ -1209,7 +1253,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                   SizedBox(
                     height: 10,
                   ),
-                  userData['role'] == 'se' &&
+                  (userData['role'] == 'se'||userData['role']=='asm') &&
                           status == 0 &&
                           widget.data['status'] == 1 &&
                           isToday(widget.date) &&
@@ -1242,7 +1286,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                           ),
                         )
                       : Container(),
-                  userData['role'] == 'se' && status == 1
+                  (userData['role'] == 'se'||userData['role']=='asm') && status == 1
                       ? ElevatedButton.icon(
                           icon: Icon(
                             Icons.start_outlined,
@@ -1261,7 +1305,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                           ),
                         )
                       : Container(),
-                  userData['role'] == 'se' && status == 2
+                  (userData['role'] == 'se'||userData['role']=='asm') && status == 2
                       ? ElevatedButton.icon(
                           icon: Icon(
                             Icons.start_outlined,
@@ -1280,7 +1324,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                           ),
                         )
                       : Container(),
-                  userData['role'] == 'se' && status == 3
+                  (userData['role'] == 'se'||userData['role']=='asm') && status == 3
                       ? ElevatedButton.icon(
                           icon: Icon(
                             Icons.start_outlined,

@@ -201,9 +201,10 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
 
       if (response != null && response['status'] == false) {
         setState(() {
-          print(response);
           routeList = response['data'] ?? [];
           totalRecords = response['data1'] ?? 0;
+          print(response["data1"]);
+          print(response["data"][0]);
         });
       }
     } catch (error) {
@@ -291,6 +292,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
     final today = DateTime(now.year, now.month, now.day);
 
     return routeList.where((route) {
+      print(route['date']);
       final dateStr = route['date'];
       final parsed = DateTime.tryParse(dateStr ?? '');
       if (parsed == null) return false;
