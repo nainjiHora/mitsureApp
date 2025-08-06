@@ -58,6 +58,7 @@ _selectedDateRange = DateTimeRange(
         setState(() {
           rsmList = data.where((e) => e['role'] == 'rsm').toList();
           asmList = data.where((e) => e['role'] == 'asm').toList();
+
           seList = data.where((e) => e['role'] == 'se').toList();
           allUsers = data;
 
@@ -116,6 +117,8 @@ _selectedDateRange = DateTimeRange(
   }
 
   _fetchSe(id) async {
+    print(id);
+    print("ppooiintt");
     fetchVisits();
     try {
       setState(() {
@@ -131,7 +134,11 @@ _selectedDateRange = DateTimeRange(
           final data = response['data'];
           setState(() {
             selectedSE = "";
-            seList = data;
+            var b=[{"id":userData['id'],"name":userData['name']}];
+
+            final List<Map<String, dynamic>> castedData = List<Map<String, dynamic>>.from(data);
+           b.addAll(castedData);
+           seList=b;
             isLoading = false;
           });
         } else {

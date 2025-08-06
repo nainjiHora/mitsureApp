@@ -475,14 +475,14 @@ class _PartyScreenState extends State<PartyScreen> {
                           ),
                         );
                 }, icon: Icon(Icons.add), label: Text("Add School")):Container(),
-                selectedFilter=='distributor'?ElevatedButton.icon(onPressed: (){
-                   Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AddDistributorForm()
-                          ),
-                        );
-                }, icon: Icon(Icons.add), label: Text("Add Distributor")):Container(),
+                // selectedFilter=='distributor'?ElevatedButton.icon(onPressed: (){
+                //    Navigator.pushReplacement(
+                //           context,
+                //           MaterialPageRoute(
+                //             builder: (context) => AddDistributorForm()
+                //           ),
+                //         );
+                // }, icon: Icon(Icons.add), label: Text("Add Distributor")):Container(),
                 Text("Records per page: "),
                 DropdownButton<String>(
                   value: pageSize,

@@ -128,6 +128,16 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
       //   icon: Icons.stop,
       // ),
       _VisitField(
+        label: 'Contact Person',
+        value: _visitData['ContactPerson'] as String?,
+        icon: Icons.person_2_sharp,
+      ),
+      _VisitField(
+        label: 'Contact Number',
+        value: _visitData['PhoneNumber'] as String?,
+        icon: Icons.call,
+      ),
+      _VisitField(
         label: 'Visit Location',
         value: _visitData['start_address'] as String?,
         icon: Icons.location_on_outlined,
@@ -167,6 +177,17 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         icon: Icons.notes_outlined,
       ),
       _VisitField(
+        label: 'Follow Up Date',
+        value: _formatIsoToLocal(_visitData['followUpDate']),
+        icon: Icons.calendar_month,
+      ),
+      _VisitField(
+        label: 'Follow Up Remark',
+        value: _visitData['followUpRemark'],
+        icon: Icons.calendar_month,
+      ),
+      _VisitField(label: "Ho Actionable Items", value: _visitData['ho_need_remark']??"N/A", icon: Icons.person_2_sharp),
+      _VisitField(
         label: 'Extra Notes',
         value: _visitData['extra'] as String?,
         icon: Icons.comment_outlined,
@@ -193,7 +214,7 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
   }
 
   /// Format an ISO8601 UTC string into local time.
-  String _formatIsoToLocal(String? isoDateStr, {String format = 'dd-MM-yyyy hh:mm a'}) {
+  String _formatIsoToLocal(String? isoDateStr, {String format = 'dd-MM-yyyy'}) {
     if (isoDateStr == null || isoDateStr.isEmpty) return 'N/A';
     try {
       final utcDate = DateTime.parse(isoDateStr);

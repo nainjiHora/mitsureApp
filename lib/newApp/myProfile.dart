@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:geocoding/geocoding.dart';
+// import 'package:geocoding/geocoding.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/services/apiService.dart';
@@ -65,47 +65,47 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     // 🧭 Step 1: Reverse Geocode
-    List<Placemark> placemarks = await placemarkFromCoordinates(
-      position.latitude,
-      position.longitude,
-    );
+  //   List<Placemark> placemarks = await placemarkFromCoordinates(
+  //     position.latitude,
+  //     position.longitude,
+  //   );
 
-    if (placemarks.isEmpty) {
-      DialogUtils.showCommonPopup(
-        context: context,
-        message: 'Unable to fetch address. Try again.',
-        isSuccess: false,
-      );
-      return;
-    }
+  //   if (placemarks.isEmpty) {
+  //     DialogUtils.showCommonPopup(
+  //       context: context,
+  //       message: 'Unable to fetch address. Try again.',
+  //       isSuccess: false,
+  //     );
+  //     return;
+  //   }
   
 
-    final Placemark place = placemarks.first;
-  print(place);
-    final address = '${place.subThoroughfare}, ${place.thoroughfare}, ${place.subLocality}, ${place.locality}, ${place.postalCode}';
+  //   final Placemark place = placemarks.first;
+  // print(place);
+  //   final address = '${place.subThoroughfare}, ${place.thoroughfare}, ${place.subLocality}, ${place.locality}, ${place.postalCode}';
 
-    // ✅ Step 2: Show confirmation dialog
-    bool? confirm = await showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text("Confirm Address"),
-        content: Text("Do you want to tag this location?\n\n$address"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text("Cancel"),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text("Yes, Tag"),
-          ),
-        ],
-      ),
-    );
+  //   // ✅ Step 2: Show confirmation dialog
+  //   bool? confirm = await showDialog(
+  //     context: context,
+  //     builder: (_) => AlertDialog(
+  //       title: Text("Confirm Address"),
+  //       content: Text("Do you want to tag this location?\n\n$address"),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context, false),
+  //           child: Text("Cancel"),
+  //         ),
+  //         ElevatedButton(
+  //           onPressed: () => Navigator.pop(context, true),
+  //           child: Text("Yes, Tag"),
+  //         ),
+  //       ],
+  //     ),
+  //   );
 
-    if (confirm != true) {
-      return;
-    }
+  //   if (confirm != true) {
+  //     return;
+  //   }
 
     // 🛰 Step 3: Proceed with tagBaseLocation API
     var body = {
@@ -259,7 +259,7 @@ class _ProfilePageState extends State<ProfilePage> {
       appBar: AppBar(
         iconTheme: IconThemeData(color: Colors.white),
         title: Text(
-          "Attendance",
+          "My Profile",
           style: TextStyle(color: Colors.white, fontSize: 18),
         ),
         backgroundColor: Colors.indigo[900],

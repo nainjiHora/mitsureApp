@@ -33,16 +33,16 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _setDefaultDateRange();
-    _tabController.addListener(() {
-      if (_tabController.indexIsChanging) return;
-      if (_dateRange != null) {
-        if (_tabController.index == 0) {
-          fetchTAdata();
-        } else {
-          fetchDAdata();
-        }
-      }
-    });
+    // _tabController.addListener(() {
+    //   if (_tabController.indexIsChanging) return;
+    //   if (_dateRange != null) {
+    //     if (_tabController.index == 0) {
+    //       fetchTAdata();
+    //     } else {
+    //       // fetchDAdata();
+    //     }
+    //   }
+    // });
 
     getUserData();
   }
@@ -57,11 +57,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
 
         if (userData['role'] == 'se') {
           selectedSE = userData['id'];
-          if (_tabController.index == 0) {
-            fetchTAdata();
-          } else {
-            fetchDAdata();
-          }
+
         } else if (userData['role'] == 'rsm') {
           selectedRsm = userData['id'];
           _fetchAsm(userData['id']);
@@ -70,6 +66,11 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
           _fetchSe(userData['id']);
         } else {
           _fetChAllRSM();
+        }
+        if (_tabController.index == 0) {
+          fetchTAdata();
+        } else {
+          // fetchDAdata();
         }
       });
     }
@@ -246,7 +247,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
                           if (_tabController.index == 0) {
                             fetchTAdata();
                           } else {
-                            fetchDAdata();
+                            // fetchDAdata();
                           }
                         }
                       },
@@ -326,7 +327,12 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
           final data = response['data'];
           setState(() {
             selectedSE = "";
-            seList = data;
+            var b=[{"id":userData['id'],"name":userData['name']}];
+
+            final List<Map<String, dynamic>> castedData = List<Map<String, dynamic>>.from(data);
+            b.addAll(castedData);
+            seList=b;
+            // seList = data;
             isLoading = false;
           });
         } else {
@@ -363,24 +369,27 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
     }
 
     fetchTAdata();
-    fetchDAdata();
+    // fetchDAdata();
   }
 
   fetchTAdata() async {
     setState(() => isLoading = true);
     try {
+      var body={
+        "ownerName": selectedSE,
+        "rsm":selectedRsm,
+        "asm":selectedASM,
+        "fromDate":
+        "${_dateRange!.start.year}-${_dateRange!.start.month}-${_dateRange!.start.day}",
+        "toDate":
+        "${_dateRange!.end.year}-${_dateRange!.end.month}-${_dateRange!.end.day}",
+      };
+      print(body);
       final response = await ApiService.post(
         endpoint: '/expense/getExpenseTADA',
-        body: {
-          "ownerName": selectedSE,
-          "rsm":selectedRsm,
-          "asm":selectedASM,
-          "fromDate":
-              "${_dateRange!.start.year}-${_dateRange!.start.month}-${_dateRange!.start.day}",
-          "toDate":
-              "${_dateRange!.end.year}-${_dateRange!.end.month}-${_dateRange!.end.day}",
-        },
+        body: body,
       );
+
       if (response != null) {
         final data = response['data'];
         print(data);
@@ -433,7 +442,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
       if (_tabController.index == 0) {
         fetchTAdata();
       } else {
-        fetchDAdata();
+        // fetchDAdata();
       }
     }
   }
@@ -537,7 +546,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    "TA Entry #${index + 1}",
+                    " Entry #${index + 1}",
                     style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
@@ -597,7 +606,7 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
                       Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: Text(
-                          "${item['km_difference']}",
+                          "${item['userGeneratedDistance']}",
                           softWrap: true,
                         ),
                       ),
@@ -605,6 +614,55 @@ class _TravelAllowanceScreenState extends State<TravelAllowanceScreen>
                         padding: const EdgeInsets.all(8.0),
                         child: Text(
                           "${item['systemGenerated_distance']}",
+                          softWrap: true,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              if(item['city']!=null&&item['city']!='null')
+              Table(
+                border: TableBorder.all(color: Colors.grey.shade300),
+                columnWidths: const {
+                  0: FlexColumnWidth(),
+                  1: FlexColumnWidth(),
+                },
+                children: [
+                  // Header Row
+                  const TableRow(
+                    decoration: BoxDecoration(color: Color(0xFFEFEFEF)),
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          "City",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      Padding(
+                        padding: EdgeInsets.all(8.0),
+                        child: Text(
+                          "Category",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // Data Row
+                  TableRow(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          "${item['city']!='null'?jsonDecode(item['city'])['city']??"NA":''}",
+                          softWrap: true,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          "${item['city']!='null'?jsonDecode(item['city'])['category']??"NA":''}",
                           softWrap: true,
                         ),
                       ),

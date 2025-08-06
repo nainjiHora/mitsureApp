@@ -134,7 +134,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
         isLoading = true;
       });
       final uri = Uri.parse(
-          'https://mittsure.qdegrees.com:3001/visit/endVisit'); // Change this
+          'https://mittsureone.com:3001/visit/endVisit'); // Change this
 
       final prefs = await SharedPreferences.getInstance();
       final hasData = prefs.getString('user') != null;

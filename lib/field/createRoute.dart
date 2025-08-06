@@ -145,6 +145,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
       setState(() {
         userData = jsonDecode(a ?? "");
         _fetChAllRSM();
+        fetchAllRouteNames();
       });
     }
   }
@@ -310,12 +311,15 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
     super.initState();
     fetchPicklist();
     getUserData();
-    fetchAllRouteNames();
+
   }
 
   fetchAllRouteNames() async {
-    final body = {};
-
+    final body = {
+      "cluster":userData['cluster']
+    };
+print(body);
+print("getroutecluster");
     try {
       final response = await ApiService.post(
         endpoint: '/picklist/getAllRouteNames',
@@ -325,8 +329,6 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
       if (response != null && response['status'] == true) {
         setState(() {
           routeNames.addAll(response['data']);
-        
-
         });
       }
     } catch (error) {
@@ -504,6 +506,14 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
                           "id",
                           'name',
                           partyType, (val) {
+                        if(userData['role'] != 'se' && (selectedRM==''||selectedRM==null)){
+                          DialogUtils.showCommonPopup(context: context, message: "Assign RM or ARM First", isSuccess: false);
+                          setState(() {
+                            partyType=null;
+                          });
+                          return;
+
+                        }
                         setState(() {
                           partyType = val;
                           prefDistributor.clear();
@@ -511,6 +521,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
                         _fetchOrders(int.parse(val ?? '0'));
                       }),
                       const SizedBox(height: 12),
+                      if(userData['role']!="se")
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: TypeAheadFormField<String>(

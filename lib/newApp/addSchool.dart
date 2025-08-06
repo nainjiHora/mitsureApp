@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/Party.dart';
 import 'dart:convert';
 import 'package:mittsure/services/apiService.dart';
 import 'package:mittsure/services/utils.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AddSchoolForm extends StatefulWidget {
   @override
@@ -51,11 +53,73 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
 
   bool onboardForErp = false;
   bool isLoading = true;
-
+  final TextEditingController rmController = TextEditingController();
+  List<dynamic> asms = [];
+  List<dynamic> routeNames = [];
+  List<dynamic> rsms = [];
+  List<dynamic> rms = [];
+  List<dynamic> rmsOnly = [];
+  Map<String, dynamic> userData = {};
+  List<dynamic> allUsers = [];
   @override
   void initState() {
     super.initState();
     fetchAllPicklists();
+    getUserData();
+  }
+  String? selectedRM = '';
+  getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user');
+    if (a!.isNotEmpty) {
+      setState(() {
+        userData = jsonDecode(a ?? "");
+        _fetChAllRSM();
+      });
+    }
+  }
+
+  _fetChAllRSM() async {
+    if (allUsers.length == 0)
+      try {
+        setState(() {
+          isLoading = true;
+        });
+        final response =
+        await ApiService.post(endpoint: '/user/getUsers', body: {});
+
+        if (response != null) {
+          final data = response['data'];
+
+          setState(() {
+            // rsms = data.where((e) => e['role'] == 'rsm').toList();
+            // asms = data.where((e) => e['role'] == 'asm').toList();
+            print(data);
+            rms = data
+                .where((e) =>
+            (e['cluster'] == userData['cluster']) &&
+                userData['id'] != e['id'])
+                .toList();
+            rmsOnly = data
+                .where((e) =>
+            ((e['cluster'] == userData['cluster']) &&
+                userData['id'] != e['id'] &&
+                e['role'] == 'se') || e['id']==userData['id'])
+                .toList();
+            print(userData);
+            allUsers = data;
+            isLoading = false;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+      } catch (error) {
+        print("Error fetching ojbjbjbjjrders: $error");
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
   }
 
   Future<void> fetchAllPicklists() async {
@@ -105,7 +169,7 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
         "makerRole": selectedRole??"",
         "medium": selectedMedium,
         "onboardforErp": onboardForErp,
-        "ownerId": ownerId.text,
+        "ownerId": selectedRM,
         "parentSchoolName": parentSchoolName.text,
         "pincode": pincode.text,
         "registrationNo": "",
@@ -159,7 +223,38 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
                 key: _formKey,
                 child: Column(
                   children: [
-                    
+
+                    if (userData['role'] != 'se')
+                      TypeAheadFormField<Map<String, dynamic>>(
+                        textFieldConfiguration: TextFieldConfiguration(
+                          controller: rmController,
+                          decoration: InputDecoration(
+                            labelText: 'Assign RM',
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                        suggestionsCallback: (pattern) {
+                          return rmsOnly
+                              .where((dist) => dist['name']
+                              .toLowerCase()
+                              .contains(pattern.toLowerCase()))
+                              .cast<Map<String, dynamic>>();
+                        },
+                        itemBuilder: (context, suggestion) {
+                          return ListTile(
+                            title: Text(suggestion['name']),
+                          );
+                        },
+                        onSuggestionSelected: (suggestion) {
+                          setState(() {
+                            selectedRM = suggestion['id'];
+                            rmController.text = suggestion['name'];
+                          });
+                        },
+                      ),
+                    SizedBox(
+                      height: 10,
+                    ),
                     buildTextField(controller: schoolName, label: 'School Name',req: true),
                     buildDropdownFromList('School Type', schoolTypeList, 'id', 'name', selectedSchoolType, (val) => setState(() => selectedSchoolType = val),true),
                     buildTextField(controller: parentSchoolName, label: 'Parent School Name',req: false),

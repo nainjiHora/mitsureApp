@@ -62,6 +62,10 @@ class _PunchScreenState extends State<PunchScreen> {
       setState(() {
         userData = jsonDecode(a ?? "");
         print(userData['role']);
+        if(widget.mark&&userData['role']!='se'){
+          _fetchWorkingHours(null);
+          _fetchMonthlyAttendance(null);
+        }
 
         if (userData['role'] == 'se') {
           selectedSE = userData['id'];
@@ -241,6 +245,7 @@ class _PunchScreenState extends State<PunchScreen> {
   }
 
   Future<void> _fetchWorkingHours(date) async {
+    print("daddadasa");
     DateTime now =date?? DateTime.now();
     
     setState(() {
@@ -371,7 +376,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
     try {
       var uri = Uri.parse(
-          'https://mittsure.qdegrees.com:3001/attendance/punchAttendance');
+          'https://mittsureone.com:3001/attendance/punchAttendance');
 
       var request = http.MultipartRequest('POST', uri);
 
@@ -696,21 +701,21 @@ class _PunchScreenState extends State<PunchScreen> {
     );
   }
   Future<void> selectDateRange(BuildContext context) async {
-  final DateTime now = DateTime.now();
-  final DateTimeRange? picked = await showDateRangePicker(
-    context: context,
-    firstDate: DateTime(now.year - 1), // earliest date selectable
-    lastDate: DateTime(now.year + 1), // latest date selectable
-    initialDateRange: DateTimeRange(
-      start: now.subtract(Duration(days: 7)),
-      end: now,
-    ),
-  );
+    final DateTime now = DateTime.now();
+    final DateTimeRange? picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 1), // earliest date selectable
+      lastDate: DateTime(now.year + 1), // latest date selectable
+      initialDateRange: DateTimeRange(
+        start: now,
+        end: now, // both start and end set to today
+      ),
+    );
 
-  if (picked != null) {
-    markleave(picked);
+    if (picked != null) {
+      markleave(picked);
+    }
   }
-}
 
 markleave(DateTimeRange picked)async{
   try{
