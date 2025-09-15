@@ -47,6 +47,8 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         setState(() {
           _visitData = Map<String, dynamic>.from(first as Map);
           _isLoading = false;
+          print(_visitData);
+          print("data for visit");
         });
       } else {
         throw Exception('Null response');
@@ -143,6 +145,41 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         icon: Icons.location_on_outlined,
       ),
       _VisitField(
+        label: 'Visit mode',
+        value: _visitData['tag_user']==null||_visitData['tag_user']=="null"?'Individual':'Joint visit',
+        icon: Icons.group,
+      ),
+      _VisitField(
+        label: 'Time taken from last point',
+        value: (_visitData['time_taken_from_last_visit']).toString() as String?,
+        icon: Icons.person,
+      ),
+
+       _VisitField(
+        label: 'Distance from last point',
+        value: (_visitData['distance_from_last_visit']).toString() as String?,
+        icon: Icons.person,
+      ), _VisitField(
+        label: 'Colleague',
+        value: _visitData['tag_user'] as String?,
+        icon: Icons.person,
+      ),
+      _VisitField(
+        label: 'Visit Done By',
+        value: _visitData['u_name'] as String?,
+        icon: Icons.person,
+      ),
+       _VisitField(
+        label: 'Visit Purpose',
+        value: _visitData['typeName'] as String?,
+        icon: Icons.category_outlined,
+      ),
+      _VisitField(
+        label: 'Work Done',
+        value: _visitData['workDoneName'] as String?,
+        icon: Icons.build_outlined,
+      ),
+      _VisitField(
         label: 'Visit Outcome',
         value: _visitData['visitOutcomeName'] as String?,
         icon: Icons.flag_outlined,
@@ -152,16 +189,17 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         value: _visitData['nextStepName'] as String?,
         icon: Icons.trending_up,
       ),
-      _VisitField(
-        label: 'Visit Type',
-        value: _visitData['typeName'] as String?,
-        icon: Icons.category_outlined,
+     _VisitField(
+        label: 'Follow Up Date',
+        value: _formatIsoToLocal(_visitData['followUpDate']),
+        icon: Icons.calendar_month,
       ),
       _VisitField(
-        label: 'Work Done',
-        value: _visitData['workDoneName'] as String?,
-        icon: Icons.build_outlined,
+        label: 'Follow Up Remark',
+        value: _visitData['followUpRemark'],
+        icon: Icons.calendar_month,
       ),
+      
       _VisitField(
         label: 'Further Visit Required',
         value: fv.visitRequired == null
@@ -176,20 +214,16 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         value: fv.reason,
         icon: Icons.notes_outlined,
       ),
-      _VisitField(
-        label: 'Follow Up Date',
-        value: _formatIsoToLocal(_visitData['followUpDate']),
-        icon: Icons.calendar_month,
-      ),
-      _VisitField(
-        label: 'Follow Up Remark',
-        value: _visitData['followUpRemark'],
-        icon: Icons.calendar_month,
-      ),
+      
       _VisitField(label: "Ho Actionable Items", value: _visitData['ho_need_remark']??"N/A", icon: Icons.person_2_sharp),
       _VisitField(
-        label: 'Extra Notes',
+        label: 'Visit Start Remark',
         value: _visitData['extra'] as String?,
+        icon: Icons.comment_outlined,
+      ),
+      _VisitField(
+        label: 'Visit End Remark',
+        value: _visitData['visitEndRemark'] as String?,
         icon: Icons.comment_outlined,
       ),
       _VisitField(
@@ -206,6 +240,9 @@ class _VisitDetailsScreenState extends State<VisitDetailsScreen> {
         _HeaderCard(
           start: _visitData['startTime'] as String?,
           end: _visitData['endTime'] as String?,
+          meetingStart:_visitData['start_time_meeting'] as String?,
+          meetingEnd:_visitData['end_time_meeting'] as String?,
+
         ),
         const SizedBox(height: 16),
         _InfoCard(fields: fields),
@@ -271,21 +308,27 @@ class _HeaderCard extends StatelessWidget {
   const _HeaderCard({
     required this.start,
     required this.end,
+    required this.meetingStart,
+    required this.meetingEnd
   });
 
-  final String? start;
   final String? end;
+  final String? start;
+  final String? meetingStart;
+  final String? meetingEnd;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final startStr = _format(start);
     final endStr = _format(end);
+    final endmeet = _format(meetingEnd);
+    final strmeet = _format(meetingStart);
     return Card(
       elevation: 1,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
@@ -297,10 +340,24 @@ class _HeaderCard extends StatelessWidget {
             ),
             Container(width: 1, height: 40, color: theme.dividerColor.withOpacity(.4)),
             _TimeBlock(
+              label: 'Meeting ',
+              time: strmeet,
+              icon: Icons.timer,
+              color: theme.colorScheme.primary,
+            ),
+            Container(width: 1, height: 40, color: theme.dividerColor.withOpacity(.4)),
+            _TimeBlock(
+              label: 'Meeting End',
+              time: endmeet,
+              icon: Icons.lock_clock,
+              color: theme.colorScheme.primary,
+            ),
+            Container(width: 1, height: 40, color: theme.dividerColor.withOpacity(.4)),
+            _TimeBlock(
               label: 'Visit End',
               time: endStr,
-              icon: Icons.stop,
-              color: theme.colorScheme.secondary,
+              icon: Icons.timer,
+              color: theme.colorScheme.primary,
             ),
           ],
         ),
@@ -345,7 +402,7 @@ class _TimeBlock extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             time,
-            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+            style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
         ],

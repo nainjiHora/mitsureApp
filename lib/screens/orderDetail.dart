@@ -633,8 +633,8 @@ setState(() {
                     itemBuilder: (context, index) {
                       final attachment = attachments[index];
                       final fileName = attachment['originalName'] ?? 'Unknown File';
-                      // final fileUrl = "https://mittsureone.com:3001/file/${attachment['fileName']}";
-                      final fileUrl = "https://mittsureone.com:3001/file/${attachment['fileName']}";// File URL to open
+                      // final fileUrl = "https://mittsure.qdegrees.com:3001/file/${attachment['fileName']}";
+                      final fileUrl = "https://mittsure.qdegrees.com:3001/file/${attachment['fileName']}";// File URL to open
 print(fileUrl);
                       return ListTile(
                         leading: _getFileIcon(fileName),

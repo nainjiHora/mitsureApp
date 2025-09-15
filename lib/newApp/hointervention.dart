@@ -68,6 +68,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
   final TextEditingController remarkController = TextEditingController();
   final TextEditingController followUpRemark = TextEditingController();
+  final TextEditingController visitEndRemark = TextEditingController();
   final TextEditingController otherNumberController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
 
@@ -115,9 +116,14 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
       setState(() => isLoading = false);
       return;
     }
+    if (visitEndRemark.text.trim().isEmpty) {
+      _showSnackbar("Please enter a visit End Remark.", context);
+      setState(() => isLoading = false);
+      return;
+    }
 
-    if (followUpRequired && followUpDate == null) {
-      _showSnackbar("Please select a follow-up date.", context);
+    if (followUpRequired && (followUpDate == null||followUpRemark.text.trim().isEmpty)) {
+      _showSnackbar("Please select a follow-up date and enter remark", context);
       setState(() => isLoading = false);
       return;
     }
@@ -131,7 +137,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
 
     final pcat = {"interested": widget.interested, "data": widget.answers};
-    final uri = Uri.parse('https://mittsureone.com:3001/visit/endVisit');
+    final uri = Uri.parse('https://mittsure.qdegrees.com:3001/visit/endVisit');
     var request = http.MultipartRequest('POST', uri);
 
     widget.payload.fields.forEach((key, value) {
@@ -161,6 +167,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
     request.fields['tentativeAmount'] = '0';
     request.fields['product_category'] = jsonEncode(pcat);
     request.fields['remark'] = followUpRemark.text;
+    request.fields['vistEndRemark']=visitEndRemark.text;
 
 
 
@@ -257,7 +264,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
         gradeList = responses[3]['data'] ?? [];
         customerTypeList = responses[4]['data'] ?? [];
         boardList = responses[5]['data'] ?? [];
-        roles = responses[6]['data'];
+        roles = widget.visit['partyType']==1||widget.visit['partyType']=="1"?responses[6]['data']:responses[6]['data2'];
         final a = roles
             .where((element) =>
                 element['roleName'] == widget.visit['decisionMakerRole'])
@@ -359,7 +366,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    print(widget.visit);
+    print(widget.visit['partyType']);
     print("po");
     fetchAllPicklists();
     contactPersonController.text = widget.visit['makerName'] ?? "";
@@ -367,13 +374,13 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
     schoolNameController.text =
         widget.visit['schoolName'] ?? widget.visit['DistributorName'] ?? "";
 
-    email.text = widget.visit['schoolName'] ?? "N/A";
+    email.text = widget.visit['email'] ?? "N/A";
     makerContact.text = widget.visit['makerContact'] ?? "N/A";
     makerName.text = widget.visit['makerName'] ?? "N/A";
     pincode.text = widget.visit['Pincode'] ?? "N/A";
     addressLine2.text = widget.visit['AddressLine2'] ?? "N/A";
     addressLine1.text = widget.visit['AddressLine1'] ?? "N/A";
-    schoolName.text = widget.visit['schoolName'] ?? "N/A";
+    schoolName.text = widget.visit['partyType']==1||widget.visit['partyType']=="1"?widget.visit['schoolName']:widget.visit['DistributorName'] ?? "N/A";
 
     getUserData();
   }
@@ -476,14 +483,18 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                   if (picked != null) setState(() => followUpDate = picked);
                 },
               ),
+            if (followUpRequired)
             Divider(height: 24),
+            if (followUpRequired)
             TextField(
               controller: followUpRemark,
               decoration: InputDecoration(
-                  labelText: "Remark", border: OutlineInputBorder()),
+                  labelText: "Follow Up Remark", border: OutlineInputBorder()),
               maxLines: 1,
             ),
+            if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
             Divider(height: 24),
+            if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
             CheckboxListTile(
               title: Text("Mittstore Account Needed"),
               value: mittsureAccountNeeded,
@@ -567,7 +578,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                   ),
                 ),
               ),
-              if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
+              // if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
             CheckboxListTile(
               title: Text("Party Update"),
               value: partyUpdateRequired,
@@ -592,8 +603,8 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                           controller: schoolName, label: 'School Name'),
                       buildTextField(
                           controller: addressLine1, label: 'Address Line 1'),
-                      buildTextField(
-                          controller: addressLine2, label: 'Address Line 2'),
+                      // buildTextField(
+                      //     controller: addressLine2, label: 'Address Line 2'),
                       buildTextField(controller: pincode, label: 'Pincode'),
                       buildDropdownFromList(
                           'Decision Maker Role',
@@ -608,6 +619,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                       buildTextField(
                           controller: makerContact, label: 'Maker Contact'),
                       buildTextField(controller: email, label: 'Email'),
+                      if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
                       buildDropdownFromList(
                           'Board',
                           boardList,
@@ -615,6 +627,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                           'boardName',
                           selectedBoard,
                           (val) => setState(() => selectedBoard = val)),
+                          if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
                       buildDropdownFromList(
                           'Grade',
                           gradeList,
@@ -622,6 +635,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                           'gradeName',
                           selectedGrade,
                           (val) => setState(() => selectedGrade = val)),
+                          if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
                       buildDropdownFromList(
                           'Medium',
                           mediumList,
@@ -633,12 +647,15 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                   ),
                 ),
               ),
+              if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
             Divider(height: 24),
+            if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
             Text(
               "Preferred Distributor",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10,),
+            if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
             TypeAheadFormField<Map<String, dynamic>>(
               textFieldConfiguration: TextFieldConfiguration(
                 controller: prefDistributor,
@@ -664,8 +681,14 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                 // selectedValue = suggestion['distributorID'];
               },
             ),
-
-            SizedBox(height: 20,),
+            Divider(height: 24),
+            TextField(
+              controller: visitEndRemark,
+              decoration: InputDecoration(
+                  labelText: "Visit End Remark", border: OutlineInputBorder()),
+              maxLines: 1,
+            ),
+            SizedBox(height: 10,),
            
             SizedBox(
               width: double.infinity,

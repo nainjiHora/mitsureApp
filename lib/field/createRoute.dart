@@ -98,8 +98,8 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
             if (partyType == "1") {
               filteredSchools = data;
               schools = data;
-              print(schools.length);
-              print("dadadeee");
+              print(schools);
+
             } else {
               filteredDistributors = data;
               distributors = data;
@@ -590,12 +590,15 @@ print("getroutecluster");
                                 return schools
                                     .where((dist) => dist['schoolName']
                                         .toLowerCase()
-                                        .contains(pattern.toLowerCase()))
+                                        .contains(pattern.toLowerCase())||
+          dist['AddressLine1']
+              .toLowerCase()
+              .contains(pattern.toLowerCase()))
                                     .cast<Map<String, dynamic>>();
                               },
                               itemBuilder: (context, suggestion) {
                                 return ListTile(
-                                  title: Text(suggestion['schoolName']),
+                                  title: Text("${suggestion['schoolId']}-${suggestion['schoolName']}"),
                                 );
                               },
                               onSuggestionSelected: (suggestion) {
@@ -615,15 +618,20 @@ print("getroutecluster");
                                 ),
                               ),
                               suggestionsCallback: (pattern) {
-                                return distributors
-                                    .where((dist) => dist['DistributorName']
-                                        .toLowerCase()
-                                        .contains(pattern.toLowerCase()))
-                                    .cast<Map<String, dynamic>>();
-                              },
+  return distributors
+      .where((dist) =>
+          dist['DistributorName']
+              .toLowerCase()
+              .contains(pattern.toLowerCase()) ||
+          dist['AddressLine1']
+              .toLowerCase()
+              .contains(pattern.toLowerCase()))
+      .cast<Map<String, dynamic>>();
+},
+
                               itemBuilder: (context, suggestion) {
                                 return ListTile(
-                                  title: Text(suggestion['DistributorName']),
+                                  title: Text("${suggestion['distributorID']}-${suggestion['DistributorName']}"),
                                 );
                               },
                               onSuggestionSelected: (suggestion) {

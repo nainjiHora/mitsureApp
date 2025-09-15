@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 // import 'package:geocoding/geocoding.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mittsure/services/apiService.dart';
 import 'package:mittsure/services/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 
 class ProfilePage extends StatefulWidget {
   @override
@@ -16,6 +18,7 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   Map<String, dynamic>? userData;
   bool loading = true;
+
 
   @override
   void initState() {
@@ -29,17 +32,18 @@ class _ProfilePageState extends State<ProfilePage> {
     if (userString != null) {
       setState(() {
         userData = jsonDecode(userString);
+        print(userData);
+        print("userdata");
         loading = false;
       });
     }
   }
 
- Future<void> tagBaseLocation() async {
-  setState(() {
-    loading = true;
-  });
-  try {
-    final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+  Future<void> fetchAndConfirmAddressFromGoogle({
+  required BuildContext context
+}) async {
+
+  final serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       showSnackbar('Location services are disabled.');
       return;
@@ -59,10 +63,103 @@ class _ProfilePageState extends State<ProfilePage> {
       );
       return;
     }
+    setState(() {
+    loading=true;
+  });
 
     final position = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
+final googleApiKey= dotenv.env['GOOGLE_MAPS_API_KEY'];
+print(googleApiKey);
+  // 🧭 Step 1: Reverse Geocode using Google Maps API
+  final url = Uri.parse(
+    'https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$googleApiKey',
+  );
+
+  final response = await http.get(url);
+
+  if (response.statusCode != 200) {
+    DialogUtils.showCommonPopup(
+      context: context,
+      message: 'Unable to connect to Google Maps. Try again.',
+      isSuccess: false,
+    );
+    return;
+  }
+
+  final data = json.decode(response.body);
+  setState(() {
+    loading=false;
+  });
+
+  if (data['status'] != 'OK' || data['results'].isEmpty) {
+    DialogUtils.showCommonPopup(
+      context: context,
+      message: 'Unable to fetch address. Try again.',
+      isSuccess: false,
+    );
+    return;
+  }
+
+  final address = data['results'][0]['formatted_address'];
+  print('📍 Address from Google API: $address');
+
+  // ✅ Step 2: Show confirmation dialog
+  bool? confirm = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text("Confirm Address"),
+      content: Text("Do you want to tag this location?\n\n$address"),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text("Cancel"),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: Text("Yes, Tag"),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm != true) {
+    return;
+  }
+
+ tagBaseLocation(position.latitude,position.longitude,address);
+}
+
+ Future<void> tagBaseLocation(lat,long,address) async {
+  setState(() {
+    loading = true;
+  });
+  try {
+    // final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    // if (!serviceEnabled) {
+    //   showSnackbar('Location services are disabled.');
+    //   return;
+    // }
+
+    // var permission = await Geolocator.checkPermission();
+    // if (permission == LocationPermission.denied) {
+    //   permission = await Geolocator.requestPermission();
+    // }
+
+    // if (permission == LocationPermission.deniedForever ||
+    //     permission == LocationPermission.denied) {
+    //   DialogUtils.showCommonPopup(
+    //     context: context,
+    //     message: 'Location permissions are denied.',
+    //     isSuccess: false,
+    //   );
+    //   return;
+    // }
+
+    // final position = await Geolocator.getCurrentPosition(
+    //   desiredAccuracy: LocationAccuracy.high,
+    // );
 
     // 🧭 Step 1: Reverse Geocode
   //   List<Placemark> placemarks = await placemarkFromCoordinates(
@@ -110,12 +207,14 @@ class _ProfilePageState extends State<ProfilePage> {
     // 🛰 Step 3: Proceed with tagBaseLocation API
     var body = {
       "ownerId": userData!['id'],
-      "latitude": position.latitude,
-      "longitude": position.longitude,
+      "latitude": lat,
+      "longitude": long,
+      "baseAddress":address,
       "data": jsonEncode({
         "party": userData!['id'],
-        "lat": position.latitude,
-        "long": position.longitude,
+        "lat": lat,
+        "long": long,
+        "baseAddress":address
       })
     };
 
@@ -126,8 +225,9 @@ class _ProfilePageState extends State<ProfilePage> {
 
     if (response != null && response['status'] == false) {
       setState(() {
-        userData!['latitude'] = position.latitude;
-        userData!['longitude'] = position.longitude;
+        userData!['latitude'] = lat;
+        userData!['longitude'] = long;
+        userData!['baseAddress']=address;
       });
 
       final prefs = await SharedPreferences.getInstance();
@@ -311,14 +411,19 @@ class _ProfilePageState extends State<ProfilePage> {
                     children: [
                       profileTile(Icons.data_usage_rounded, "Role",
                           userData?['role_name']),
+                      profileTile(Icons.data_usage_rounded, " Actual Role",
+                          userData?['actual_role']),
                       profileTile(
                           Icons.phone_android, "Mobile", userData?['mobno']),
-                      profileTile(Icons.map, "Cluster",
+                      profileTile(Icons.map, "Area",
                           userData?['clusterName'].toString()),
                       profileTile(Icons.sensor_occupied, "Reporting Manager",
                           userData?['managerName']),
                       profileTile(Icons.map_sharp, "Base Location",
                           isTagged ? "Tagged" : "Not Tagged"),
+                      if(isTagged)
+                      profileTile(Icons.map, "Base Address",
+                          userData?['baseAddress']),
                     ],
                   ),
                 ),
@@ -330,7 +435,8 @@ class _ProfilePageState extends State<ProfilePage> {
                       if (isTagged) {
                         releaseBase();
                       } else {
-                        tagBaseLocation();
+                        // tagBaseLocation();
+                        fetchAndConfirmAddressFromGoogle(context: context);
                       }
                     },
                     icon: Icon(

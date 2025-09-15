@@ -63,6 +63,9 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
   @override
   void initState() {
     super.initState();
+    print(widget.type);
+    print(widget.visit);
+    print("lplplp");
     _fetchLocation();
     fetchPicklist();
   }
@@ -134,7 +137,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
         isLoading = true;
       });
       final uri = Uri.parse(
-          'https://mittsureone.com:3001/visit/endVisit'); // Change this
+          'https://mittsure.qdegrees.com:3001/visit/endVisit'); // Change this
 
       final prefs = await SharedPreferences.getInstance();
       final hasData = prefs.getString('user') != null;
@@ -186,7 +189,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
      
       print(request.fields);
 
-      if(furtherVisit == 'true'){
+      if(furtherVisit == 'true'&&(widget.type==1||widget.type=='1')){
         setState(() {
           isLoading=false;
         });

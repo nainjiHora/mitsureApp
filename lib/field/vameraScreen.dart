@@ -136,49 +136,67 @@ class _KMReadingCameraScreenState extends State<KMReadingCameraScreen> {
 
  void _showReadingPopup(String reading, String imagePath) {
   TextEditingController manualController = TextEditingController();
+  bool mandError = false;
 
   showDialog(
     context: context,
-    builder: (ctx) => AlertDialog(
-      title: Text('Is this the correct reading?'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(reading.trim().isEmpty ? 'No text detected.' : reading),
-          SizedBox(height: 12),
-          Text("If incorrect, enter manually below:"),
-          TextField(
-            controller: manualController,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: 'Enter KM Reading',
-              border: OutlineInputBorder(),
+    builder: (ctx) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: Text('Is this the correct reading?'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(reading.trim().isEmpty ? 'No text detected.' : reading),
+                SizedBox(height: 12),
+                Text("If incorrect, enter manually below:"),
+                TextField(
+                  controller: manualController,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    hintText: 'Enter KM Reading',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                if (mandError)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      "Please add Meter Reading as seen in the Picture taken",
+                      style: TextStyle(color: Colors.red, fontSize: 15),
+                    ),
+                  ),
+              ],
             ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () {
-            Navigator.pop(ctx);
-            setState(() => _capturedImage = null);
-          },
-          child: Text('Retake'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            Navigator.pop(ctx);
-            final manualReading = manualController.text.trim();
-            if (manualReading.isNotEmpty) {
-              widget.onReadingCaptured(imagePath, manualReading, true);
-            } else {
-              widget.onReadingCaptured(imagePath, reading, false);
-            }
-          },
-          child: Text('Confirm'),
-        ),
-      ],
-    ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  setState(() => _capturedImage = null); // this is outer setState
+                },
+                child: Text('Retake'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final manualReading = manualController.text.trim();
+                  if (manualReading.isNotEmpty) {
+                    Navigator.pop(ctx);
+                    widget.onReadingCaptured(imagePath, manualReading, true);
+                  } else {
+                    
+                    setState(() {
+                      mandError = true;
+                    });
+                  }
+                },
+                child: Text('Confirm'),
+              ),
+            ],
+          );
+        },
+      );
+    },
   );
 }
 

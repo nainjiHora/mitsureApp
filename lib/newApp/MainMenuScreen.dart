@@ -10,6 +10,7 @@ import 'package:mittsure/newApp/allowances.dart';
 import 'package:mittsure/newApp/animatedCircle.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/expenseList.dart';
+import 'package:mittsure/newApp/faq.dart';
 import 'package:mittsure/newApp/myProfile.dart';
 import 'package:mittsure/newApp/specimenList.dart';
 import 'package:mittsure/newApp/specimenRequest.dart';
@@ -408,6 +409,9 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               children: [
                 _drawerItem("Home", Icons.home, MainMenuScreen(), false),
                 _drawerItem("My Profile", Icons.home, ProfilePage(), false),
+                 if (userData['role'] != 'se')
+                  _drawerItem("Approval Tray", Icons.approval_rounded,
+                      RequestsScreen(), false),
                 _drawerItem("Attendance", Icons.watch_later,
                     PunchScreen(mark: false), false),
                 _drawerItem("Visit", Icons.place, VisitListScreen(), false),
@@ -441,9 +445,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     // MainMenuScreen()
                     ,
                     false),
-                if (userData['role'] != 'se')
-                  _drawerItem("Approval Tray", Icons.approval_rounded,
-                      RequestsScreen(), false),
+               
                 _drawerItem(
                     "Notifications",
                     Icons.notifications,
@@ -451,6 +453,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     // MainMenuScreen()
                     ,
                     false),
+                    _drawerItem("FAQs", Icons.question_mark,FAQScreen() , false),
                 // _drawerItem("Map", Icons.map, AgentsMapScreen()),
                 Divider(thickness: 1),
                 _drawerItem(

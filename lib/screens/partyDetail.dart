@@ -106,15 +106,15 @@ tagLocation() async {
 
           // Address Section
           // const SectionTitle(title: 'Address Details'),
-          DetailsRow(label: 'Pincode', value: distributor['Pincode'] ?? 'N/A'),
+          DetailsRow(label: 'Pincode', value: distributor['pincode'] ?? 'N/A'),
           DetailsRow(label: 'Address Line 1', value: distributor['AddressLine1'] ?? 'N/A'),
           DetailsRow(label: 'Landmark', value: distributor['Landmark'] ?? 'N/A'),
-          DetailsRow(label: 'Coordinates', value: "${distributor['lat']},${distributor['long']}" ?? 'N/A'),
+          // DetailsRow(label: 'Coordinates', value: "${distributor['lat']},${distributor['long']}" ?? 'N/A'),
           const Divider(),
 
           const SectionTitle(title: 'Contact Person Details'),
-          DetailsRow(label: 'Name', value: distributor['name'] ?? 'N/A'),
-          DetailsRow(label: 'Role', value: distributor['role'] ?? 'N/A'),
+          DetailsRow(label: 'Name', value: distributor['makerName'] ?? 'N/A'),
+          DetailsRow(label: 'Role', value: distributor['roleName'] ?? 'N/A'),
           DetailsRow(label: 'Contact Number', value: distributor['makerContact'] ?? 'N/A'),
           DetailsRow(label: 'Email', value: distributor['email']??distributor['Email'] ?? 'N/A'),
           const Divider(),

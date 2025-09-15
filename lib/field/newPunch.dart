@@ -376,7 +376,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
     try {
       var uri = Uri.parse(
-          'https://mittsureone.com:3001/attendance/punchAttendance');
+          'https://mittsure.qdegrees.com:3001/attendance/punchAttendance');
 
       var request = http.MultipartRequest('POST', uri);
 
@@ -713,22 +713,25 @@ class _PunchScreenState extends State<PunchScreen> {
     );
 
     if (picked != null) {
-      markleave(picked);
+      // markleave(picked);
     }
   }
 
-markleave(DateTimeRange picked)async{
+markleave()async{
   try{
     setState(() {
       isLoading=true;
     });
+
+    final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
    var body = {
       "ownerId": userData!['id'],
-      "startDate":picked.start.toString().substring(0,11),
-      "endDate":picked.end.toString().substring(0,11)
-      
+      // "startDate":picked.start.toString().substring(0,11),
+      // "endDate":picked.end.toString().substring(0,11)
+     "startDate":today,
+     "endDate":today
     };
-    print(body);
+
   
     final response = await ApiService.post(
       endpoint: "/attendance/markLeaveInAttendance",
@@ -916,7 +919,8 @@ markleave(DateTimeRange picked)async{
                           if (widget.mark)
                           ElevatedButton.icon(
                             onPressed: () async {
-                             selectDateRange(context);
+                             // selectDateRange(context);
+                             markleave();
                             },
                               icon: Icon(Icons.power_off,
                                 size: 26, color: Colors.white),

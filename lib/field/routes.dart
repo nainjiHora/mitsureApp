@@ -203,8 +203,8 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
         setState(() {
           routeList = response['data'] ?? [];
           totalRecords = response['data1'] ?? 0;
-          print(response["data1"]);
-          print(response["data"][0]);
+          print(response["data"]);
+          print("response[0]");
         });
       }
     } catch (error) {
@@ -218,9 +218,9 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
 
   Widget _buildStatusBadge(dynamic item) {
 
-    String label = 'Tagged Route';
+    String label = userData["id"]==item['tagged_id']? 'You Are tagged':"${item['taggedUserName']} is tagged";
     Color color = Colors.cyan;
-    return  userData['id']==item['tagged_id']? Container(
+    return  item['tagged_id']!=null&&item['tagged_id']!=''? Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
@@ -738,46 +738,52 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
                             style:
                                 const TextStyle(fontWeight: FontWeight.w500)),
                         const SizedBox(height: 6),
-                        Wrap(
-                          spacing: 6,
-                          children: List.generate(totalPages, (index) {
-                            final isSelected = index == currentPage;
-                            return ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isSelected
-                                    ? Colors.indigo
-                                    : Colors.grey.shade300,
-                                foregroundColor:
-                                    isSelected ? Colors.white : Colors.black,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 10),
-                              ),
-                              onPressed: () => goToPage(index),
-                              child: Text('${index + 1}'),
-                            );
-                          }),
-                        ),
+                        SingleChildScrollView(
+  scrollDirection: Axis.horizontal,
+  child: Row(
+    children: List.generate(totalPages, (index) {
+      final isSelected = index == currentPage;
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor:
+                isSelected ? Colors.indigo : Colors.grey.shade300,
+            foregroundColor: isSelected ? Colors.white : Colors.black,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          ),
+          onPressed: () => goToPage(index),
+          child: Text('${index + 1}'),
+        ),
+      );
+    }),
+  ),
+)
+
                       ],
                     ),
                   ),
                 ],
               ),
-        floatingActionButton: FloatingActionButton(
-                backgroundColor: Colors.indigo[900],
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const CreateRoutePage()),
-                  );
-                },
-                child: const Icon(
-                  Icons.add,
-                  color: Colors.white,
+        floatingActionButton: Padding(
+          padding: const EdgeInsets.only(bottom: 30.0),
+          child: FloatingActionButton(
+                  backgroundColor: Colors.indigo[900],
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const CreateRoutePage()),
+                    );
+                  },
+                  child: const Icon(
+                    Icons.add,
+                    color: Colors.white,
+                  ),
                 ),
-              )
+        )
             ,
       ),
     );

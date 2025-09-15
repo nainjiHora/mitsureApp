@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'dart:convert';
-
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 // import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mittsure/field/routes.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/endVisitScreen.dart';
+import 'package:mittsure/newApp/meetinghappen.dart';
 import 'package:mittsure/newApp/routeItems.dart';
 import 'package:mittsure/newApp/visitCaptureScreen.dart';
 import 'package:mittsure/screens/commonLayout.js.dart';
@@ -55,6 +57,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
   String? visitType = "";
   DateTime? selectedDate;
   int status = 6;
+  String? meetingScreen;
 
   formatDateTime(String start, String end) {
     final inputFormat = DateFormat('yyyy-MM-dd HH:mm:ss');
@@ -101,6 +104,34 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
     }
   }
 
+  fetchdecisionmaker() async {
+    setState(() {
+      isLoading = true;
+    });
+    final body = {"visitId": widget.data['visitId']??widget.visitId};
+
+    try {
+      final response = await ApiService.post(
+        endpoint: '/visit/getDecisionMaker', // Use your API endpoint
+        body: body,
+      );
+
+      if (response != null && response['success'] == true) {
+        print(response);
+        print("ssssss");
+        setState(() {
+         meetingScreen=response['rows']['meeting_with_decision_maker'];
+        });
+      } else {}
+    } catch (error) {
+      print("Error fething orders: $error");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
   fetchPicklist() async {
     print(widget.data);
     final body = {};
@@ -129,75 +160,116 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
     }
   }
 
-  tagLocation() async {
+  Future<void> fetchAndConfirmAddressFromGoogle({
+  required BuildContext context
+}) async {
+
+  final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      DialogUtils.showCommonPopup(context: context,message: 'Location services are disabled.',isSuccess: false);
+      return;
+    }
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+
+    if (permission == LocationPermission.deniedForever ||
+        permission == LocationPermission.denied) {
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: 'Location permissions are denied.',
+        isSuccess: false,
+      );
+      return;
+    }
+    setState(() {
+    isLoading=true;
+  });
+
+    final position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+final googleApiKey= dotenv.env['GOOGLE_MAPS_API_KEY'];
+print(googleApiKey);
+  // 🧭 Step 1: Reverse Geocode using Google Maps API
+  final url = Uri.parse(
+    'https://maps.googleapis.com/maps/api/geocode/json?latlng=${position.latitude},${position.longitude}&key=$googleApiKey',
+  );
+
+  final response = await http.get(url);
+
+  if (response.statusCode != 200) {
+    DialogUtils.showCommonPopup(
+      context: context,
+      message: 'Unable to connect to Google Maps. Try again.',
+      isSuccess: false,
+    );
+    return;
+  }
+
+  final data = json.decode(response.body);
+  setState(() {
+    isLoading=false;
+  });
+
+  if (data['status'] != 'OK' || data['results'].isEmpty) {
+    DialogUtils.showCommonPopup(
+      context: context,
+      message: 'Unable to fetch address. Try again.',
+      isSuccess: false,
+    );
+    return;
+  }
+
+  final address = data['results'][0]['formatted_address'];
+  print('📍 Address from Google API: $address');
+
+  // ✅ Step 2: Show confirmation dialog
+  bool? confirm = await showDialog<bool>(
+    context: context,
+    builder: (_) => AlertDialog(
+      title: Text("Confirm Address"),
+      content: Text("Do you want to tag this location?\n\n$address"),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text("Cancel"),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: Text("Yes, Tag"),
+        ),
+      ],
+    ),
+  );
+
+  if (confirm != true) {
+    return;
+  }
+
+ tagLocation(position.latitude,position.longitude);
+}
+
+  tagLocation(lat,long) async {
     print(":plplpl");
     try {
       setState(() {
         isLoading = true;
       });
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return;
 
-      LocationPermission permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        return;
-      }
 
-      Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
-
-    //           List<Placemark> placemarks = await placemarkFromCoordinates(
-    //   position.latitude,
-    //   position.longitude,
-    // );
-
-    // if (placemarks.isEmpty) {
-    //   DialogUtils.showCommonPopup(
-    //     context: context,
-    //     message: 'Unable to fetch address. Try again.',
-    //     isSuccess: false,
-    //   );
-    //   return;
-    // }
-  
-
-    // final Placemark place = placemarks.first;
- 
-    // final address = '${place.subThoroughfare}, ${place.thoroughfare}, ${place.subLocality}, ${place.locality}, ${place.postalCode}';
-
-    // // ✅ Step 2: Show confirmation dialog
-    // bool? confirm = await showDialog(
-    //   context: context,
-    //   builder: (_) => AlertDialog(
-    //     title: Text("Confirm Address"),
-    //     content: Text("Do you want to tag this location?\n\n$address"),
-    //     actions: [
-    //       TextButton(
-    //         onPressed: () => Navigator.pop(context, false),
-    //         child: Text("Cancel"),
-    //       ),
-    //       ElevatedButton(
-    //         onPressed: () => Navigator.pop(context, true),
-    //         child: Text("Yes, Tag"),
-    //       ),
-    //     ],
-    //   ),
-    // );
-
-    // if (confirm != true) {
-    //   return;
-    // }
 
       final body = {
-        "lat": position.latitude.toString(),
-        "long": position.longitude.toString(),
+        "lat": lat.toString(),
+        "long": long.toString(),
         "type": widget.type.toString(),
         "id": widget.data['addressId'],
         "data": jsonEncode({
           "party": widget.data['partyId'],
-          "lat": position.latitude.toString(),
-          "long": position.longitude.toString(),
+          "lat": lat.toString(),
+          "long": long.toString(),
         })
       };
 
@@ -210,8 +282,8 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
 
       if (response != null && response['success'] == true) {
         setState(() {
-          widget.data['lat'] = position.latitude;
-          widget.data['long'] = position.longitude;
+          widget.data['lat'] = lat;
+          widget.data['long'] = long;
           DialogUtils.showCommonPopup(
               context: context, message: "Location Marked", isSuccess: true);
           isLoading = false;
@@ -390,6 +462,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
     // TODO: implement initState
     super.initState();
     print(widget.data);
+    fetchdecisionmaker();
     fetchPicklist();
     fetchlastVisit();
     getUserData();
@@ -866,7 +939,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     CheckboxListTile(
-                      title: const Text("Verify With OTP"),
+                      title: const Text("Verify Visit with Verification Code"),
                       value: skipOtp,
                       onChanged: (value) =>
                           setModalState(() => skipOtp = value!),
@@ -874,7 +947,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                     if (skipOtp) ...[
                       const SizedBox(height: 10),
                       const Text(
-                        "OTP Mode",
+                        "Message Send To",
                         style: TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 16),
                       ),
@@ -915,10 +988,11 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                         
                           onPressed: () {
                             if(skipOtp){
+                            Navigator.pop(context);
                             _sendOtp(cont);
                             
-                            Navigator.pop(context);
                             }else{
+                              Navigator.pop(context);
                               startMeeting("end");
                             }
                           },
@@ -1019,7 +1093,12 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
             ? Center(
                 child: BookPageLoader(),
               )
-            : ListView(
+            : meetingScreen==null&&status==1?MeetingHappen(visitId:widget.visitId,
+                            visitStatus:widget.visitStatus,
+                            userReq:widget.userReq,
+                            date:widget.date,
+                            type:widget.type,
+                            data:widget.data) :ListView(
                 padding: const EdgeInsets.all(16.0),
                 children: [
                   Container(
@@ -1075,6 +1154,11 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                           ? distributor['schoolName']
                           : distributor['DistributorName'] ?? 'N/A'),
 
+ DetailsRow(
+                      label: 'Address', value: distributor['AddressLine1'] ?? 'N/A'),
+                       DetailsRow(
+                      label: 'Landmark', value: distributor['Landmark'] ?? 'N/A'),
+
                   DetailsRow(
                       label: 'Pincode', value: distributor['Pincode'] ?? 'N/A'),
 
@@ -1082,9 +1166,9 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
 
                   const SectionTitle(title: 'Contact Person Details'),
                   DetailsRow(
-                      label: 'Name', value: distributor['name'] ?? 'N/A'),
+                      label: 'Name', value: distributor['makerName'] ?? 'N/A'),
                   DetailsRow(
-                      label: 'Role', value: distributor['role'] ?? 'N/A'),
+                      label: 'Role', value: distributor['decisionMakerRole'] ?? 'N/A'),
                   DetailsRow(
                       label: 'Contact Number',
                       value: distributor['makerContact'] ?? 'N/A'),
@@ -1242,7 +1326,8 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                             backgroundColor: Colors.orange.shade400,
                           ),
                           onPressed: () {
-                            tagLocation();
+                            // tagLocation();
+                            fetchAndConfirmAddressFromGoogle(context: context);
                           },
                           label: Text(
                             "Tag Location",
@@ -1255,6 +1340,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
                   ),
                   (userData['role'] == 'se'||userData['role']=='asm') &&
                           status == 0 &&
+                          widget.data['ownerId']==userData['id']&&
                           widget.data['status'] == 1 &&
                           isToday(widget.date) &&
                           widget.data['lat'] != null &&

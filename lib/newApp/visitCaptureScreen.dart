@@ -64,8 +64,9 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
     fetchPicklist();
   }
 
+
   _fetChAllRSM() async {
-    if(allUsers.length==0) {
+    if (allUsers.length == 0)
       try {
         setState(() {
           isLoading = true;
@@ -77,11 +78,16 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
           final data = response['data'];
 
           setState(() {
-            rsms = data.where((e) => e['role'] == 'rsm').toList();
-            asms = data.where((e) => e['role'] == 'asm').toList();
-            rms = data.where((e) =>
-            e['role'] == 'se' &&
-                userData['id'] != e['id']).toList();
+            // rsms = data.where((e) => e['role'] == 'rsm').toList();
+            // asms = data.where((e) => e['role'] == 'asm').toList();
+            print(data);
+            rms = data
+                .where((e) =>
+            (e['cluster'] == userData['cluster']) &&
+                userData['id'] != e['id'])
+                .toList();
+
+            print(userData);
             allUsers = data;
             isLoading = false;
           });
@@ -90,8 +96,11 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
         }
       } catch (error) {
         print("Error fetching ojbjbjbjjrders: $error");
-      } finally {}
-    }
+      } finally {
+        setState(() {
+          isLoading = false;
+        });
+      }
   }
 
   _fetchAsm(id) async {
@@ -198,7 +207,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
         longitude != null &&
         _image != null) {
       final uri = Uri.parse(
-          'https://mittsureone.com:3001/visit/startVisit'); // Change this
+          'https://mittsure.qdegrees.com:3001/visit/startVisit'); // Change this
 
       final prefs = await SharedPreferences.getInstance();
       final hasData = prefs.getString('user') != null;
@@ -354,43 +363,58 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
                       },
                     ),
                     if (includeCompanion) ...[
-                      _buildDropdown(
-                        'Select HO',
-                        rsms,
-                        'id',
-                        'name',
-                        rsmController,
-                        (value) {
-                          setState(() {
-                            rsmController = value;
-                            _fetchAsm(value);
-                          });
-                        },
-                      ),
-                      _buildDropdown(
-                        'Select ARM',
-                        asms,
-                        'id',
-                        'name',
-                        superwisorController,
-                        (value) {
-                          setState(() {
-                            superwisorController = value;
-                            _fetchSe(value);
-                          });
-                        },
-                      ),
-                      _buildDropdown(
-                        'Select RM',
-                        rms,
-                        'id',
-                        'name',
-                        tagUserController,
-                        (value) {
-                          setState(() {
-                            tagUserController = value;
-                          });
-                        },
+                      // _buildDropdown(
+                      //   'Select HO',
+                      //   rsms,
+                      //   'id',
+                      //   'name',
+                      //   rsmController,
+                      //   (value) {
+                      //     setState(() {
+                      //       rsmController = value;
+                      //       _fetchAsm(value);
+                      //     });
+                      //   },
+                      // ),
+                      // _buildDropdown(
+                      //   'Select ARM',
+                      //   asms,
+                      //   'id',
+                      //   'name',
+                      //   superwisorController,
+                      //   (value) {
+                      //     setState(() {
+                      //       superwisorController = value;
+                      //       _fetchSe(value);
+                      //     });
+                      //   },
+                      // ),
+                      // _buildDropdown(
+                      //   'Select RM',
+                      //   rms,
+                      //   'id',
+                      //   'name',
+                      //   tagUserController,
+                      //   (value) {
+                      //     setState(() {
+                      //       tagUserController = value;
+                      //     });
+                      //   },
+                      // ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10.0),
+                        child: _buildDropdown(
+                          'Select Colleague',
+                          rms,
+                          'id',
+                          'name',
+                          tagUserController,
+                              (value) {
+                            setState(() {
+                              tagUserController = value;
+                            });
+                          },
+                        ),
                       ),
                     ],
                     _buildDropdown(
@@ -402,7 +426,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
                         (val) => setState(() {
                               visitType = val;
                             })),
-                    _buildTextField('Extra Notes', extraController),
+                    _buildTextField('Visit Start Remark', extraController),
                     SizedBox(height: 16),
                     Row(
                       children: [

@@ -162,8 +162,7 @@ class _ItemListPageState extends State<ItemListPage> {
       if (response != null && response['status'] == false) {
         setState(() {
           allItems = response['data'] ?? [];
-          print(response['data1']);
-          print("oioi");
+         
           alreadytagged=response['data1']=="true"?true:false;
           onStatusChange("");
         });
@@ -362,7 +361,7 @@ class _ItemListPageState extends State<ItemListPage> {
                             },
                           ),
                   ),
-if(userData['role']=='asm' && alreadytagged)
+if(userData['role']!=null&& alreadytagged)
                   Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: ElevatedButton.icon(

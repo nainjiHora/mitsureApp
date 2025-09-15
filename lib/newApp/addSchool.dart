@@ -258,7 +258,7 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
                     buildTextField(controller: schoolName, label: 'School Name',req: true),
                     buildDropdownFromList('School Type', schoolTypeList, 'id', 'name', selectedSchoolType, (val) => setState(() => selectedSchoolType = val),true),
                     buildTextField(controller: parentSchoolName, label: 'Parent School Name',req: false),
-                    buildDropdownFromList('Board', boardList, 'boardId', 'boardName', selectedBoard, (val) => setState(() => selectedBoard = val),false),
+                    buildDropdownFromList('Board', boardList, 'boardId', 'boardName', selectedBoard, (val) => setState(() => selectedBoard = val),true),
                     buildDropdownFromList('Medium', mediumList, 'mediumTableId', 'mediumName', selectedMedium, (val) => setState(() => selectedMedium = val),false),
                     buildDropdownFromList('Category', categoryList, 'id', 'name', selectedCategory, (val) => setState(() => selectedCategory = val),false),
                     buildDropdownFromList('Customer Type', customerTypeList, 'id', 'name', selectedCustomerType, (val) => setState(() => selectedCustomerType = val),true),
