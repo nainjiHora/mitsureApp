@@ -308,6 +308,7 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                       MaterialPageRoute(
                         builder: (context) => HoInterventionScreen(
                             answers: [],
+                            meetingHappen: "yes",
                             payload: widget.payload,
                             visit: widget.visit,
                             interested: selectedReason),

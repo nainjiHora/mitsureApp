@@ -7,6 +7,7 @@ import 'package:mittsure/screens/splash.dart';
 import 'package:mittsure/services/fbservice.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import './services/navigation_service.dart';
 
 class MyHttpOverrides extends HttpOverrides {
   @override
@@ -55,7 +56,7 @@ Future<void> _showNotification(RemoteMessage message) async {
     payload: message.data['type'] == 'Waiting' ? message.data['eventId'] : message.data['type'] == 'Reminder' ? 'booking' : "",
   );
 }
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+// final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

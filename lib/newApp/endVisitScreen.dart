@@ -9,6 +9,7 @@ import 'package:mittsure/field/routes.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/hointervention.dart';
 import 'package:mittsure/newApp/productCategoryInput.dart';
+import '../services/navigation_service.dart';
 import 'package:mittsure/newApp/visitPartyDetail.dart';
 import 'package:mittsure/services/apiService.dart';
 import 'package:mittsure/services/utils.dart';
@@ -20,10 +21,12 @@ class EndVisitScreen extends StatefulWidget {
   final type;
   final date;
   final visitId;
+  final meetingHappen;
   EndVisitScreen(
       {required this.visit,
       required this.type,
       required this.date,
+      required this.meetingHappen,
       this.visitId});
 
   @override
@@ -63,9 +66,8 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
   @override
   void initState() {
     super.initState();
-    print(widget.type);
-    print(widget.visit);
-    print("lplplp");
+    
+
     _fetchLocation();
     fetchPicklist();
   }
@@ -87,6 +89,15 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
     setState(() {
       latitude = position.latitude;
       longitude = position.longitude;
+      print("poliko");
+    if(widget.meetingHappen!=null && widget.meetingHappen.toString().toLowerCase()=="no"){
+      print(widget.meetingHappen);
+      gotofinal();
+    }else{
+      setState(() {
+        isLoading=false;
+      });
+    }
     });
   }
 
@@ -118,7 +129,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
           contactPersonController.text = widget.visit['makerName'] ?? "";
           phoneNumberController.text = widget.visit['makerContact'] ?? "";
           dropdowns = response['data'];
-          isLoading=false;
+          // isLoading=false;
         });
       } else {
         throw Exception('Failed to load orders');
@@ -212,6 +223,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
                  interested: null,
                   payload: request,
                   visit: widget.visit,
+                  meetingHappen:widget.meetingHappen,
                   answers: [],
                 )),
       );
@@ -235,6 +247,117 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
   //   DialogUtils.showCommonPopup(context: cont, message: e.toString(), isSuccess: false);
   // }
   }
+
+Future<void> gotofinal() async {
+    // try{
+    if (
+        latitude != null &&
+        longitude != null) {
+      setState(() {
+        isLoading = true;
+      });
+      final uri = Uri.parse(
+          'https://mittsure.qdegrees.com:3001/visit/endVisit'); // Change this
+
+      final prefs = await SharedPreferences.getInstance();
+      final hasData = prefs.getString('user') != null;
+      var id = "";
+      if (hasData) {
+        id = jsonDecode(prefs.getString('user') ?? "")['id'];
+      } else {
+        return;
+      }
+      // if (furtherVisit == null ||
+      //     (furtherVisit == 'false' &&
+      //         (furtherVisitController.text == "" ||
+      //             furtherVisitController.text == null))) {
+      //   setState(() => isLoading = false);
+      //   DialogUtils.showCommonPopup(
+      //       context: cont,
+      //       message: "Please fill all the fields",
+      //       isSuccess: false);
+      //   return;
+      // }
+
+      // final furvisit = {
+      //   "visit_required": furtherVisit == 'false' ? false : true,
+      //   "reason": furtherVisitController.text.trim(),
+      // };
+      var request = http.MultipartRequest('POST', uri);
+      // request.fields['furtherVisitRequired'] = jsonEncode(furvisit);
+      request.fields['id'] = widget.visit['visitId'] ?? widget.visitId;
+      request.fields['ownerId'] = id;
+      request.fields['endLat'] = latitude.toString();
+      request.fields['endLong'] = longitude.toString();
+      request.fields['contactPerson'] = contactPersonController.text ?? "";
+      request.fields['status'] = status ?? "";
+      // request.fields['workDone'] = workDone ?? "";
+      // request.fields['noOfBook'] = noOfbookController.text ?? "";
+      request.fields['phoneNumber'] = phoneNumberController.text ?? "";
+      // request.fields['tentativeAmount'] = tentativeAmountController.text ?? "";
+      // request.fields['feedback'] = feedback ?? "";
+      request.fields['phone'] = widget.visit['makerContact'] ?? "";
+      // request.fields['noVisitCount'] = feedback ?? "";
+      request.fields['remark'] = extraController.text;
+      request.fields['product_category'] = jsonEncode([]);
+      request.fields['status_remark'] = extraController.text;
+      request.fields['followUpDate'] = followUpDate ?? "";
+      request.fields['visitOutcome'] = visitOutcome ?? "";
+      request.fields['nextStep'] = nextStep ?? "";
+      request.fields['partyType'] = widget.type.toString();
+
+     
+      print(request.fields);
+
+      // if(furtherVisit == 'true'&&(widget.type==1||widget.type=='1')){
+        setState(() {
+          isLoading=false;
+        });
+      //   Navigator.push(
+      //   cont,
+      //   MaterialPageRoute(
+      //       builder: (context) => ProductCategoryInput(
+      //             payload: request,
+      //             visit: widget.visit,
+      //           )),
+      // );
+      // }else{
+        // setState(() {
+        //   isLoading=false;
+        // });
+        navigatorKey.currentState?.push(
+  MaterialPageRoute(
+    builder: (context) => HoInterventionScreen(
+      meetingHappen:widget.meetingHappen,
+      interested: null,
+      payload: request,
+      visit: widget.visit,
+      answers: [],
+    ),
+  ),
+);
+      // }
+
+     
+    } else {
+      setState(() {
+        isLoading = false;
+      });
+      // ScaffoldMessenger.of(cont).showSnackBar(
+      //   SnackBar(content: Text('Please fill all fields and capture image')),
+      // );
+    }
+  // }catch(e){
+  //     print(widget.type);
+  //     print("dasda");
+  //    setState(() {
+  //       isLoading = false;
+  //     });
+  //   DialogUtils.showCommonPopup(context: cont, message: e.toString(), isSuccess: false);
+  // }
+  }
+
+
 
   Widget _buildDropdown(String label, List<dynamic> items, keyId, keyName,
       String? value, ValueChanged<String?> onChanged) {

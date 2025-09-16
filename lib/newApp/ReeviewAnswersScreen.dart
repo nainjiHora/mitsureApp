@@ -31,6 +31,7 @@ class _ReviewAnswersScreenState extends State<ReviewAnswersScreen> {
           answers: widget.answers,
           interested: widget.interested,
           visit: widget.visit,
+          meetingHappen: "yes",
         ),
       ),
     );

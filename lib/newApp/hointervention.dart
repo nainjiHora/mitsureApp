@@ -15,12 +15,14 @@ class HoInterventionScreen extends StatefulWidget {
   final dynamic payload;
   final dynamic answers;
   final interested;
+  final meetingHappen;
   final visit;
 
   HoInterventionScreen(
       {required this.payload,
       this.answers,
       required this.interested,
+       required this.meetingHappen,
       required this.visit});
 
   @override
@@ -165,6 +167,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
     request.fields['noVisitCount'] = '0';
     request.fields['otpMode'] = selectedOption;
     request.fields['tentativeAmount'] = '0';
+    request.fields['decisionMaker'] = widget.meetingHappen;
     request.fields['product_category'] = jsonEncode(pcat);
     request.fields['remark'] = followUpRemark.text;
     request.fields['vistEndRemark']=visitEndRemark.text;
@@ -375,6 +378,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
         widget.visit['schoolName'] ?? widget.visit['DistributorName'] ?? "";
 
     email.text = widget.visit['email'] ?? "N/A";
+    accountEmailController.text = widget.visit['email'] ?? "N/A";
     makerContact.text = widget.visit['makerContact'] ?? "N/A";
     makerName.text = widget.visit['makerName'] ?? "N/A";
     pincode.text = widget.visit['Pincode'] ?? "N/A";
@@ -492,9 +496,9 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                   labelText: "Follow Up Remark", border: OutlineInputBorder()),
               maxLines: 1,
             ),
-            if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
+            if((widget.visit['partyType']==1||widget.visit['partyType']=="1")&&widget.meetingHappen!=null && widget.meetingHappen.toString().toLowerCase()=="yes")
             Divider(height: 24),
-            if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
+            if((widget.visit['partyType']==1||widget.visit['partyType']=="1")&&widget.meetingHappen!=null && widget.meetingHappen.toString().toLowerCase()=="yes")
             CheckboxListTile(
               title: Text("Mittstore Account Needed"),
               value: mittsureAccountNeeded,
@@ -647,15 +651,15 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                   ),
                 ),
               ),
-              if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
+              if((widget.visit['partyType']==1||widget.visit['partyType']=="1")&&widget.meetingHappen!=null && widget.meetingHappen.toString().toLowerCase()=="yes")
             Divider(height: 24),
-            if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
+            if((widget.visit['partyType']==1||widget.visit['partyType']=="1")&&widget.meetingHappen!=null && widget.meetingHappen.toString().toLowerCase()=="yes")
             Text(
               "Preferred Distributor",
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             SizedBox(height: 10,),
-            if(widget.visit['partyType']==1||widget.visit['partyType']=="1")
+            if((widget.visit['partyType']==1||widget.visit['partyType']=="1")&&widget.meetingHappen!=null && widget.meetingHappen.toString().toLowerCase()=="yes")
             TypeAheadFormField<Map<String, dynamic>>(
               textFieldConfiguration: TextFieldConfiguration(
                 controller: prefDistributor,

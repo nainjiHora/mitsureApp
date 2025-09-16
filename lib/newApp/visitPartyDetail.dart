@@ -461,7 +461,6 @@ print(googleApiKey);
   void initState() {
     // TODO: implement initState
     super.initState();
-    print(widget.data);
     fetchdecisionmaker();
     fetchPicklist();
     fetchlastVisit();
@@ -633,7 +632,7 @@ print(googleApiKey);
             if (timer == null) startTimer();
 
             return AlertDialog(
-              title: Text("Enter OTP"),
+              title: Text("Enter verification Code"),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -641,7 +640,7 @@ print(googleApiKey);
                     controller: otpController,
                     keyboardType: TextInputType.number,
                     maxLength: 6,
-                    decoration: InputDecoration(hintText: "Enter 6-digit OTP"),
+                    decoration: InputDecoration(hintText: "Enter 6-digit code"),
                   ),
                   SizedBox(height: 8),
                   canResendOtp
@@ -1093,7 +1092,7 @@ print(googleApiKey);
             ? Center(
                 child: BookPageLoader(),
               )
-            : meetingScreen==null&&status==1?MeetingHappen(visitId:widget.visitId,
+            : meetingScreen==null&&status==1?MeetingHappen(visitId:widget.visitId??widget.data['visitId'],
                             visitStatus:widget.visitStatus,
                             userReq:widget.userReq,
                             date:widget.date,
@@ -1154,10 +1153,19 @@ print(googleApiKey);
                           ? distributor['schoolName']
                           : distributor['DistributorName'] ?? 'N/A'),
 
+//  DetailsRow(
+//                       label: 'ID',
+//                       value: widget.type == 1
+//                           ? distributor['schoolId']
+//                           : distributor['distributorID'] ?? 'N/A'),
+
  DetailsRow(
                       label: 'Address', value: distributor['AddressLine1'] ?? 'N/A'),
                        DetailsRow(
-                      label: 'Landmark', value: distributor['Landmark'] ?? 'N/A'),
+                      label: 'Board', value: distributor['boardName'] ?? 'N/A'),
+
+                       DetailsRow(
+                      label: 'Medium', value: distributor['mediumName'] ?? 'N/A'),
 
                   DetailsRow(
                       label: 'Pincode', value: distributor['Pincode'] ?? 'N/A'),
@@ -1428,6 +1436,7 @@ print(googleApiKey);
                                     visit: widget.data,
                                     date: widget.date,
                                     type: widget.type,
+                                    meetingHappen:meetingScreen??"",
                                     visitId: widget.visitId),
                               ),
                             );

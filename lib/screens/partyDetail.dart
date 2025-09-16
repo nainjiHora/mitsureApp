@@ -107,8 +107,12 @@ tagLocation() async {
           // Address Section
           // const SectionTitle(title: 'Address Details'),
           DetailsRow(label: 'Pincode', value: distributor['pincode'] ?? 'N/A'),
-          DetailsRow(label: 'Address Line 1', value: distributor['AddressLine1'] ?? 'N/A'),
-          DetailsRow(label: 'Landmark', value: distributor['Landmark'] ?? 'N/A'),
+          DetailsRow(label: 'Address ', value: distributor['AddressLine1'] ?? 'N/A'),
+           DetailsRow(
+                      label: 'Board', value: distributor['boardName'] ?? 'N/A'),
+
+                       DetailsRow(
+                      label: 'Medium', value: distributor['mediumName'] ?? 'N/A'),
           // DetailsRow(label: 'Coordinates', value: "${distributor['lat']},${distributor['long']}" ?? 'N/A'),
           const Divider(),
 

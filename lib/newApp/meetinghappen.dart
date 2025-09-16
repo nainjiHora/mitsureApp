@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
+import 'package:mittsure/newApp/endVisitScreen.dart';
 import 'package:mittsure/newApp/hointervention.dart';
 import 'package:mittsure/newApp/visitPartyDetail.dart';
 import 'package:mittsure/services/apiService.dart';
@@ -50,6 +51,48 @@ class _MeetingHappenState extends State<MeetingHappen> {
     super.initState();
     
     fetchReason();
+  }
+
+  updteMeetin(value) async{
+    try {
+      var body={"visitId":widget.visitId,"meeting_with_decision_maker":value};
+      print(body);
+      final response = await ApiService.post(
+        endpoint: '/visit/updateMeetingWithDecisionMaker',
+        body: body,
+      );
+
+      if (response != null && response['status']==true) {
+        
+        if(value.toLowerCase()=='yes'){
+  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RouteDetailsScreen(
+                            visitId:widget.visitId,
+                            visitStatus:widget.visitStatus,
+                            userReq:widget.userReq,
+                            date:widget.date,
+                            type:widget.type,
+                            data:widget.data
+                      )));
+        }else{
+  Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => RouteDetailsScreen(
+                            visitId:widget.visitId,
+                            visitStatus:3,
+                            userReq:widget.userReq,
+                            date:widget.date,
+                            type:widget.type,
+                            data:widget.data
+                      )));
+        }
+      }
+    } catch (error) {
+      print("Error fetching reasons: $error");
+    }
   }
 
   fetchReason() async {
@@ -107,18 +150,18 @@ class _MeetingHappenState extends State<MeetingHappen> {
               ElevatedButton.icon(
                 onPressed: () {
                   if (interested!.toLowerCase() == 'yes') {
-                   Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => RouteDetailsScreen(
-                            visitId:widget.visitId,
-                            visitStatus:widget.visitStatus,
-                            userReq:widget.userReq,
-                            date:widget.date,
-                            type:widget.type,
-                            data:widget.data
-                      )));
-                    
+                  //  Navigator.pushReplacement(
+                  //     context,
+                  //     MaterialPageRoute(
+                  //       builder: (context) => RouteDetailsScreen(
+                  //           visitId:widget.visitId,
+                  //           visitStatus:widget.visitStatus,
+                  //           userReq:widget.userReq,
+                  //           date:widget.date,
+                  //           type:widget.type,
+                  //           data:widget.data
+                  //     )));
+                    updteMeetin("Yes");
                   } else {
                     // Navigator.push(
                     //   context,
@@ -130,6 +173,7 @@ class _MeetingHappenState extends State<MeetingHappen> {
                     //         interested: selectedReason),
                     //   ),
                     // );
+                    updteMeetin("No");
                   }
                 },
                 icon: Icon(Icons.remove_red_eye_outlined),

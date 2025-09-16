@@ -769,6 +769,37 @@ markleave()async{
   }
 }
 
+markConfirm(){
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text("Mark Leave"),
+          content: const Text("You are marking leave for today.You won't be able to visit party after this. Are you sure to mark today as leave ?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: const Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () async {
+
+                Navigator.of(context).pop();
+                markleave();
+               
+              },
+              child: const Text("Confirm"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -920,7 +951,7 @@ markleave()async{
                           ElevatedButton.icon(
                             onPressed: () async {
                              // selectDateRange(context);
-                             markleave();
+                             markConfirm();
                             },
                               icon: Icon(Icons.power_off,
                                 size: 26, color: Colors.white),
