@@ -12,6 +12,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/apiService.dart';
 
 class SpecimenRequestScreen extends StatefulWidget {
+
+  final seList;
+  final tab;
+
+  SpecimenRequestScreen({required this.seList,required this.tab});
+
   @override
   State<SpecimenRequestScreen> createState() => _SpecimenRequestScreenState();
 }
@@ -23,6 +29,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
   String? productType;
   int seriesDisc = 0;
   String? shippingError;
+  String? selectedSE;
 
   String? productGroup;
   List<dynamic> selectedOrders = [];
@@ -243,7 +250,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
   fetchProduct() async {
     try {
       final response = await ApiService.post(
-        endpoint: '/product/getProduct', // Use your API endpoint
+        endpoint: '/product/getSpecimenProduct', // Use your API endpoint
         body: {},
       );
 
@@ -351,6 +358,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
+
     fetchPicklist();
     fetchProduct();
     fetchSets();
@@ -393,31 +401,31 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSection(
-              title: "Order Details",
-              children: [
-                _buildDropdown(
-                    'Product Group', groups, "id", "name", productGroup,
-                    (value) {
-                  setState(() {
-                    productGroup = value;
-                    selectedProduct = null;
-                    bookType = 'Choose from Individual Book';
-                    productType = null;
-                  });
-                }),
-                const SizedBox(height: 12),
-                productGroup == "6HPipXSLx5"
-                    ? _buildDropdown('Product Type', mittplusTypes, "id",
-                        "name", productType, (value) {
-                        setState(() {
-                          productType = value;
-                          filterMittplusItems(value);
-                        });
-                      })
-                    : SizedBox(
-                        height: 0,
-                      )
+            // _buildSection(
+            //   title: "Order Details",
+            //   children: [
+                // _buildDropdown(
+                //     'Product Group', groups, "id", "name", productGroup,
+                //     (value) {
+                //   setState(() {
+                //     productGroup = value;
+                //     selectedProduct = null;
+                //     bookType = 'Choose from Individual Book';
+                //     productType = null;
+                //   });
+                // }),
+                // const SizedBox(height: 12),
+                // productGroup == "6HPipXSLx5"
+                //     ? _buildDropdown('Product Type', mittplusTypes, "id",
+                //         "name", productType, (value) {
+                //         setState(() {
+                //           productType = value;
+                //           filterMittplusItems(value);
+                //         });
+                //       })
+                //     : SizedBox(
+                //         height: 0,
+                //       )
                 // _buildDropdown('Book Type',
                 //     [{"id":"Choose from Set","name":'Choose from Set'}, {"id":'Choose from Individual Book',"name":'Choose from Individual Book'}],"id","name", bookType, (value) {
                 //       setState(() {
@@ -428,7 +436,34 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
                 //
                 //       });
                 //     }),
+            //   ],
+            // ),
+           if(widget.tab==2)
+            DropdownButtonFormField<String>(
+              value: selectedSE,
+              decoration: InputDecoration(
+                labelText: 'Select RM',
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 8),
+              ),
+              style: TextStyle(fontSize: 14),
+              dropdownColor: Colors.white,
+              items: [
+
+                ...widget.seList.map((rsm) {
+                  return DropdownMenuItem<String>(
+                    value: rsm['id'].toString(),
+                    child: Text(rsm['name'],
+                        style: TextStyle(
+                            fontSize: 14, color: Colors.black)),
+                  );
+                }).toList(),
               ],
+              onChanged: (value) {
+                selectedSE = value ?? "";
+
+              },
             ),
             if (bookType == 'Choose from Set')
               _buildSection(
@@ -447,8 +482,8 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
                   }),
                 ],
               ),
-            if (bookType == 'Choose from Individual Book' &&
-                productGroup != "6HPipXSLx5")
+            // if (bookType == 'Choose from Individual Book' &&
+            //     productGroup != "6HPipXSLx5")
               _buildSection(
                 title: "Product Details",
                 children: [
@@ -509,10 +544,11 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
                   }),
                 ],
               ),
-            bookType == 'Choose from Set' ||
-                    bookType == 'Choose from Individual Book' ||
-                    productGroup == "6HPipXSLx5"
-                ? Row(
+            // bookType == 'Choose from Set' ||
+            //         bookType == 'Choose from Individual Book' ||
+            //         productGroup == "6HPipXSLx5"
+            //     ?
+                Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       ElevatedButton.icon(
@@ -532,7 +568,8 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
                               });
 
                               selectedOrders.add({
-                                "data": [...productItems],
+                                "product": productItems[0],
+                                "data":[...productItems],
                                 "quantity": setQuantity,
                                 "group": productGroup,
                               });
@@ -617,7 +654,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
                 //
                 //   ],
                 // )
-                : SizedBox(),
+                ,
             const SizedBox(height: 20),
             _buildSection(title: "Added Products", children: [
               Container(
@@ -700,9 +737,13 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () {
-                    showRemarkPopup(context);
+                    if(widget.tab==2){
+                      distribute(context);
+                    }else {
+                      showRemarkPopup(context);
+                    }
                   },
-                  child: const Text('Create Request',
+                  child:  Text(widget.tab==2?"Distribute to RM":'Create Request',
                       style: TextStyle(color: Colors.white)),
                 ),
               ),
@@ -767,11 +808,19 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
   }
 
   complete() {
-    Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => SpecimenScreen(),
-        ));
+    if(widget.tab==2){
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SpecimenScreen(tab: widget.tab,),
+          ));
+    }else {
+      Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => SpecimenScreen(tab: widget.tab,),
+          ));
+    }
   }
 
   Widget _buildNumberField(
@@ -788,6 +837,8 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
   }
 
   void _submitForm() async {
+
+    try{
     final prefs = await SharedPreferences.getInstance();
     final userString = prefs.getString('user');
     var userData;
@@ -815,7 +866,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
     print(obj);
     // try {
     final response = await ApiService.post(
-      endpoint: '/specimen/addSpecimenToUser', // Use your API endpoint
+      endpoint: '/specimen/addSpecimenToUser',
       body: obj,
     );
 
@@ -836,13 +887,77 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
         isSuccess: false,
       );
     }
-    // } catch (error) {
-    //   print(error);
-    //   DialogUtils.showCommonPopup(
-    //     context: context,
-    //     message: "Something Went Wrong",
-    //     isSuccess: false,
-    //   );
-    // }
+    } catch (error) {
+      print(error);
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: "Something Went Wrong",
+        isSuccess: false,
+      );
+    }
   }
+
+
+distribute(context) async{
+
+
+    try{
+      final prefs = await SharedPreferences.getInstance();
+      final userString = prefs.getString('user');
+      var userData;
+      if (userString != null) {
+        userData = jsonDecode(userString);
+      }
+      if (selectedOrders.length == 0) {
+        DialogUtils.showCommonPopup(
+            context: context,
+            message: "Please Select Atleast 1 Product",
+            isSuccess: false);
+
+        return;
+      }
+
+
+      final obj = {
+
+
+       "role":"se",
+        "skuList":selectedOrders,
+        "userId": selectedSE,
+
+      };
+      print(obj);
+      // try {
+      final response = await ApiService.post(
+        endpoint: '/specimen/saveAllotSpecimen', // Use your API endpoint
+        body: obj,
+      );
+
+      print(response);
+
+      if (response != null && response['status'] == false) {
+        DialogUtils.showCommonPopup(
+            context: context,
+            message: response['message'],
+            isSuccess: true,
+            onOkPressed: () {
+              complete();
+            });
+      } else {
+        DialogUtils.showCommonPopup(
+          context: context,
+          message: response['message'],
+          isSuccess: false,
+        );
+      }
+    } catch (error) {
+      print(error);
+      DialogUtils.showCommonPopup(
+        context: context,
+        message: "Something Went Wrong",
+        isSuccess: false,
+      );
+    }
+  }
+
 }

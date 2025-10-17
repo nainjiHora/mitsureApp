@@ -119,7 +119,21 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
       return;
     }
     if (visitEndRemark.text.trim().isEmpty) {
-      _showSnackbar("Please enter a visit End Remark.", context);
+      // _showSnackbar("Please enter a visit End Remark.", context);
+      DialogUtils.showCommonPopup(
+          context: context,
+          message: "Please enter a visit End Remark.",
+          isSuccess: false);
+      setState(() => isLoading = false);
+      return;
+    }
+
+    if (visitEndRemark.text.length<20 ) {
+      setState(() => isLoading = false);
+      DialogUtils.showCommonPopup(
+          context: context,
+          message: "Please Enter minimum 20 characters in remark",
+          isSuccess: false);
       setState(() => isLoading = false);
       return;
     }
@@ -330,7 +344,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
         );
       }
     } catch (error) {
-      _showPopup("Failed to send OTP. Please try later.", false, context);
+      _showPopup("Failed to send Verification Code. Please try later.", false, context);
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => MainMenuScreen()),
@@ -751,7 +765,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
             if (timer == null) startTimer();
 
             return AlertDialog(
-              title: Text("Enter OTP"),
+              title: Text("Enter Verification Code"),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -759,7 +773,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                     controller: otpController,
                     keyboardType: TextInputType.number,
                     maxLength: 6,
-                    decoration: InputDecoration(hintText: "Enter 6-digit OTP"),
+                    decoration: InputDecoration(hintText: "Enter 6-digit Verification Code"),
                   ),
                   SizedBox(height: 8),
                   canResendOtp
@@ -769,7 +783,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                             Navigator.pop(context);
                             _sendOtp(cont);
                           },
-                          child: Text("Resend OTP"),
+                          child: Text("Resend Verification Code"),
                         )
                       : Text("Resend in $remainingSeconds seconds"),
                 ],
@@ -782,7 +796,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                       Navigator.pop(context);
                       _submitOtp(cont);
                     } else {
-                      _showSnackbar("Please enter a valid 6-digit OTP", cont);
+                      _showSnackbar("Please enter a valid 6-digit Verification Code", cont);
                     }
                   },
                   child: Text("Submit"),
@@ -819,11 +833,11 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
           (_) => false,
         );
       } else {
-        _showPopup("Incorrect OTP. Please try again.", false, context);
+        _showPopup("Incorrect Verification Code. Please try again.", false, context);
         setState(() => isLoading = false);
       }
     } catch (_) {
-      _showPopup("Failed to verify OTP. Please try again.", false, context);
+      _showPopup("Failed to verify Verification Code. Please try again.", false, context);
       setState(() => isLoading = false);
     } finally {
       setState(() => isLoading = false);

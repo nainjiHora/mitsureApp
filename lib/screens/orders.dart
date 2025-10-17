@@ -12,8 +12,9 @@ import 'login.dart';
 
 class OrdersScreen extends StatefulWidget {
   final bool userReq;
+  final type;
 
-  OrdersScreen({required this.userReq});
+  OrdersScreen({required this.userReq,required this.type});
   @override
   _OrdersScreenState createState() => _OrdersScreenState();
 }
@@ -302,6 +303,7 @@ selectedSE="";
     final body = {
       "pageNumber":pageN-1,
       "approvalStatus":widget.userReq?0:status,
+      "order_type":widget.type, //Specimen
       "recordPerPage":pageSize,
       "rsm":selectedRsm,
       "asm":selectedASM,
@@ -560,7 +562,7 @@ print(response);
                       onTap: (){
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) =>OrderDetailsScreen(order: filteredOrders[index],userReq: widget.userReq,)), // Route to HomePage
+                          MaterialPageRoute(builder: (context) =>OrderDetailsScreen(order: filteredOrders[index],userReq: widget.userReq,type: widget.type,)), // Route to HomePage
                         );
                       },
                       child: Card(

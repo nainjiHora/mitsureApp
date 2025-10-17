@@ -215,7 +215,7 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Apply Discount Button
+                    if(widget.payload['orderType'].toLowerCase()=='sales')
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
                        // Button size
@@ -233,7 +233,8 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
                         style: TextStyle(fontSize: 14, color: Colors.white),
                       ),
                     ),
-
+                    if(widget.payload['orderType'].toLowerCase()!='sales')
+                      SizedBox(width: 50),
                     // Proceed Button
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(

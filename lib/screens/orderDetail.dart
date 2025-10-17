@@ -14,7 +14,8 @@ import 'orders.dart';
 class OrderDetailsScreen extends StatefulWidget {
   final order;
   final bool userReq;
-  OrderDetailsScreen({required this.order,required this.userReq});
+  final type;
+  OrderDetailsScreen({required this.order,required this.userReq,required this.type});
 
   @override
   State<OrderDetailsScreen> createState() => _OrderDetailsScreenState();
@@ -69,7 +70,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         });
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq)),
+          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,type: widget.type,)),
         );
       } else {
         throw Exception('Failed to load orders');
@@ -343,7 +344,7 @@ id=widget.order['partyId'];
 
 
     }catch(error){
-      print("Error sending OTP: $error");
+      print("Error sending Verification Code: $error");
 
     }
   }
@@ -398,13 +399,13 @@ id=widget.order['partyId'];
       if (response != null && response['status'] == true) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,)),
+          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,type: widget.type,)),
         );
       } else {
 
       }
     } catch (error) {
-      print("Error verifying OTP: $error");
+      print("Error verifying Verification Code: $error");
 
     }
   }
@@ -497,7 +498,7 @@ setState(() {
 
       }
     } catch (error) {
-      print("Error verifying OTP: $error");
+      print("Error verifying Verification Code: $error");
 
     }
   }
@@ -522,7 +523,7 @@ setState(() {
 
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,)),
+          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,type: widget.type,)),
         );
       } else {
         throw Exception('Failed to load orders');
@@ -540,11 +541,11 @@ setState(() {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text("Enter OTP"),
+          title: Text("Enter Verification Code"),
           content: TextField(
             controller: otpController,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(labelText: "OTP"),
+            decoration: InputDecoration(labelText: "Verification Code"),
           ),
           actions: [
             ElevatedButton(

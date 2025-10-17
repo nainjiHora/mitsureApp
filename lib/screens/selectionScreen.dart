@@ -327,11 +327,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         });
         _showOtpDialog(flag);
       } else {
-        _showErrorMessage("Failed to send OTP. Please try again.");
+        _showErrorMessage("Failed to send Verification Code. Please try again.");
       }
     } catch (error) {
-      print("Error sending OTP: $error");
-      _showErrorMessage("Failed to send OTP. Please try again.");
+      print("Error sending Verification Code: $error");
+      _showErrorMessage("Failed to send Verification Code. Please try again.");
     }
   }
 
@@ -363,14 +363,14 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       );
 
       if (response != null && response['status'] == false) {
-        Navigator.pop(context); // Close OTP dialog
+        Navigator.pop(context); // Close Verification Code dialog
         await order(flag); // Proceed to order
       } else {
-        _showErrorMessage("Incorrect OTP. Please try again.");
+        _showErrorMessage("Incorrect Verification Code. Please try again.");
       }
     } catch (error) {
-      print("Error verifying OTP: $error");
-      _showErrorMessage("Failed to verify OTP. Please try again.");
+      print("Error verifying Verification Code: $error");
+      _showErrorMessage("Failed to verify Verification Code. Please try again.");
     }
   }
 
@@ -392,7 +392,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       if (response != null) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,)),
+          MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,type: widget.payload['orderType'])),
         );
       } else {
         throw Exception('Failed to load orders');
@@ -427,7 +427,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         if (flag) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,)),
+            MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,type: widget.payload['orderType'],)),
           );
         } else {
           consentDone(response["data1"]);
@@ -448,13 +448,13 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text(
-            "Otp sent to ${addressData[_selectedConsentPerson]!['mobile']} (${_selectedConsentPerson.split(" ")[0]})",
+            "Verification Code sent to ${addressData[_selectedConsentPerson]!['mobile']} (${_selectedConsentPerson.split(" ")[0]})",
             style: TextStyle(fontSize: 13),
           ),
           content: TextField(
             controller: otpController,
             keyboardType: TextInputType.number,
-            decoration: InputDecoration(hintText: "Enter OTP"),
+            decoration: InputDecoration(hintText: "Enter Verification Code"),
           ),
           actions: [
             TextButton(
@@ -465,7 +465,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                await verifyOtp(flag); // Verify OTP
+                await verifyOtp(flag); 
               },
               child: Text("Submit"),
             ),
@@ -507,7 +507,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         ),
         backgroundColor: Colors.indigo[900],
         title: Text(
-          'Create Order',
+          widget.payload['orderType'].toLowerCase()=='sales'?'Create Order':'Create Specimen Order',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -885,7 +885,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                               children: [
                                 // Title
                                 Text(
-                                  "Choose Consent Person:  (for OTP)",
+                                  "Choose Consent Person:  (for Verification Code)",
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,

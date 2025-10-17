@@ -40,7 +40,8 @@ class _SpecimenReqDetailState extends State<SpecimenReqDetail> {
         final Map<String, List<dynamic>> grouped = {};
 
         for (var item in data) {
-          final key = item['seriesCategory'] ?? 'Unknown';
+          print(item);
+          final key = item['seriesName'] ?? 'Unknown';
           grouped.putIfAbsent(key, () => []).add(item);
         }
 

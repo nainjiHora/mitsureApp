@@ -122,6 +122,19 @@ tagLocation() async {
           DetailsRow(label: 'Contact Number', value: distributor['makerContact'] ?? 'N/A'),
           DetailsRow(label: 'Email', value: distributor['email']??distributor['Email'] ?? 'N/A'),
           const Divider(),
+          const SectionTitle(title: 'Extra Details'),
+          if(distributor['extra_detail']!=null)
+          ...(distributor['extra_detail'] as Map<String, dynamic>).entries.map((entry) {
+            // Capitalize and format the key for display as label
+            String label = entry.key.replaceAll('_', ' ').split(' ').map((word) {
+              return word[0].toUpperCase() + word.substring(1);
+            }).join(' ');
+
+            String value = entry.value?.toString() ?? 'N/A';
+
+            return DetailsRow(label: label, value: value);
+          }).toList(),
+          const Divider(),
 
           
 SizedBox(height:20,),
@@ -236,7 +249,7 @@ class DetailsRow extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
+              // allow multiline, no ellipsis
             ),
           ),
         ],

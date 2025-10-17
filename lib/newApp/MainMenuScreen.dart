@@ -1,9 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:mittsure/field/agentlocation.dart';
 import 'package:mittsure/field/newPunch.dart';
 import 'package:mittsure/field/routes.dart';
 import 'package:mittsure/newApp/allowances.dart';
@@ -13,16 +11,13 @@ import 'package:mittsure/newApp/expenseList.dart';
 import 'package:mittsure/newApp/faq.dart';
 import 'package:mittsure/newApp/myProfile.dart';
 import 'package:mittsure/newApp/specimenList.dart';
-import 'package:mittsure/newApp/specimenRequest.dart';
 import 'package:mittsure/newApp/userRequests.dart';
 import 'package:mittsure/newApp/visitScreen.dart';
 import 'package:mittsure/screens/Party.dart';
-import 'package:mittsure/screens/home.dart';
 import 'package:mittsure/screens/login.dart';
 import 'package:mittsure/screens/notifications.dart';
 import 'package:mittsure/screens/orders.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../services/apiService.dart';
 
 class MainMenuScreen extends StatefulWidget {
@@ -39,6 +34,10 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   String _username = "";
   Timer? _timer;
   var visitData = {};
+  List<Map<String,dynamic>> specimenSubmenu=[
+    {'title': 'My Specimens', 'screen': SpecimenScreen(tab: 1,)},
+    {'title': 'Alloted Specimens', 'screen': SpecimenScreen(tab: 3,)},
+  ];
   int _selectedIndex = 0;
   List<dynamic> config = [];
   bool isLoading = true;
@@ -64,6 +63,11 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
       setState(() {
         userData = jsonDecode(a);
         _username = (userData['name'] ?? "").toString();
+        if(userData['role']!='se'){
+          specimenSubmenu.add(
+            {'title': 'Distributed Specimens', 'screen': SpecimenScreen(tab: 2,)}
+          );
+        }
         getRoutePartyCount(userData["id"]);
       });
       await _fetchWorkingHours();
@@ -92,7 +96,8 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:""},
       );
       
-
+print(response);
+print(":dasada");
       if (response != null) {
         final data = response['data'];
         setState(() {
@@ -100,6 +105,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         });
       }
     } catch (error) {
+
       print("Error fetching jhjhj working hours: $error");
     }
   }
@@ -125,6 +131,17 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         });
       }
     } catch (error) {
+      if(error.toString().contains('401')){
+        final prefs = await SharedPreferences.getInstance();
+
+        await prefs.remove("user");
+        await prefs.remove("Token");
+        await prefs.remove('vehicleType');
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (cont) => LoginScreen()),
+        );
+      }
       print("Error fetching working 67 hours: $error");
     }
   }
@@ -407,44 +424,53 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                _drawerItem("Home", Icons.home, MainMenuScreen(), false),
-                _drawerItem("My Profile", Icons.home, ProfilePage(), false),
+                _drawerItem("Home", Icons.home, MainMenuScreen(), false,[]),
+                _drawerItem("My Profile", Icons.home, ProfilePage(), false,[]),
                  if (userData['role'] != 'se')
                   _drawerItem("Approval Tray", Icons.approval_rounded,
-                      RequestsScreen(), false),
+                      RequestsScreen(), false,[]),
                 _drawerItem("Attendance", Icons.watch_later,
-                    PunchScreen(mark: false), false),
-                _drawerItem("Visit", Icons.place, VisitListScreen(), false),
+                    PunchScreen(mark: false), false,[]),
+                _drawerItem("Visit", Icons.place, VisitListScreen(), false,[]),
                 _drawerItem(
                     "Expenses",
                     Icons.request_quote,
                     ExpenseListScreen()
                     // MainMenuScreen()
                     ,
-                    false),
+                    false,[]),
                 _drawerItem(
                     "Allowances",
                     Icons.request_quote,
                     // MainMenuScreen()
                     TravelAllowanceScreen(),
-                    false),
+                    false,[]),
                 _drawerItem("Route Plan", Icons.route,
-                    CreatedRoutesPage(userReq: false), false),
-                _drawerItem("Party", Icons.group, PartyScreen(), false),
+                    CreatedRoutesPage(userReq: false), false,[]),
+                _drawerItem("Party", Icons.group, PartyScreen(), false,[]),
                 _drawerItem(
                     "Orders",
                     Icons.money,
                     OrdersScreen(
+                      type: 'Sales',
                       userReq: false,
                     ),
-                    false),
+                    false,[]),
+                _drawerItem(
+                    "Specimen Orders",
+                    Icons.money,
+                    OrdersScreen(
+                      userReq: false,
+                      type: 'Specimen',
+                    ),
+                    false,[]),
                 _drawerItem(
                     "Specimen",
                     Icons.bookmarks_sharp,
-                    SpecimenScreen()
-                    // MainMenuScreen()
-                    ,
-                    false),
+                    SpecimenScreen(tab: 1,),
+                    false,
+                  specimenSubmenu
+                  ),
                
                 _drawerItem(
                     "Notifications",
@@ -452,12 +478,14 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     NotificationScreen()
                     // MainMenuScreen()
                     ,
-                    false),
-                    _drawerItem("FAQs", Icons.question_mark,FAQScreen() , false),
-                // _drawerItem("Map", Icons.map, AgentsMapScreen()),
+                    false,[]),
+                    _drawerItem("Returns", Icons.bookmark_border,MainMenuScreen() , false,[]),
+                _drawerItem("Collections", Icons.monetization_on,MainMenuScreen() , false,[]),
+                _drawerItem("FAQs", Icons.question_mark,FAQScreen() , false,[]),
+
                 Divider(thickness: 1),
                 _drawerItem(
-                    "Log Out", Icons.power_settings_new, LoginScreen(), true),
+                    "Log Out", Icons.power_settings_new, LoginScreen(), true,[]),
               ],
             ),
           ),
@@ -517,29 +545,52 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     );
   }
 
-  Widget _drawerItem(String title, IconData icon, Widget screen, bool logout) {
+  Widget _drawerItem(String title, IconData icon, Widget screen, bool logout,List<Map<String, dynamic>>? subMenu,) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 2.0),
       child: Card(
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         elevation: 1,
-        child: ListTile(
-            dense: true,
-            contentPadding: EdgeInsets.symmetric(horizontal: 12),
-            leading: Icon(icon, color: Colors.indigo[700]),
-            title: Text(title,
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
-            trailing:
-                Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-            onTap: () {
-              if (!logout) {
+        child:  subMenu == null || subMenu.isEmpty
+            ? ListTile(
+          dense: true,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+          leading: Icon(icon, color: Colors.indigo[700]),
+          title: Text(title,
+              style: const TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w500)),
+          trailing: const Icon(Icons.arrow_forward_ios,
+              size: 14, color: Colors.grey),
+          onTap: () {
+            if (!logout && screen != null) {
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (_) => screen));
+            } else {
+              _logout(context);
+            }
+          },
+        )
+            : ExpansionTile(
+          leading: Icon(icon, color: Colors.indigo[700]),
+          title: Text(title,
+              style: const TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.w500)),
+          children: subMenu.map((item) {
+            return ListTile(
+              dense: true,
+              leading: Icon(Icons.double_arrow_sharp, color: Colors.indigo[700]),
+              title: Text(item['title'],
+                  style: const TextStyle(fontSize: 14)),
+              onTap: () {
                 Navigator.push(
-                    context, MaterialPageRoute(builder: (context) => screen));
-              } else {
-                _logout(context);
-              }
-            }),
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => item['screen'] as Widget));
+              },
+            );
+          }).toList(),
+        ),
       ),
     );
   }
@@ -646,6 +697,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
               4,
               OrdersScreen(
                 userReq: false,
+                type: 'Sales',
               )),
         ],
       ),

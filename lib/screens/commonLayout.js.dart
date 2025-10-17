@@ -71,7 +71,7 @@ class _CommonLayoutState extends State<CommonLayout> {
       case 1:
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:false)),
+          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:false,type: 'Sales',)),
         );
         break;
       case 2:

@@ -252,7 +252,7 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
             'date': selectedDate,
           });
           selectedSchool = null;
-          // removeParty(partyType, selectedSchool);
+          prefDistributor.clear();
         });
       }
     } else {
@@ -471,7 +471,7 @@ print("getroutecluster");
                         height: 10,
                       ),
                       _buildDropdown(
-                          'Visit Type',
+                          'Visit Purpose',
                           visitTypeOptions,
                           "routeVisitTypeID",
                           'routeVisitType',

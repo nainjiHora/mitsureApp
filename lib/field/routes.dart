@@ -218,7 +218,7 @@ class _CreatedRoutesPageState extends State<CreatedRoutesPage> {
 
   Widget _buildStatusBadge(dynamic item) {
 
-    String label = userData["id"]==item['tagged_id']? 'You Are tagged':"${item['taggedUserName']} is tagged";
+    String label = userData["id"]==item['tagged_id']? 'You Are tagged':"${item['taggedUserName']}";
     Color color = Colors.cyan;
     return  item['tagged_id']!=null&&item['tagged_id']!=''? Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

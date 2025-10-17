@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
   final List<Map<String, dynamic>> menuItems = [
 
     {"title": "Party", "icon": 'assets/images/party.png', "route": PartyScreen(), "color": Colors.indigo[900],"disable":false},
-    {"title": "Orders", "icon": 'assets/images/order.png', "route": OrdersScreen(userReq:false), "color": Colors.green,"disable":false},
+    {"title": "Orders", "icon": 'assets/images/order.png', "route": OrdersScreen(userReq:false,type: 'Sales',), "color": Colors.green,"disable":false},
     {"title": "Incentive Calculator", "icon": 'assets/images/incentive.png', "route": IncentiveScreen(), "color": Colors.indigo[900],"disable":false},
     {"title": "Notification", "icon": 'assets/images/notification.png', "route": NotificationScreen(), "color": Colors.green,"disable":false},
 

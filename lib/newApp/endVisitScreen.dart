@@ -170,6 +170,18 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
         return;
       }
 
+      if (furtherVisit == null ||
+          (furtherVisit == 'false' &&
+              (furtherVisitController.text.length<20 ))) {
+        setState(() => isLoading = false);
+        DialogUtils.showCommonPopup(
+            context: cont,
+            message: "Please Enter minimum 20 characters in remark",
+            isSuccess: false);
+        return;
+      }
+
+
       final furvisit = {
         "visit_required": furtherVisit == 'false' ? false : true,
         "reason": furtherVisitController.text.trim(),
@@ -526,7 +538,7 @@ Future<void> gotofinal() async {
                                 ),
                                 validator: (val) =>
                                     val == null || val.trim().isEmpty
-                                        ? "Required"
+                                        ? "Required":val.length<20?"Minimum 20 characters"
                                         : null,
                               ),
                             ],

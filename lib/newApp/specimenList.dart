@@ -5,14 +5,15 @@ import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/specimenRequest.dart';
 import 'package:mittsure/newApp/specimenRequestList.dart';
-import 'package:mittsure/screens/commonLayout.js.dart';
-import 'package:mittsure/screens/login.dart';
-import 'package:mittsure/screens/orderDetail.dart';
+import 'package:mittsure/newApp/specimendetailsscreen.dart';
+import 'package:mittsure/services/pills.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/apiService.dart';
 
 class SpecimenScreen extends StatefulWidget {
+  final tab;
+  SpecimenScreen({required this.tab});
   @override
   _SpecimenScreenState createState() => _SpecimenScreenState();
 }
@@ -23,6 +24,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
   List<String> dates = [];
   String selectedASM = "";
   List<dynamic> asmList = [];
+  int selectedTab = 1;
   String selectedRsm = "";
   List<dynamic> rsmList = [];
   String selectedSE = "";
@@ -164,7 +166,6 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
     if (a!.isNotEmpty) {
       setState(() {
         userData = jsonDecode(a ?? "");
-        print(userData['role']);
 
         if (userData['role'] == 'se') {
           selectedSE = userData['id'];
@@ -185,6 +186,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
   @override
   void initState() {
     super.initState();
+    selectedTab = widget.tab;
     getUserData();
   }
 
@@ -224,7 +226,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
 
   Future<void> _fetchOrders(pageN, status) async {
     final body = {
-      "pageNumber": pageN,
+      "pageNumber": pageN - 1,
       "approvalStatus": status,
       "recordPerPage": pageSize,
       "rsm": selectedRsm,
@@ -236,20 +238,28 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
       isLoading = true;
     });
     print(body);
+    String url = '';
+    if (selectedTab == 1) {
+      url = '/specimen/getMyAcceptedAllotSpecimens';
+    } else if (selectedTab == 2) {
+      url = '/specimen/getAllotSpecimens';
+    } else if (selectedTab == 3) {
+      url = '/specimen/getMyAllotSpecimens';
+    }
     try {
       final response = await ApiService.post(
-        endpoint:
-            '/specimen/getAllAssignedSpecimenItems', // Use your API endpoint
+        endpoint: url, // Use your API endpoint
         body: body,
       );
       // Check if the response is valid
-      if (response != null && response['status'] == false) {
+      if (response != null && response['success'] == true) {
         final data = response['data'];
-        print(data);
+        print("dsdsdsdsdsdsdsdsdsdsd");
 
         setState(() {
           orders = data;
           filteredOrders = data;
+
           totalCount = response['data1'];
           isLoading = false;
         });
@@ -267,7 +277,15 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
     }
   }
 
-  // Method to log out (can be customized as per your auth logic)
+  getAppBarName(tab) {
+    if (tab == 1) {
+      return 'My Specimens';
+    } else if (tab == 2) {
+      return 'Distributed Specimens';
+    } else {
+      return 'Alloted Specimens';
+    }
+  }
 
   int get totalPages => (totalCount / int.parse(pageSize)).ceil();
 
@@ -278,7 +296,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
         backgroundColor: Colors.indigo[900],
         iconTheme: IconThemeData(color: Colors.white),
         title: Text(
-          "Specimen",
+          getAppBarName(widget.tab),
           style: TextStyle(color: Colors.white, fontSize: 20),
         ),
         actions: [
@@ -300,165 +318,185 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
           padding: const EdgeInsets.symmetric(vertical: 12.0),
           child: Column(
             children: [
-              Text(
-                "Available Specimens",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-
-              SizedBox(
-                height: 15,
-              ),
-              userData['role'] != 'se'
-                  ? Row(
-                      children: [
-                        SizedBox(
-                          width: 5,
-                        ),
-                        hasRole('admin') ||
-                                userData['role'] == 'zsm' ||
-                                userData['role'] == 'zsm'
-                            ? Expanded(
-                                child: DropdownButtonFormField<String>(
-                                  value: selectedRsm,
-                                  decoration: InputDecoration(
-                                    labelText: 'Select HO',
-                                    border: OutlineInputBorder(),
-                                    contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 8),
-                                  ),
-                                  style: TextStyle(fontSize: 14),
-                                  dropdownColor: Colors.white,
-                                  items: [
-                                    DropdownMenuItem<String>(
-                                      value: '', // Blank value for "All"
-                                      child: Text('All',
-                                          style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.black)),
+              // Row(
+              //   children: [
+              //     PillTab(label: "My Specimen",active:selectedTab==1,onTap: (){
+              //       setState(() {
+              //         selectedTab=1;
+              //       });
+              //       _fetchOrders(currentPage, selectedFilter);
+              //     },),
+              //     PillTab(label: "Distributed",active:selectedTab==2,onTap: (){
+              //       setState(() {
+              //         selectedTab=2;
+              //       });
+              //       _fetchOrders(currentPage, selectedFilter);
+              //     }),
+              //     PillTab(label: "Alloted Req",active:selectedTab==3,onTap: (){
+              //       setState(() {
+              //         selectedTab=3;
+              //       });
+              //       _fetchOrders(currentPage, selectedFilter);
+              //     })
+              //   ],
+              // ),
+              //
+              // SizedBox(
+              //   height: 15,
+              // ),
+              if (selectedTab == 2)
+                userData['role'] != 'se'
+                    ? Row(
+                        children: [
+                          SizedBox(
+                            width: 5,
+                          ),
+                          hasRole('admin') ||
+                                  userData['role'] == 'zsm' ||
+                                  userData['role'] == 'zsm'
+                              ? Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: selectedRsm,
+                                    decoration: InputDecoration(
+                                      labelText: 'Select HO',
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
                                     ),
-                                    ...rsmList.map((rsm) {
-                                      return DropdownMenuItem<String>(
-                                        value: rsm['id'].toString(),
-                                        child: Text(rsm['name'],
+                                    style: TextStyle(fontSize: 14),
+                                    dropdownColor: Colors.white,
+                                    items: [
+                                      DropdownMenuItem<String>(
+                                        value: '', // Blank value for "All"
+                                        child: Text('All',
                                             style: TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.black)),
-                                      );
-                                    }).toList(),
-                                  ],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      selectedRsm = value ?? "";
-                                    });
-                                    _fetchAsm(value);
-                                  },
-                                ),
-                              )
-                            : SizedBox(height: 0),
-                        SizedBox(
-                          width: 5,
-                        ),
-                        userData['role'] == 'rsm' ||
-                                hasRole('admin') ||
-                                userData['role'] == 'zsm'
-                            ? Expanded(
-                                child: DropdownButtonFormField<String>(
-                                  value: selectedASM,
-                                  decoration: InputDecoration(
-                                    labelText: 'Select ARM',
-                                    border: OutlineInputBorder(),
-                                    contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 8),
+                                      ),
+                                      ...rsmList.map((rsm) {
+                                        return DropdownMenuItem<String>(
+                                          value: rsm['id'].toString(),
+                                          child: Text(rsm['name'],
+                                              style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black)),
+                                        );
+                                      }).toList(),
+                                    ],
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedRsm = value ?? "";
+                                      });
+                                      _fetchAsm(value);
+                                    },
                                   ),
-                                  style: TextStyle(fontSize: 14),
-                                  dropdownColor: Colors.white,
-                                  items: [
-                                    DropdownMenuItem<String>(
-                                      value: '', // Blank value for "All"
-                                      child: Text('All',
-                                          style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.black)),
+                                )
+                              : SizedBox(height: 0),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          userData['role'] == 'rsm' ||
+                                  hasRole('admin') ||
+                                  userData['role'] == 'zsm'
+                              ? Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: selectedASM,
+                                    decoration: InputDecoration(
+                                      labelText: 'Select ARM',
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
                                     ),
-                                    ...asmList.map((rsm) {
-                                      return DropdownMenuItem<String>(
-                                        value: rsm['id'].toString(),
-                                        child: Text(rsm['name'],
+                                    style: TextStyle(fontSize: 14),
+                                    dropdownColor: Colors.white,
+                                    items: [
+                                      DropdownMenuItem<String>(
+                                        value: '', // Blank value for "All"
+                                        child: Text('All',
                                             style: TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.black)),
-                                      );
-                                    }).toList(),
-                                  ],
-                                  onChanged: (value) {
-                                    setState(() {
-                                      selectedASM = value ?? "";
-                                    });
-                                    _fetchSe(value);
-                                  },
-                                ),
-                              )
-                            : SizedBox(height: 0),
-                        SizedBox(
-                          width: 5,
-                        ),
-                        SizedBox(
-                          width: 5,
-                        ),
-                      ],
-                    )
-                  : Container(),
+                                      ),
+                                      ...asmList.map((rsm) {
+                                        return DropdownMenuItem<String>(
+                                          value: rsm['id'].toString(),
+                                          child: Text(rsm['name'],
+                                              style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black)),
+                                        );
+                                      }).toList(),
+                                    ],
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedASM = value ?? "";
+                                      });
+                                      _fetchSe(value);
+                                    },
+                                  ),
+                                )
+                              : SizedBox(height: 0),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          SizedBox(
+                            width: 5,
+                          ),
+                        ],
+                      )
+                    : Container(),
               SizedBox(
                 height: 8,
               ),
-              userData['role'] != 'se'
-                  ? Row(
-                      children: [
-                        SizedBox(
-                          width: 5,
-                        ),
-                        SizedBox(
-                          width: 5,
-                        ),
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            value: selectedSE,
-                            decoration: InputDecoration(
-                              labelText: 'Select RM',
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 10, vertical: 8),
-                            ),
-                            style: TextStyle(fontSize: 14),
-                            dropdownColor: Colors.white,
-                            items: [
-                              DropdownMenuItem<String>(
-                                value: '', // Blank value for "All"
-                                child: Text('All',
-                                    style: TextStyle(
-                                        fontSize: 14, color: Colors.black)),
+              if (selectedTab == 2)
+                userData['role'] != 'se'
+                    ? Row(
+                        children: [
+                          SizedBox(
+                            width: 5,
+                          ),
+                          SizedBox(
+                            width: 5,
+                          ),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              value: selectedSE,
+                              decoration: InputDecoration(
+                                labelText: 'Select RM',
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 8),
                               ),
-                              ...seList.map((rsm) {
-                                return DropdownMenuItem<String>(
-                                  value: rsm['id'].toString(),
-                                  child: Text(rsm['name'],
+                              style: TextStyle(fontSize: 14),
+                              dropdownColor: Colors.white,
+                              items: [
+                                DropdownMenuItem<String>(
+                                  value: '', // Blank value for "All"
+                                  child: Text('All',
                                       style: TextStyle(
                                           fontSize: 14, color: Colors.black)),
-                                );
-                              }).toList(),
-                            ],
-                            onChanged: (value) {
-                              selectedSE = value ?? "";
-                              _fetchOrders(currentPage, selectedFilter);
-                            },
+                                ),
+                                ...seList.map((rsm) {
+                                  return DropdownMenuItem<String>(
+                                    value: rsm['id'].toString(),
+                                    child: Text(rsm['name'],
+                                        style: TextStyle(
+                                            fontSize: 14, color: Colors.black)),
+                                  );
+                                }).toList(),
+                              ],
+                              onChanged: (value) {
+                                selectedSE = value ?? "";
+                                _fetchOrders(currentPage, selectedFilter);
+                              },
+                            ),
                           ),
-                        ),
-                        SizedBox(
-                          width: 5,
-                        ),
-                      ],
-                    )
-                  : Container(),
+                          SizedBox(
+                            width: 5,
+                          ),
+                        ],
+                      )
+                    : Container(),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -485,17 +523,31 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                       ],
                     ),
                   ),
-                  ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) =>
-                                    SpecimenReList(userReq: false,)) // remove all previous routes
-                            );
-                      },
-                      icon: Icon(Icons.add),
-                      label: Text("Requests"))
+                  if (selectedTab != 3)
+                    ElevatedButton.icon(
+                        onPressed: () {
+                          if (selectedTab == 1) {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) => SpecimenReList(
+                                        userReq: false,
+                                        tab:
+                                            selectedTab)) // remove all previous routes
+                                );
+                          } else {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => SpecimenRequestScreen(
+                                          seList: seList,
+                                          tab: selectedTab,
+                                        )));
+                          }
+                        },
+                        icon: Icon(Icons.add),
+                        label:
+                            Text(selectedTab == 2 ? "Distribute" : "Requests"))
                 ],
               ),
               // List of Orders
@@ -506,7 +558,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               SizedBox(height: 200),
-                              Text("No orders",
+                              Text("No Items",
                                   style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 20)),
@@ -518,58 +570,77 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                             itemCount: filteredOrders.length,
                             itemBuilder: (context, index) {
                               final order = filteredOrders[index];
-                              final skuItems =
-                                  order['skuItems'] as List<dynamic>;
+                              // final skuItems =
+                              //     order['skuItems'] as List<dynamic>;
 
-                              return GestureDetector(
-                                onTap: () {},
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Padding(
-                                      padding: EdgeInsets.symmetric(
-                                          horizontal: 16, vertical: 8),
-                                      child: Text(
-                                        order['seriesName']
-                                                .toString()
-                                                .toUpperCase() ??
-                                            '',
-                                        style: TextStyle(
+                              return Card(
+                                elevation: 3, // shadow depth
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(
+                                      12), // rounded corners
+                                ),
+                                margin: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () {
+                                    Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                SpecimenDetailsScreen(
+                                                  specimenDetails: order,
+                                                  tab: selectedTab,
+                                                )));
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(
+                                        16), // internal padding
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          order['nameSku']
+                                                  ?.toString()
+                                                  .toUpperCase() ??
+                                              '',
+                                          style: const TextStyle(
                                             fontSize: 16,
-                                            fontWeight: FontWeight.bold),
-                                      ),
-                                    ),
-                                    ListView.builder(
-                                      shrinkWrap: true,
-                                      physics: NeverScrollableScrollPhysics(),
-                                      itemCount: skuItems.length,
-                                      itemBuilder: (context, skuIndex) {
-                                        final item = skuItems[skuIndex];
-
-                                        return Card(
-                                          margin: EdgeInsets.symmetric(
-                                              vertical: 4, horizontal: 16),
-                                          elevation: 3,
-                                          child: ListTile(
-                                            title: Text(
-                                              item['nameSku'] ?? "",
-                                              style: TextStyle(
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                            subtitle: Row(
-                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                              children: [
-                                                Text(
-                                                    'Class: ${item['className']}'),
-                                                Text(
-                                                    'Quantity: ${int.parse(item['quantity']).toString()}'),
-                                              ],
-                                            ),
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                        );
-                                      },
-                                    )
-                                  ],
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              order['sku_code']
+                                                      ?.toString()
+                                                      .toUpperCase() ??
+                                                  '',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                                width:
+                                                    16), // space between SKU and quantity
+                                            Text(
+                                              "Quantity - ${order['quantity']?.toString()}" ??
+                                                  '',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               );
                             },

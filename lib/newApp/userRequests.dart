@@ -72,9 +72,9 @@ class _RequestsScreenState extends State<RequestsScreen> with TickerProviderStat
           controller: _tabController,
           children: [
             PartyReqScreen(),
-            OrdersScreen(userReq:true),
+            OrdersScreen(userReq:true,type: 'Sales',),
             CreatedRoutesPage(userReq: true),
-            SpecimenReList(userReq: true)
+            SpecimenReList(userReq: true,tab:1)
             
           ],
         ),

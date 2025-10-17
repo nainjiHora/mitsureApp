@@ -15,7 +15,7 @@ class VisitListScreen extends StatefulWidget {
 class _VisitListScreenState extends State<VisitListScreen> {
   DateTimeRange? _selectedDateRange;
   final DateFormat _dateFormat = DateFormat('dd-MM-yyyy');
-
+ TextEditingController searchController=TextEditingController();
   List<dynamic> visits = [];
   List<dynamic> yesterdayVisits = [];
   List<dynamic> previousVisits = [];
@@ -182,6 +182,7 @@ class _VisitListScreenState extends State<VisitListScreen> {
 
     Map<String, dynamic> body = {
       "ownerName": selectedSE,
+      "search":searchController.text,
       "pageNumber": currentPage - 1,
       "recordPerPage": recordPerPage,
       "startDate": formatter.format(_selectedDateRange!.start),
@@ -482,9 +483,6 @@ class _VisitListScreenState extends State<VisitListScreen> {
                     SizedBox(
                       width: 5,
                     ),
-                    SizedBox(
-                      width: 5,
-                    ),
                     Expanded(
                       child: DropdownButtonFormField<String>(
                         value: selectedSE,
@@ -518,9 +516,7 @@ class _VisitListScreenState extends State<VisitListScreen> {
                         },
                       ),
                     ),
-                    SizedBox(
-                      width: 5,
-                    ),
+
                   ],
                 )
               : Container(),
@@ -554,7 +550,46 @@ class _VisitListScreenState extends State<VisitListScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 10),
+      Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            // Text Field
+            Expanded(
+              child: TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  labelText: 'Enter Party Id or name or address',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                    horizontal: 16,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+
+            // Find Button
+            ElevatedButton(
+              onPressed: fetchVisits,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Find'),
+            ),
+          ],
+        ),
+      ),
+
           Divider(thickness: 1.2),
           Expanded(
             child: isLoading

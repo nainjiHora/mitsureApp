@@ -320,7 +320,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
           ),
         ),
         validator: (value) =>
-            value == null || value.isEmpty ? 'Required' : null,
+            value == null || value.isEmpty ? 'Required' : value.length<22?"Minimum 20 characters": null,
       ),
     );
   }

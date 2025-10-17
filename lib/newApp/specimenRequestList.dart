@@ -7,9 +7,12 @@ import 'package:mittsure/services/apiService.dart';
 import 'package:mittsure/services/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'MainMenuScreen.dart';
+
 class SpecimenReList extends StatefulWidget {
   final bool userReq;
-  const SpecimenReList({super.key, required this.userReq});
+  final tab;
+  const SpecimenReList({super.key, required this.userReq, required this.tab});
 
   @override
   State<SpecimenReList> createState() => _SpecimenReListState();
@@ -39,7 +42,8 @@ class _SpecimenReListState extends State<SpecimenReList> {
 
     getUserData();
   }
-    void _approveRequest(id) async {
+
+  void _approveRequest(id) async {
     setState(() {
       isLoading = true;
     });
@@ -57,8 +61,12 @@ class _SpecimenReListState extends State<SpecimenReList> {
       });
       if (response != null && response['status'] == false) {
         DialogUtils.showCommonPopup(
-            context: context, message: "Approved Sucessfully", isSuccess: true ,onOkPressed: (){getUserData();});
-
+            context: context,
+            message: "Approved Sucessfully",
+            isSuccess: true,
+            onOkPressed: () {
+              getUserData();
+            });
       }
     } catch (e) {
       print(e);
@@ -70,7 +78,6 @@ class _SpecimenReListState extends State<SpecimenReList> {
       });
     }
   }
-
 
   List<dynamic> allUsers = [];
 
@@ -190,7 +197,7 @@ class _SpecimenReListState extends State<SpecimenReList> {
         userData = jsonDecode(a ?? "");
         filters = widget.userReq
             ? ["Partial Approved", "Pending"]
-            : ["All", "Approved", "Rejected", "Partial Approved", "Pending"];
+            : ["Rejected", "Partial Approved", "Pending"];
         selectedFilter = widget.userReq ? "Pending" : "All";
         print(userData['role']);
 
@@ -277,9 +284,6 @@ class _SpecimenReListState extends State<SpecimenReList> {
     }
   }
 
-
-
-
   Widget buildPagination() {
     List<Widget> buttons = [];
 
@@ -356,18 +360,53 @@ class _SpecimenReListState extends State<SpecimenReList> {
               iconTheme: IconThemeData(color: Colors.white),
               actions: [
                 IconButton(
-                  icon: Icon(Icons.add),
+                  icon: const Icon(Icons.home, color: Colors.white),
                   onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => SpecimenRequestScreen()));
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => MainMenuScreen()),
+                      (route) => false, // remove all previous routes
+                    );
                   },
-                )
+                ),
+                // IconButton(
+                //   icon: Icon(Icons.add),
+                //   onPressed: () {
+                //     Navigator.push(
+                //         context,
+                //         MaterialPageRoute(
+                //             builder: (_) => SpecimenRequestScreen(seList: [],tab:widget.tab)));
+                //   },
+                // )
               ],
             ),
       body: Column(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton.icon(
+            onPressed: () {
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => SpecimenRequestScreen(seList: [],tab:widget.tab)));
+            },
+                  icon: Icon(Icons.add, color: Colors.white),
+                  label: Text("Add Request", style: TextStyle(color: Colors.white)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           const SizedBox(height: 10),
 
           userData['role'] != 'se'
@@ -595,36 +634,41 @@ class _SpecimenReListState extends State<SpecimenReList> {
                                             fontSize: 16,
                                           ),
                                         ),
-                                       widget.userReq? Row(
-                                          children: [
-                                            GestureDetector(
-                                                onTap: () {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) =>
-                                                          SpecimenReqDetail(
-                                                        id: item['specimenId'],
-                                                        userReq: widget.userReq,
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                                child: Icon(
-                                                    Icons.remove_red_eye,
-                                                    color: Colors
-                                                        .indigo.shade600)),
-                                            const SizedBox(width: 12),
-                                            GestureDetector(
-                                                onTap: () {
-                                                  _approveRequest(item['specimenId']);
-                                                },
-                                                child: Icon(
-                                                    Icons.thumb_up_sharp,
-                                                    color:
-                                                        Colors.green.shade600)),
-                                          ],
-                                        ):Container()
+                                        widget.userReq
+                                            ? Row(
+                                                children: [
+                                                  GestureDetector(
+                                                      onTap: () {
+                                                        Navigator.push(
+                                                          context,
+                                                          MaterialPageRoute(
+                                                            builder: (context) =>
+                                                                SpecimenReqDetail(
+                                                              id: item[
+                                                                  'specimenId'],
+                                                              userReq: widget
+                                                                  .userReq,
+                                                            ),
+                                                          ),
+                                                        );
+                                                      },
+                                                      child: Icon(
+                                                          Icons.remove_red_eye,
+                                                          color: Colors.indigo
+                                                              .shade600)),
+                                                  const SizedBox(width: 12),
+                                                  GestureDetector(
+                                                      onTap: () {
+                                                        _approveRequest(
+                                                            item['specimenId']);
+                                                      },
+                                                      child: Icon(
+                                                          Icons.thumb_up_sharp,
+                                                          color: Colors
+                                                              .green.shade600)),
+                                                ],
+                                              )
+                                            : Container()
                                       ],
                                     ),
                                     SizedBox(height: 8),

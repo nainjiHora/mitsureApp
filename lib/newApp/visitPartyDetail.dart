@@ -572,7 +572,7 @@ print(googleApiKey);
         _showPopup(response["message"], false, context);
       }
     } catch (error) {
-      _showPopup("Failed to send OTP. Please try later.", false, context);
+      _showPopup("Failed to send Verification Code. Please try later.", false, context);
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => MainMenuScreen()),
@@ -650,7 +650,7 @@ print(googleApiKey);
                             Navigator.pop(context);
                             _sendOtp(cont);
                           },
-                          child: Text("Resend OTP"),
+                          child: Text("Resend Verification Code"),
                         )
                       : Text("Resend in $remainingSeconds seconds"),
                 ],
@@ -672,7 +672,7 @@ print(googleApiKey);
                       Navigator.pop(context);
                       _submitOtp(cont);
                     } else {
-                      _showSnackbar("Please enter a valid 6-digit OTP", cont);
+                      _showSnackbar("Please enter a valid 6-digit Verification Code", cont);
                     }
                   },
                   child: Text("Submit"),
@@ -709,11 +709,11 @@ print(googleApiKey);
       if (response != null && response['status'] == false) {
         startMeeting("end");
       } else {
-        _showPopup("Incorrect OTP. Please try again.", false, context);
+        _showPopup("Incorrect Verification Code. Please try again.", false, context);
         setState(() => isLoading = false);
       }
     } catch (_) {
-      _showPopup("Failed to verify OTP. Please try again.", false, context);
+      _showPopup("Failed to verify Verification Code. Please try again.", false, context);
       setState(() => isLoading = false);
     } finally {
       setState(() => isLoading = false);
@@ -1208,6 +1208,19 @@ print(googleApiKey);
                   DetailsRow(
                       label: 'Assigned RM',
                       value: distributor['ownerName'] ?? 'N/A'),
+                  if(distributor['extra_detail'] != null)
+                  const SectionTitle(title: 'Extra Details'),
+                  if(distributor['extra_detail'] != null)
+                  ...(distributor['extra_detail'] as Map<String, dynamic>).entries.map((entry) {
+                    // Capitalize and format the key for display as label
+                    String label = entry.key.replaceAll('_', ' ').split(' ').map((word) {
+                      return word[0].toUpperCase() + word.substring(1);
+                    }).join(' ');
+
+                    String value = entry.value?.toString() ?? 'N/A';
+
+                    return DetailsRow(label: label, value: value);
+                  }).toList(),
                   // Additional Information Section
                   //           const SectionTitle(title: 'Additional Information'),
                   //           DetailsRow(label: 'PAN Number', value: distributor['panNumber'] ?? 'N/A'),
@@ -1500,7 +1513,7 @@ class DetailsRow extends StatelessWidget {
               value,
               textAlign: TextAlign.end,
               style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
-              overflow: TextOverflow.ellipsis,
+
             ),
           ),
         ],

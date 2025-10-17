@@ -16,7 +16,7 @@ class ApiService {
   }
 
   // Common API call function
-  static Future<dynamic> _callApi({
+  static Future<dynamic>  _callApi({
     required String method,
     required String endpoint,
     Map<String, String>? headers,
@@ -45,6 +45,7 @@ class ApiService {
     http.Response response;
 
     try {
+      print(url);
       switch (method.toUpperCase()) {
         case 'GET':
           response = await http.get(url, headers: headers);
@@ -64,19 +65,23 @@ class ApiService {
       }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        if(jsonDecode(response.body)['message']=="Session Expired Please LogIn Again"){
+        final body = jsonDecode(response.body);
+        final message = body['message']?.toString() ?? '';
 
+        if (message.toLowerCase().contains("login again")) {
 
-         return {"code":500};
-          }else {
-          return json.decode(response.body);
+          return {"code": 500};
+        } else {
+          // Normal response
+          return body;
         }
       } else {
         print(response.body);
-        throw Exception('Failed to load data: ${response.statusCode}');
+        throw Exception( "${response.statusCode}");
       }
     } catch (e) {
-      throw Exception('Error making API call: $e');
+      print(e.toString());
+      throw Exception('$e');
     }
   }
 

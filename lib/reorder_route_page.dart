@@ -164,16 +164,20 @@ Widget build(BuildContext context) {
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _submitReorderedRoutes,
-              child: const Text("Submit"),
-            ),
+        ElevatedButton.icon(
+          style: ButtonStyle(
+            backgroundColor:
+            MaterialStateProperty.all(Colors.green),
+            minimumSize: MaterialStateProperty.all(
+                const Size(180, 48)), // width: 180, height: 48
           ),
+          onPressed: _submitReorderedRoutes,
+          icon: const Icon(Icons.arrow_forward,
+              color: Colors.white),
+          label: const Text('Submit',
+              style: TextStyle(color: Colors.white)),
         ),
+
       ],
     ),
   );

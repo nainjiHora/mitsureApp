@@ -2,22 +2,24 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-
+import 'dart:typed_data';
+import 'package:dio/dio.dart';
+import 'package:http/http.dart' as http;
+import 'package:open_filex/open_filex.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:intl/intl.dart';
 import 'package:mittsure/field/punchDetailpopup.dart';
 import 'package:mittsure/field/vameraScreen.dart';
-import 'package:http/http.dart' as http;
 import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/newApp/bookLoader.dart';
-import 'package:mittsure/screens/mainMenu.dart';
 import 'package:mittsure/services/monthFilter.dart';
 import 'package:mittsure/services/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shimmer/shimmer.dart';
-
 import '../services/apiService.dart';
 
 class PunchScreen extends StatefulWidget {
@@ -53,6 +55,7 @@ class _PunchScreenState extends State<PunchScreen> {
   int leaveCount = 0;
   int absentCount = 0;
   int halfDayCount = 0;
+  int shortDayCount = 0;
   bool meterCamera = false;
   Map<String, dynamic> userData = {};
   getUserData() async {
@@ -61,8 +64,8 @@ class _PunchScreenState extends State<PunchScreen> {
     if (a!.isNotEmpty) {
       setState(() {
         userData = jsonDecode(a ?? "");
-        print(userData['role']);
-        if(widget.mark&&userData['role']!='se'){
+
+        if (widget.mark && userData['role'] != 'se') {
           _fetchWorkingHours(null);
           _fetchMonthlyAttendance(null);
         }
@@ -70,7 +73,7 @@ class _PunchScreenState extends State<PunchScreen> {
         if (userData['role'] == 'se') {
           selectedSE = userData['id'];
           _fetchWorkingHours(null);
-        _fetchMonthlyAttendance(null);
+          _fetchMonthlyAttendance(null);
         } else if (userData['role'] == 'rsm') {
           selectedRsm = userData['id'];
           _fetchAsm(userData['id']);
@@ -100,8 +103,7 @@ class _PunchScreenState extends State<PunchScreen> {
           asmList = data.where((e) => e['role'] == 'asm').toList();
           seList = data.where((e) => e['role'] == 'se').toList();
           allUsers = data;
-         isLoading=false;
-        
+          isLoading = false;
         });
       } else {
         throw Exception('Failed to load orders');
@@ -121,7 +123,7 @@ class _PunchScreenState extends State<PunchScreen> {
     setState(() {
       isLoading = true;
     });
-    
+
     try {
       if (id != "") {
         final response = await ApiService.post(
@@ -148,7 +150,7 @@ class _PunchScreenState extends State<PunchScreen> {
           selectedSE = "";
           asmList = allUsers.where((e) => e['role'] == 'asm').toList();
           seList = allUsers.where((e) => e['role'] == 'se').toList();
-          isLoading=false;
+          isLoading = false;
         });
       }
     } catch (error) {
@@ -157,7 +159,7 @@ class _PunchScreenState extends State<PunchScreen> {
   }
 
   _fetchSe(id) async {
-   print(id);
+    print(id);
     try {
       setState(() {
         isLoading = true;
@@ -194,8 +196,6 @@ class _PunchScreenState extends State<PunchScreen> {
     }
   }
 
-
-
   // lastPunchIn = punches.isNotEmpty && punches.last.type == "In";
   Future<void> _fetchMonthlyAttendance(month) async {
     setState(() {
@@ -205,7 +205,7 @@ class _PunchScreenState extends State<PunchScreen> {
     final now = DateTime.now();
 
     Map<String, dynamic> body = {
-      "userId": widget.mark? userData['id']:selectedSE,
+      "userId": widget.mark ? userData['id'] : selectedSE,
       "month": month ?? now.month, // e.g., 6 for June
       "year": now.year, // e.g., 2025
     };
@@ -221,11 +221,12 @@ class _PunchScreenState extends State<PunchScreen> {
       if (response != null && response['success'] == true) {
         final data = response['data'];
         setState(() {
-          selectedMonth = body['month'];
-          halfDayCount = data['half_day'];
-          presentCount = data['full_day'];
-          leaveCount = data['leave'];
-          absentCount = data['absent'];
+          selectedMonth = body['month'] ?? 0;
+          halfDayCount = data['half_day'] ?? 0;
+          presentCount = data['full_day'] ?? 0;
+          leaveCount = data['leave'] ?? 0;
+          absentCount = data['absent'] ?? 0;
+          shortDayCount = data['short_day'] ?? 0;
           isLoadingCards = false;
         });
       } else {
@@ -246,15 +247,17 @@ class _PunchScreenState extends State<PunchScreen> {
 
   Future<void> _fetchWorkingHours(date) async {
     print("daddadasa");
-    DateTime now =date?? DateTime.now();
-    
+    DateTime now = date ?? DateTime.now();
+
     setState(() {
       isLoading = true;
       followUpDate = now;
     });
     String formattedDate = DateFormat('yyyy-MM-dd').format(now);
-    final body = { "userId": widget.mark? userData['id']:selectedSE,
-     "date": formattedDate};
+    final body = {
+      "userId": widget.mark ? userData['id'] : selectedSE,
+      "date": formattedDate
+    };
 
     try {
       final response = await ApiService.post(
@@ -381,7 +384,7 @@ class _PunchScreenState extends State<PunchScreen> {
       var request = http.MultipartRequest('POST', uri);
 
       request.fields.addAll({
-        "city" :jsonEncode(punchData['city']),
+        "city": jsonEncode(punchData['city']),
         "in_km": lastPunchIn ? "" : reading,
         "punch": lastPunchIn ? "out" : "in",
         "out_km": lastPunchIn ? reading : "",
@@ -502,8 +505,8 @@ class _PunchScreenState extends State<PunchScreen> {
   Widget buildSummaryCard(String title, int count, Color color, IconData icon) {
     return Expanded(
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: 6),
-        padding: EdgeInsets.all(12),
+        margin: EdgeInsets.symmetric(horizontal: 4),
+        padding: EdgeInsets.all(1),
         decoration: BoxDecoration(
           color: color.withOpacity(0.15),
           borderRadius: BorderRadius.circular(16),
@@ -530,7 +533,7 @@ class _PunchScreenState extends State<PunchScreen> {
     // TODO: implement initState
     super.initState();
     int currentMonth = DateTime.now().month;
-    selectedMonth=currentMonth;
+    selectedMonth = currentMonth;
     getUserData();
   }
 
@@ -543,163 +546,167 @@ class _PunchScreenState extends State<PunchScreen> {
     return formattedTime; // Output: 1:33 PM
   }
 
-  getAdminFilters(){
+  getAdminFilters() {
     return Column(
       children: [
         const SizedBox(height: 10),
-          
-          userData['role'] != 'se'
-              ? Row(
-                  children: [
-                    SizedBox(
-                      width: 5,
-                    ),
-                    hasRole('admin') ||
-                            userData['role'] == 'zsm' ||
-                            userData['role'] == 'zsm'
-                        ? Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: selectedRsm,
-                              decoration: InputDecoration(
-                                labelText: 'Select HO',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 8),
+        userData['role'] != 'se'
+            ? Row(
+                children: [
+                  SizedBox(
+                    width: 5,
+                  ),
+                  hasRole('admin') ||
+                          userData['role'] == 'zsm' ||
+                          userData['role'] == 'zsm'
+                      ? Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: selectedRsm,
+                            decoration: InputDecoration(
+                              labelText: 'Select HO',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
+                            ),
+                            style: TextStyle(fontSize: 14),
+                            dropdownColor: Colors.white,
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: '', // Blank value for "All"
+                                child: Text('Select HO',
+                                    style: TextStyle(
+                                        fontSize: 14, color: Colors.black)),
                               ),
-                              style: TextStyle(fontSize: 14),
-                              dropdownColor: Colors.white,
-                              items: [
-                                DropdownMenuItem<String>(
-                                  value: '', // Blank value for "All"
-                                  child: Text('Select HO',
+                              ...rsmList.map((rsm) {
+                                return DropdownMenuItem<String>(
+                                  value: rsm['id'].toString(),
+                                  child: Text(rsm['name'],
                                       style: TextStyle(
                                           fontSize: 14, color: Colors.black)),
-                                ),
-                                ...rsmList.map((rsm) {
-                                  return DropdownMenuItem<String>(
-                                    value: rsm['id'].toString(),
-                                    child: Text(rsm['name'],
-                                        style: TextStyle(
-                                            fontSize: 14, color: Colors.black)),
-                                  );
-                                }).toList(),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedRsm = value ?? "";
-                                });
-                                _fetchAsm(value);
-                              },
+                                );
+                              }).toList(),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                selectedRsm = value ?? "";
+                              });
+                              _fetchAsm(value);
+                            },
+                          ),
+                        )
+                      : SizedBox(height: 0),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  userData['role'] == 'rsm' ||
+                          hasRole('admin') ||
+                          userData['role'] == 'zsm'
+                      ? Expanded(
+                          child: DropdownButtonFormField<String>(
+                            value: selectedASM,
+                            decoration: InputDecoration(
+                              labelText: 'Select ARM',
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
                             ),
-                          )
-                        : SizedBox(height: 0),
-                    SizedBox(
-                      width: 5,
-                    ),
-                    userData['role'] == 'rsm' ||
-                            hasRole('admin') ||
-                            userData['role'] == 'zsm'
-                        ? Expanded(
-                            child: DropdownButtonFormField<String>(
-                              value: selectedASM,
-                              decoration: InputDecoration(
-                                labelText: 'Select ARM',
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 8),
+                            style: TextStyle(fontSize: 14),
+                            dropdownColor: Colors.white,
+                            items: [
+                              DropdownMenuItem<String>(
+                                value: '', // Blank value for "All"
+                                child: Text('Select ARM',
+                                    style: TextStyle(
+                                        fontSize: 14, color: Colors.black)),
                               ),
-                              style: TextStyle(fontSize: 14),
-                              dropdownColor: Colors.white,
-                              items: [
-                                DropdownMenuItem<String>(
-                                  value: '', // Blank value for "All"
-                                  child: Text('Select ARM',
+                              ...asmList.map((rsm) {
+                                return DropdownMenuItem<String>(
+                                  value: rsm['id'].toString(),
+                                  child: Text(rsm['name'],
                                       style: TextStyle(
                                           fontSize: 14, color: Colors.black)),
-                                ),
-                                ...asmList.map((rsm) {
-                                  return DropdownMenuItem<String>(
-                                    value: rsm['id'].toString(),
-                                    child: Text(rsm['name'],
-                                        style: TextStyle(
-                                            fontSize: 14, color: Colors.black)),
-                                  );
-                                }).toList(),
-                              ],
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedASM = value ?? "";
-                                });
-                                _fetchSe(value);
-                              },
-                            ),
-                          )
-                        : SizedBox(height: 0),
-                    SizedBox(
-                      width: 5,
-                    ),
-                    SizedBox(
-                      width: 5,
-                    ),
-                  ],
-                )
-              : Container(),
-          SizedBox(
-            height: 8,
-          ),
-          userData['role'] != 'se'
-              ? Row(
-                  children: [
-                    SizedBox(
-                      width: 5,
-                    ),
-                    SizedBox(
-                      width: 5,
-                    ),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: selectedSE,
-                        decoration: InputDecoration(
-                          labelText: 'Select RM',
-                          border: OutlineInputBorder(),
-                          contentPadding:
-                              EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                );
+                              }).toList(),
+                            ],
+                            onChanged: (value) {
+                              setState(() {
+                                selectedASM = value ?? "";
+                              });
+                              _fetchSe(value);
+                            },
+                          ),
+                        )
+                      : SizedBox(height: 0),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                ],
+              )
+            : Container(),
+        SizedBox(
+          height: 8,
+        ),
+        userData['role'] != 'se'
+            ? Row(
+                children: [
+                  SizedBox(
+                    width: 5,
+                  ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: selectedSE,
+                      decoration: InputDecoration(
+                        labelText: 'Select RM',
+                        border: OutlineInputBorder(),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      ),
+                      style: TextStyle(fontSize: 14),
+                      dropdownColor: Colors.white,
+                      items: [
+                        DropdownMenuItem<String>(
+                          value: '', // Blank value for "All"
+                          child: Text('Select RM',
+                              style:
+                                  TextStyle(fontSize: 14, color: Colors.black)),
                         ),
-                        style: TextStyle(fontSize: 14),
-                        dropdownColor: Colors.white,
-                        items: [
-                          DropdownMenuItem<String>(
-                            value: '', // Blank value for "All"
-                            child: Text('Select RM',
+                        ...seList.map((rsm) {
+                          return DropdownMenuItem<String>(
+                            value: rsm['id'].toString(),
+                            child: Text(rsm['name'],
                                 style: TextStyle(
                                     fontSize: 14, color: Colors.black)),
-                          ),
-                          ...seList.map((rsm) {
-                            return DropdownMenuItem<String>(
-                              value: rsm['id'].toString(),
-                              child: Text(rsm['name'],
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.black)),
-                            );
-                          }).toList(),
-                        ],
-                        onChanged: (value) {
-                          selectedSE = value ?? "";
-                         if(selectedSE!=null &&selectedSE!=""){ _fetchWorkingHours(null);
-        _fetchMonthlyAttendance(null);}
-                        },
-                      ),
+                          );
+                        }).toList(),
+                      ],
+                      onChanged: (value) {
+                        selectedSE = value ?? "";
+                        if (selectedSE != null && selectedSE != "") {
+                          _fetchWorkingHours(null);
+                          _fetchMonthlyAttendance(null);
+                        }
+                      },
                     ),
-                    SizedBox(
-                      width: 5,
-                    ),
-                  ],
-                )
-              : Container(),
-              SizedBox(height: 10,)
+                  ),
+                  SizedBox(
+                    width: 5,
+                  ),
+                ],
+              )
+            : Container(),
+        SizedBox(
+          height: 10,
+        )
       ],
     );
   }
+
   Future<void> selectDateRange(BuildContext context) async {
     final DateTime now = DateTime.now();
     final DateTimeRange? picked = await showDateRangePicker(
@@ -717,65 +724,61 @@ class _PunchScreenState extends State<PunchScreen> {
     }
   }
 
-markleave()async{
-  try{
-    setState(() {
-      isLoading=true;
-    });
+  markleave() async {
+    try {
+      setState(() {
+        isLoading = true;
+      });
 
-    final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-   var body = {
-      "ownerId": userData!['id'],
-      // "startDate":picked.start.toString().substring(0,11),
-      // "endDate":picked.end.toString().substring(0,11)
-     "startDate":today,
-     "endDate":today
-    };
+      final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      var body = {
+        "ownerId": userData!['id'],
+        // "startDate":picked.start.toString().substring(0,11),
+        // "endDate":picked.end.toString().substring(0,11)
+        "startDate": today,
+        "endDate": today
+      };
 
-  
-    final response = await ApiService.post(
-      endpoint: "/attendance/markLeaveInAttendance",
-      body: body,
-    );
-
-    if (response != null && response['status'] == false) {
-      
-
-      
-      DialogUtils.showCommonPopup(
-        context: context,
-        message: response['message'],
-        isSuccess: true,
+      final response = await ApiService.post(
+        endpoint: "/attendance/markLeaveInAttendance",
+        body: body,
       );
-      _fetchMonthlyAttendance(selectedMonth);
-    } else {
+
+      if (response != null && response['status'] == false) {
+        DialogUtils.showCommonPopup(
+          context: context,
+          message: response['message'],
+          isSuccess: true,
+        );
+        _fetchMonthlyAttendance(selectedMonth);
+      } else {
+        DialogUtils.showCommonPopup(
+          context: context,
+          message: response['message'],
+          isSuccess: false,
+        );
+      }
+    } catch (e) {
       DialogUtils.showCommonPopup(
         context: context,
-        message: response['message'],
+        message: 'Something went wrong',
         isSuccess: false,
       );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
-  } catch (e) {
-    
-    DialogUtils.showCommonPopup(
-      context: context,
-      message: 'Something went wrong',
-      isSuccess: false,
-    );
-  } finally {
-    setState(() {
-      isLoading = false;
-    });
   }
-}
 
-markConfirm(){
+  markConfirm() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("Mark Leave"),
-          content: const Text("You are marking leave for today.You won't be able to visit party after this. Are you sure to mark today as leave ?"),
+          content: const Text(
+              "You are marking leave for today.You won't be able to visit party after this. Are you sure to mark today as leave ?"),
           actions: [
             TextButton(
               onPressed: () {
@@ -785,10 +788,8 @@ markConfirm(){
             ),
             TextButton(
               onPressed: () async {
-
                 Navigator.of(context).pop();
                 markleave();
-               
               },
               child: const Text("Confirm"),
             ),
@@ -798,7 +799,162 @@ markConfirm(){
     );
   }
 
+  Future<void> showExportDialog(BuildContext context) async {
+    return showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Export Options'),
+        content: const Text('Choose a format to export the file:'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+              exportToPdf(); // Call PDF export function
+            },
+            child: const Text('PDF'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Close the dialog
+              exportToExcel(); // Call Excel export function
+            },
+            child: const Text('Excel'),
+          ),
 
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Just close dialog
+            },
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  void exportToPdf() async {
+    final dio = Dio();
+    final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    print("Starting PDF download...");
+
+    try {
+      final data = {
+        "asm": userData['id'],
+        "startDate": today,
+        "endDate": today,
+      };
+
+      // ✅ Request manage external storage permission (for Android 11+)
+      var status = await Permission.manageExternalStorage.request();
+      if (!status.isGranted) {
+        print("Storage permission not granted");
+        return;
+      }
+
+      // ✅ Make POST request using Dio
+      final response = await dio.post(
+        "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovementPDF",
+        data: data,
+        options: Options(responseType: ResponseType.bytes),
+      );
+
+      if (response.statusCode == 200) {
+        final formattedDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
+        final fileName = "staff_@_10AM_report_$formattedDate.pdf";
+
+        // ✅ Get the public Downloads directory
+        Directory? downloadsDir;
+        if (Platform.isAndroid) {
+          downloadsDir = Directory('/storage/emulated/0/Download');
+        } else {
+          downloadsDir = await getDownloadsDirectory();
+        }
+
+        final filePath = "${downloadsDir!.path}/$fileName";
+
+        final file = File(filePath);
+        await file.writeAsBytes(response.data);
+
+        print("✅ PDF saved to: $filePath");
+
+
+        OpenFilex.open(filePath);
+      } else {
+        print("❌ Failed to export PDF: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("⚠️ Error during PDF download: $e");
+    } finally {
+      print("Download complete.");
+    }
+  }
+
+
+
+  void exportToExcel() async {
+
+      final dio = Dio();
+      final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      print("Starting PDF download...");
+
+      try {
+        final data = {
+          "asm": userData['id'],
+          "startDate": today,
+          "endDate": today,
+        };
+
+        // ✅ Request manage external storage permission (for Android 11+)
+        var status = await Permission.manageExternalStorage.request();
+        if (!status.isGranted) {
+          print("Storage permission not granted");
+          return;
+        }
+
+        // ✅ Make POST request using Dio
+        final response = await dio.post(
+          "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovement",
+          data: data,
+          options: Options(responseType: ResponseType.bytes),
+        );
+
+        if (response.statusCode == 200) {
+          final formattedDate = DateFormat('dd-MM-yyyy').format(DateTime.now());
+          final fileName = "staff_@_10AM_report_$formattedDate.xlsx";
+
+          // ✅ Get the public Downloads directory
+          Directory? downloadsDir;
+          if (Platform.isAndroid) {
+            downloadsDir = Directory('/storage/emulated/0/Download');
+          } else {
+            downloadsDir = await getDownloadsDirectory();
+          }
+
+          final filePath = "${downloadsDir!.path}/$fileName";
+
+          final file = File(filePath);
+          await file.writeAsBytes(response.data);
+
+          print("✅  saved to: $filePath");
+
+
+          OpenFilex.open(filePath);
+        } else {
+          print("❌ Failed to export PDF: ${response.statusCode}");
+        }
+      } catch (e) {
+        print("⚠️ Error during PDF download: $e");
+      } finally {
+        print("Download complete.");
+      }
+
+
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -836,8 +992,6 @@ markConfirm(){
         ),
         body: Stack(
           children: [
-            
-          
             cameraScreen
                 ? KMReadingCameraScreen(
                     onReadingCaptured: onPunchButtonPressed, bike: meterCamera)
@@ -845,7 +999,7 @@ markConfirm(){
                     padding: const EdgeInsets.all(16),
                     child: Column(
                       children: [
-                        if (widget.mark)
+                        if (widget.mark || userData['role']=='se')
                           Card(
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16)),
@@ -878,8 +1032,8 @@ markConfirm(){
                               ),
                             ),
                           ),
-                        if (widget.mark) SizedBox(height: 20),
-                        if (widget.mark)
+                        if (widget.mark || userData['role']=='se') SizedBox(height: 20),
+                        if (widget.mark || userData['role']=='se')
                           ElevatedButton.icon(
                             onPressed: () async {
                               reasonData =
@@ -896,38 +1050,36 @@ markConfirm(){
                                 });
                                 return;
                               } else {
-                                bool flag=false;
-                                if(lastPunchIn){
-                                 try{
-                                   final res=await ApiService.post(endpoint: "/attendance/getUserInKm", body: {
-                                     "userId":userData['id']
-                                   });
-                                   if(res['success']==true){
-                                     if(res['data']['in_km']!=''&&res['data']['in_km']!=null){
-                                       flag=true;
-                                     }
-                                   }
-
-                                 }
-                                 catch(e){
-                                   print(e);
-                                 }
+                                bool flag = false;
+                                if (lastPunchIn) {
+                                  try {
+                                    final res = await ApiService.post(
+                                        endpoint: "/attendance/getUserInKm",
+                                        body: {"userId": userData['id']});
+                                    if (res['success'] == true) {
+                                      if (res['data']['in_km'] != '' &&
+                                          res['data']['in_km'] != null) {
+                                        flag = true;
+                                      }
+                                    }
+                                  } catch (e) {
+                                    print(e);
+                                  }
                                 }
-                                setState((){
+                                setState(() {
                                   if (reasonData['vehicleType'] != null &&
                                       reasonData['vehicleType'] != "" &&
                                       reasonData['vehicleType']['min_time'] ==
                                           '1') {
                                     meterCamera = true;
                                   } else {
-
                                     meterCamera = flag;
                                   }
                                   cameraScreen = true;
                                 });
                               }
                             },
-                              icon: Icon(lastPunchIn ? Icons.logout : Icons.login,
+                            icon: Icon(lastPunchIn ? Icons.logout : Icons.login,
                                 size: 26, color: Colors.white),
                             label: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 14),
@@ -946,19 +1098,18 @@ markConfirm(){
                                   borderRadius: BorderRadius.circular(16)),
                             ),
                           ),
-                          if (widget.mark) SizedBox(height: 10),
-                          if (widget.mark)
+                        if (widget.mark || userData['role']=='se') SizedBox(height: 10),
+                        if (widget.mark || userData['role']=='se')
                           ElevatedButton.icon(
                             onPressed: () async {
-                             // selectDateRange(context);
-                             markConfirm();
+                              // selectDateRange(context);
+                              markConfirm();
                             },
-                              icon: Icon(Icons.power_off,
+                            icon: Icon(Icons.power_off,
                                 size: 26, color: Colors.white),
                             label: Padding(
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              child: Text(
-                                  "Mark Leave",
+                              child: Text("Mark Leave",
                                   style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.bold,
@@ -966,17 +1117,54 @@ markConfirm(){
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
-                                   const Color.fromARGB(255, 249, 180, 4),
+                                  const Color.fromARGB(255, 249, 180, 4),
                               minimumSize: Size(double.infinity, 56),
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16)),
                             ),
                           ),
                         SizedBox(height: 20),
-                        !widget.mark? getAdminFilters():Container(),
+                        !widget.mark ? getAdminFilters() : Container(),
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            userData['role']!="se"? Expanded(
+                              // This makes the button take full width
+                              child: GestureDetector(
+                                onTap: () {
+                                  showExportDialog(context);
+                                  print("Gradient button tapped!");
+                                },
+                                child: Container(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Colors.indigo,
+                                        Colors.indigoAccent,
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Center(
+                                    child: Text(
+                                      "Today @ 10",
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ):Container(),
+                            SizedBox(
+                              width: 50,
+                            ),
                             MonthFilter(
                               onMonthSelected: _fetchMonthlyAttendance,
                               initialMonth: selectedMonth,
@@ -988,18 +1176,21 @@ markConfirm(){
                         ),
                         Row(
                           children: isLoadingCards
-                              ? List.generate(3, (index) => buildSkeletonCard())
+                              ? List.generate(5, (index) => buildSkeletonCard())
                               : [
                                   buildSummaryCard("Present", presentCount,
                                       Colors.green, Icons.check_circle),
                                   buildSummaryCard("Half Day", halfDayCount,
                                       Colors.orange, Icons.access_time),
+                                  buildSummaryCard(
+                                      "Short Day",
+                                      shortDayCount,
+                                      Colors.orangeAccent,
+                                      Icons.punch_clock_sharp),
                                   buildSummaryCard("Leave", leaveCount,
                                       Colors.blueAccent, Icons.access_time),
-                                      
                                   buildSummaryCard("Absent", absentCount,
                                       Colors.red, Icons.cancel),
-                                      
                                 ],
                         ),
                         SizedBox(height: 20),
@@ -1023,7 +1214,7 @@ markConfirm(){
                                     lastDate: DateTime.now(),
                                   );
                                   if (picked != null)
-                                    setState((){
+                                    setState(() {
                                       followUpDate = picked;
                                       _fetchWorkingHours(followUpDate);
                                     });
@@ -1034,7 +1225,9 @@ markConfirm(){
                                     Text(
                                         widget.mark
                                             ? ""
-                                            :followUpDate!=null? " ${followUpDate!.day}-${followUpDate!.month}-${followUpDate!.year}":"",
+                                            : followUpDate != null
+                                                ? " ${followUpDate!.day}-${followUpDate!.month}-${followUpDate!.year}"
+                                                : "",
                                         style: TextStyle(
                                             fontSize: 20,
                                             fontWeight: FontWeight.bold,

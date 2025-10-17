@@ -51,10 +51,11 @@ class _ItemListPageState extends State<ItemListPage> {
     }
   }
 
-  Widget _buildStatusBadge(dynamic status) {
-    print(status);
+  Widget _buildStatusBadge(dynamic visit) {
+print(visit['meeting_with_decision_maker']);
     String label = '';
     Color color = Colors.grey;
+    var status=widget.userReq?visit['status']:visit['visited_status'];
 
     switch (status) {
       case 1:
@@ -66,7 +67,7 @@ class _ItemListPageState extends State<ItemListPage> {
         color = widget.userReq ? Colors.red : Colors.blue;
         break;
       case 3:
-        label = 'Meeting Ended';
+        label = visit['meeting_with_decision_maker']!=null &&visit['meeting_with_decision_maker'].toLowerCase()=='no'?'Visit Ongoing':'Meeting Ended';
         color = Colors.purple;
         break;
       case 4:
@@ -250,7 +251,7 @@ class _ItemListPageState extends State<ItemListPage> {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Items', style: TextStyle(color: Colors.white)),
+          title: const Text('Route Items', style: TextStyle(color: Colors.white)),
           backgroundColor: Colors.indigo,
           iconTheme: const IconThemeData(color: Colors.white),
           actions: [
@@ -351,10 +352,13 @@ class _ItemListPageState extends State<ItemListPage> {
                                         item['schoolName']),
                                     subtitle: Text(
                                         "${item['partyType'] == 0 ? 'Distributor' : 'School'}-${item['partyId']}"),
-                                    trailing: widget.userReq
-                                        ? _buildStatusBadge(item['status'])
-                                        : _buildStatusBadge(
-                                            item['visited_status']),
+                                    trailing: Column(
+                                      children: [
+                                        _buildVisitBadge(item),
+                                             SizedBox(height: 5,),
+                                             _buildStatusBadge(item),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               );
@@ -376,7 +380,7 @@ if(userData['role']!=null&& alreadytagged)
                       label: const Text('Untag Me ',
                           style: TextStyle(color: Colors.white)),
                     ),
-                  ),
+                  )  ,
                   if(userData['role']=='asm' && !alreadytagged)
                   Padding(
                     padding: const EdgeInsets.all(8.0),
@@ -397,6 +401,44 @@ if(userData['role']!=null&& alreadytagged)
 
                 ],
               ),
+      ),
+    );
+  }
+  Widget _buildVisitBadge(dynamic party) {
+
+    String label = '';
+    Color color = Colors.grey;
+if(party['visitHappened']!=null)
+    {
+      switch (party['visitHappened'].toUpperCase()) {
+        case 'YES':
+          label = 'Visited';
+          color = Colors.green;
+          break;
+        case "NO":
+          label = ' Not Yet Visited ';
+          color = Colors.red;
+          break;
+
+        default:
+          return const SizedBox(); // No badge for unknown status
+      }
+    }
+
+    return label==""?SizedBox():Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 9,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }

@@ -204,7 +204,7 @@ class _PartyScreenState extends State<PartyScreen> {
 
 
     try {
-      print(body);
+
       final response = await ApiService.post(
         endpoint: selectedFilter == 'school'
             ? '/party/getSchool'
@@ -217,6 +217,7 @@ class _PartyScreenState extends State<PartyScreen> {
         setState(() {
           totalCount = response['data1'];
           parties = data;
+          print(data);
           isLoading=false;
         });
       } else {
@@ -556,8 +557,15 @@ class _PartyScreenState extends State<PartyScreen> {
                               Text('Email: ${party['email']}'),
                             ],
                           ),
-                          trailing: Icon(Icons.arrow_forward_ios,
-                              color: Colors.grey),
+                          trailing: Column(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _buildStatusBadge(party),
+                              // SizedBox(height: 30,),
+                              // Icon(Icons.arrow_forward_ios,
+                              //     color: Colors.grey),
+                            ],
+                          ),
                         ),
                       ),
                     );
@@ -575,6 +583,46 @@ class _PartyScreenState extends State<PartyScreen> {
       ),
     );
   }
+
+  Widget _buildStatusBadge(dynamic party) {
+
+    String label = '';
+    Color color = Colors.grey;
+
+    if(party['visitHappened']!=null){
+      switch (party['visitHappened'].toUpperCase()) {
+        case 'YES':
+          label = 'Visited';
+          color = Colors.green;
+          break;
+        case "NO":
+          label = ' Not Visited';
+          color = Colors.red;
+          break;
+
+        default:
+          return const SizedBox(); // No badge for unknown status
+      }
+    }
+
+    return label==""?SizedBox(): Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        border: Border.all(color: color),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildFilterButton(String text, bool isSelected, VoidCallback onTap) {
     return GestureDetector(
