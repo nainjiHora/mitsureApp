@@ -26,6 +26,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   String? _selectedWarehouse;
   String? _selectedRemark;
   String? orderRemark;
+  bool otpNeed=true;
   bool isLoading = false;
   List<dynamic> remarks = [];
 
@@ -202,6 +203,10 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             addressData['Distributor Address']!['email'] = a['email'] ?? "";
             addressData['Distributor Address']!['mobile'] =
                 a['makerContact'] ?? "";
+            addressData['Distributor Address']!['id'] =
+                a['distributorID'] ?? "";
+            addressData['Distributor Address']!['addId'] =
+                a['addressId'] ?? "";
             var matchingTransporters = alltransporters
                 .where((ele) => ele['transporterId'] == a['transporterId'])
                 .toList();
@@ -273,11 +278,18 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   void _createOrder(flag) {
-    if (_selectedTransporter == null ||
-        _selectedDistributor == null ||
-        _selectedStockist == null ||
-        _selectedWarehouse == null ||
-        _selectedRemark == null ||
+
+    if ((_selectedTransporter == null&&widget.payload['orderType'].toLowerCase()=='sales') ||
+        (_selectedDistributor == null && widget.payload['orderType'].toLowerCase()=='sales') ||
+        (_selectedStockist == null&& widget.payload['orderType'].toLowerCase()=='sales') ||
+        (_selectedWarehouse == null && widget.payload['orderType'].toLowerCase()=='sales')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text('Please fill Distributor,Stockist ,Warehouse and Transporter')),
+      );
+      return;
+    }
+    if (_selectedRemark == null ||
         orderRemark == "") {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -286,6 +298,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       return;
     }
 
+
     if (_selectedConsentPerson.toLowerCase() == 'stockist address' &&
         attach.length == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -293,7 +306,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       );
       return;
     }
-    if (flag) {
+
+    if (flag ||!otpNeed) {
       order(flag);
     } else {
       proceed(flag);
@@ -333,6 +347,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       print("Error sending Verification Code: $error");
       _showErrorMessage("Failed to send Verification Code. Please try again.");
     }
+    finally{
+      setState(() {
+        isLoading=false;
+      });
+    }
   }
 
   void _showErrorMessage(String message) {
@@ -356,22 +375,22 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       "otp": otpController.text,
     };
 
-    try {
+    // try {
       final response = await ApiService.post(
         endpoint: '/user/verifyOtp',
         body: body,
       );
-
+       print(response);
       if (response != null && response['status'] == false) {
         Navigator.pop(context); // Close Verification Code dialog
         await order(flag); // Proceed to order
       } else {
         _showErrorMessage("Incorrect Verification Code. Please try again.");
       }
-    } catch (error) {
-      print("Error verifying Verification Code: $error");
-      _showErrorMessage("Failed to verify Verification Code. Please try again.");
-    }
+    // } catch (error) {
+    //   print("Error verifying Verification Code: $error");
+    //   _showErrorMessage("Failed to verify Verification Code. Please try again.");
+    // }
   }
 
   consentDone(id) async {
@@ -390,9 +409,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       );
 
       if (response != null) {
-        Navigator.pushReplacement(
+
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,type: widget.payload['orderType'])),
+              (route) => false, // remove all previous routes
         );
       } else {
         throw Exception('Failed to load orders');
@@ -403,10 +424,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   Future<void> order(flag) async {
+
     var body = widget.payload;
     body['stockistId'] = _selectedStockist;
     body['distributorId'] = _selectedDistributor;
     body['transport'] = _selectedTransporter;
+    body['otp_need']=otpNeed;
     body['mobileNo'] = addressData[_selectedAddressType]!['id']!;
     body['email'] = addressData[_selectedAddressType]!['email']!;
     body['address'] = addressData[_selectedAddressType]!['addId']!;
@@ -418,6 +441,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     body['saveLater'] = flag ? 1 : 0;
     body['warehouse'] = _selectedWarehouse;
     try {
+
+
       final response = await ApiService.post(
         endpoint: '/order/createOrder',
         body: body,
@@ -481,6 +506,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     addressData['Party Address']!['email'] = widget.payload['email'];
     addressData['Party Address']!['id'] = widget.payload['partyId'];
     addressData['Party Address']!['addId'] = widget.payload['addressId'];
+    // if(widget.payload['orderType'].toLowerCase()!='sales'){
+    //   setState(() {
+    //     otpNeed=false;
+    //   });
+    // }
     fetchTransporter();
     fetchStockist();
     fetchDistributor();
@@ -871,6 +901,15 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                 200), // Limits input length
                           ],
                         ),
+                        if(widget.payload['orderType'].toLowerCase()!='sales')
+                        CheckboxListTile(
+                          title: Text("Verify With Code",
+                              style: TextStyle(fontWeight: FontWeight.bold)),
+                          value: otpNeed,
+                          onChanged: (value) =>
+                              setState(() => otpNeed = value!),
+                        ),
+                        if(otpNeed)
                         Card(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),

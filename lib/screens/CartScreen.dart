@@ -22,6 +22,7 @@ class _CartScreenState extends State<CartScreen> {
   // List of cart items
   List<CartItem> cartItems = [];
   var seriedDiscount={};
+  var seriesData=[];
   final TextEditingController otpController = TextEditingController(); // OTP input controller
 
   // Function to calculate total price
@@ -102,15 +103,21 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
     cartItems.clear();
     var disc={};
     for (var order in widget.orders) {
-
+      seriesData=widget.series;
       int quantity = int.parse(order['quantity'].toString()) ?? 1;
       String group=order['group'];
       List<dynamic> items = order['data'];
 
       for (var item in items) {
         disc[item['seriesCategory']]=order["discount"];
-        cartItems.add(CartItem(
+        if(group=='6HPipXSLx5'){
 
+          var discConf={"seriesName":item['product_name'],"seriesTableId":item['id'],"discountType":item['discountType'],"flatDiscount":item['flatDiscount'],"maxDiscount":item['maxDiscount'],"minDiscount":item['minDiscount']};
+          seriesData.add(discConf);
+          print(discConf);
+        }
+        cartItems.add(CartItem(
+          disApp:group!="6HPipXSLx5" ,
           name: group=="6HPipXSLx5"?item['product_name']:item['nameSku'] ,
           productGroup: group,
           price:( item['unitPrice'] != null ? double.tryParse(item['unitPrice'].toString()):double.tryParse(item['landing_cost'].toString())) ?? 0.0,
@@ -123,7 +130,7 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
         ));
       }
     }
-    print(cartItems);
+
     setState(() {
       seriedDiscount=disc;
     });
@@ -225,7 +232,7 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
                         ),
                       ),
                       onPressed: () {
-                        showGroupedCartPopup(context,cartItems,widget.series);
+                        showGroupedCartPopup(context,cartItems,seriesData);
                       },
                       icon: const Icon(Icons.discount, color: Colors.white), // Icon for the button
                       label: const Text(
@@ -265,11 +272,14 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
   }
   void showGroupedCartPopup(BuildContext context, List<CartItem> cartItems, List<dynamic> seriesData) {
     final Map<String, List<CartItem>> groupedItems = {};
+
     for (var item in cartItems) {
-      if (!groupedItems.containsKey(item.series)) {
-        groupedItems[item.series] = [];
-      }
-      groupedItems[item.series]!.add(item);
+if(item.disApp) {
+  if (!groupedItems.containsKey(item.series)) {
+    groupedItems[item.series] = [];
+  }
+  groupedItems[item.series]!.add(item);
+}
     }
 
     final Map<String, double> seriesTotals = {};
@@ -334,7 +344,7 @@ if(widget.payload['orderType'].toLowerCase()=='sales') {
                               (element) => element['seriesTableId'] == series,
                           orElse: () => null,
                         );
-
+print(seriesInfo);
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -476,6 +486,8 @@ class CartItem {
   String itemId;
   int discount;
   String itemType;
+  bool disApp;
 
-  CartItem({required this.itemType, required this.series,required this.name,required this.discount,required this.productGroup,required this.total, required this.price, this.qty = 1, required this.itemId});
+
+  CartItem({required this.itemType, required this.series,required this.name,required this.disApp,required this.discount,required this.productGroup,required this.total, required this.price, this.qty = 1, required this.itemId});
 }

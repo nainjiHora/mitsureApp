@@ -284,7 +284,11 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
       // Check if the response is valid
       if (response != null) {
         setState(() {
-          series = response['series_list'];
+          series = response['series_list'].where((ee) {
+            print(ee);
+            return ee['specimen'] != null &&
+                ee['specimen'].toString().toLowerCase() == 'true';
+          }).toList();
           classes = response['class_list'];
           mediums = response['medium_list'];
           groups = response['productGroup_list'];

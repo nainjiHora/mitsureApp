@@ -83,6 +83,15 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       });
     }
   }
+  getAddress(add){
+print(add);
+    if(add==null||add=='null'){
+      return "";
+    }else{
+      var t=jsonDecode(add);
+      return t['addressLine1']??"N/A";
+    }
+  }
 
   fetchOrderItems() async {
     final body = {
@@ -132,8 +141,8 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Order Items',
+                 Text(
+                  'Order Items (${orderItems.length})',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -148,17 +157,32 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                     itemCount: orderItems.length,
                     itemBuilder: (context, index) {
                       final item = orderItems[index];
-                      return ListTile(
-                        title: Text(
-                          "${item['nameSku'] ?? item['product_name']} (${item['sku_code']})",
+                      return Card(
+                        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        subtitle: Text(
-                          'Quantity: ${item['QTY']} | Unit Price: Rs.${item['Price']}',
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 8,
+                            horizontal: 12,
+                          ),
+                          title: Text(
+                            "${item['nameSku'] ?? item['product_name']} ${item['sku_code']!=null?'('+item['sku_code']+')':""}",
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                          ),
+                          subtitle: Text(
+                            'Qty: ${item['QTY']}   •   Rs.${item['Price']}',
+                            style: const TextStyle(fontSize: 13),
+                          ),
+                          dense: true,
                         ),
                       );
                     },
                   ),
-                ),
+                )
+                ,
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () {
@@ -177,137 +201,83 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print(widget.order);
+
     return CommonLayout(
     title:widget.order['so_id'] ?? "Order",
        currentIndex: 1,
       child: ListView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         children: [
           const SectionTitle(title: 'Order Details'),
           OrderDetailsRow(label: 'Party', value: widget.order['schoolName'] ?? widget.order['DistributorName']),
           OrderDetailsRow(
             label: 'Date',
-            value: DateFormat('dd MMM yyyy')
-                .format(DateTime.parse(widget.order['createdAt'].toString())),
+            value: DateFormat('dd MMM yyyy').format(DateTime.parse(widget.order['createdAt'].toString())),
           ),
-          OrderDetailsRow(label: 'Remark', value: widget.order['remark']??""),
+          OrderDetailsRow(label: 'Remark', value: widget.order['remark'] ?? ""),
           const Divider(),
+
           const SectionTitle(title: 'Item Details'),
           GestureDetector(
-            onTap: _showOrderItemsDialog, // Show dialog on tap
+            onTap: _showOrderItemsDialog,
             child: OrderDetailsRow(
               label: 'Order Items',
               value: orderItems.length.toString(),
+              // showChevron: true,
             ),
           ),
-          OrderDetailsRow(label: 'Sub Total', value: '₹' + widget.order['originalAmount']==null?"0":widget.order['originalAmount'] ),
-          OrderDetailsRow(label: 'Discount', value: "${(double.parse(widget.order['originalAmount'])-double.parse(widget.order['totalAmount'])).toString()}" ?? "0"),
-          OrderDetailsRow(label: 'Total', value: '₹' + widget.order['totalAmount'] ?? ""),
+          OrderDetailsRow(label: 'Sub Total', value: '₹${widget.order['originalAmount'] ?? "0"}'),
+          OrderDetailsRow(
+            label: 'Discount',
+            value: "${(double.parse(widget.order['originalAmount']) - double.parse(widget.order['totalAmount'])).toString()}",
+          ),
+          OrderDetailsRow(label: 'Total', value: '₹${widget.order['totalAmount'] ?? ""}'),
           const SizedBox(height: 16),
+
           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                    _showOrderItemsDialog();
-                  },
-                  icon: const Icon(Icons.show_chart, color: Colors.blue),
-                  label: const Text('Show Items', style: TextStyle(color: Colors.blue)),
-                ),
+              TextButton.icon(
+                onPressed: _showOrderItemsDialog,
+                icon: const Icon(Icons.show_chart, color: Colors.blue),
+                label: const Text('Show Items', style: TextStyle(color: Colors.blue)),
               ),
-              widget.order['approvalStatus']!=2?Center(
-                child: TextButton.icon(
+              if (widget.order['approvalStatus'] != 2)
+                TextButton.icon(
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => ReturnItemsScreen(order: widget.order)), // Route to HomePage
-                    );
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => ReturnItemsScreen(order: widget.order)));
                   },
                   icon: const Icon(Icons.refresh, color: Colors.blue),
                   label: const Text('Return Order', style: TextStyle(color: Colors.blue)),
                 ),
-              ):SizedBox(height: 0,),
             ],
           ),
           const Divider(),
+
           const SectionTitle(title: 'Delivery Details'),
           OrderDetailsRow(label: 'Order Type', value: widget.order['orderType']),
-          OrderDetailsRow(label: 'Address', value: widget.order['Address']),
+          OrderDetailsRow(label: 'Address', value: widget.order['partyId'].toString().contains('S-')?getAddress(widget.order['sAddress']):getAddress(widget.order['dAddress'])),
           OrderDetailsRow(label: 'Contact Person', value: widget.order['name']),
-          OrderDetailsRow(label: 'Contact Number', value: widget.order['mobileNo'].toString()),
+          OrderDetailsRow(label: 'Contact Number', value: widget.order['mobno'].toString()),
           OrderDetailsRow(label: 'E-mail Id', value: widget.order['emailId']),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+          const SizedBox(height: 12),
 
-              Center(
-                child: TextButton.icon(
-                  onPressed: () {
-                  _showAttachmentsDialog(context);
-                  },
-                  icon: const Icon(Icons.file_copy_sharp, color: Colors.blue),
-                  label: const Text('View Attachments', style: TextStyle(color: Colors.blue)),
-                ),
-              ),
-            ],
+          Center(
+            child: TextButton.icon(
+              onPressed: () => _showAttachmentsDialog(context),
+              icon: const Icon(Icons.file_copy_sharp, color: Colors.blue),
+              label: const Text('View Attachments', style: TextStyle(color: Colors.blue)),
+            ),
           ),
-          widget.order['approvalStatus']==6? Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton(
-
-                  onPressed: _showConsentDialog,
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.indigo[900],
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                child: Text('Take Consent', style: TextStyle(color: Colors.white)),
-              ),
-              ElevatedButton(
-
-                onPressed: _showDeleteDialog,
-
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                child: Text('Discard', style: TextStyle(color: Colors.white)),
-              ),
-
-            ],
-          ):SizedBox(height: 0,),
-          (userData['role']!='se'&&userData["role"]!="asm"&&widget.order['approvalStatus']==0)||(userData["role"]=="asm"&&widget.order['asmApproval']==0&& widget.order['approvalStatus']==0)? Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              ElevatedButton(
-                onPressed: () {
-                  approveRejectOrder(1, "Approved");
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                child: Text('Accept', style: TextStyle(color: Colors.white)),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  _showRejectDialog(context);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                ),
-                child: Text('Reject', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ):SizedBox(height: 0,)
-
         ],
-      ),
+      )
+
     );
   }
+
+
+
+
   Future<void> proceed() async {
     setState(() {
       isLoading=true;
@@ -694,58 +664,104 @@ Widget _getFileIcon(String fileName) {
   }
 }
 // Section Title Widget
+// class SectionTitle extends StatelessWidget {
+//   final String title;
+//
+//   const SectionTitle({super.key, required this.title});
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: const EdgeInsets.symmetric(vertical: 8.0),
+//       child: Text(
+//         title,
+//         style: const TextStyle(
+//           fontSize: 16,
+//           fontWeight: FontWeight.bold,
+//           color: Colors.black87,
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+// // Order Details Row Widget
+// class OrderDetailsRow extends StatelessWidget {
+//   final String label;
+//   final String value;
+//
+//   const OrderDetailsRow({
+//     super.key,
+//     required this.label,
+//     required this.value,
+//   });
+//
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: const EdgeInsets.symmetric(vertical: 4.0),
+//       child: Row(
+//         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//         children: [
+//           Text(
+//             label,
+//             style: TextStyle(fontSize: 14, color: Colors.black54),
+//           ),
+//           Text(
+//             value,
+//             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+//   // Function to show the attachments dialog
+//
+//
+// }
+
 class SectionTitle extends StatelessWidget {
   final String title;
-
-  const SectionTitle({super.key, required this.title});
+  const SectionTitle({required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.only(bottom: 8, top: 12),
       child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87,
-        ),
+        title.toUpperCase(),
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
       ),
     );
   }
 }
 
-// Order Details Row Widget
 class OrderDetailsRow extends StatelessWidget {
   final String label;
   final String value;
+  final bool showChevron;
 
-  const OrderDetailsRow({
-    super.key,
-    required this.label,
-    required this.value,
-  });
+  const OrderDetailsRow({required this.label, required this.value, this.showChevron = false});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(fontSize: 14, color: Colors.black54),
-          ),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          Expanded(flex: 4, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
+          Expanded(
+            flex: 6,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                Flexible(child: Text(value, textAlign: TextAlign.right)),
+                if (showChevron) const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
-  // Function to show the attachments dialog
-
-
 }

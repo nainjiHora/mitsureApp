@@ -6,6 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
 import 'package:mittsure/screens/CartScreen.dart';
+import 'package:mittsure/services/utils.dart';
+import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
+import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
+import 'package:multi_select_flutter/util/multi_select_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/apiService.dart';
 import 'login.dart';
@@ -25,7 +29,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   String? orderType;
   String? bookType;
   String? productType;
+
   int seriesDisc = 0;
+  List<dynamic> selectedPro=[];
   String? shippingError;
  bool isLoading=false;
   String? productGroup;
@@ -64,7 +70,10 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   List<dynamic> sets = [];
   List<dynamic> series = [];
   List<dynamic> filteredSeries = [];
+  List<dynamic> specimenSeries = [];
   List<dynamic> classes = [];
+  List<dynamic> specimenClasses = [];
+  List<dynamic> specimenProducts = [];
   List<dynamic> filteredClass = [];
   List<dynamic> mediums = [];
   List<dynamic> products = [];
@@ -72,6 +81,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   List<dynamic> partyType = [];
   List<dynamic> mittplusTypes = [];
   List<dynamic> groups = [];
+  List<dynamic> filteredGroups = [];
 
   void _logout() async {
     final prefs = await SharedPreferences.getInstance();
@@ -81,6 +91,20 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       MaterialPageRoute(
           builder: (context) => LoginScreen()), // Route to HomePage
     );
+  }
+
+  removeMittPlus(){
+
+    if(orderType.toString().toLowerCase()!='sales'){
+      setState(() {
+        filteredGroups.removeWhere((element) => element['id']=='6HPipXSLx5');
+      });
+    }else{
+
+      setState(() {
+        filteredGroups=[...groups];
+      });
+    }
   }
 
   String getNameTransporter(value) {
@@ -98,7 +122,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
   filterProductsByClass(value) {
     setState(() {
-      filteredProducts = products
+      selectedProduct=null;
+      List<dynamic> prod=orderType.toString().toLowerCase()!='sales'?specimenProducts:products;
+      filteredProducts = prod
           .where((e) =>
               e['classId'] == value &&
               (selectedSeries == null ||
@@ -137,11 +163,14 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   }
 
   addProductIems(value) {
+    productItems=[];
     if (productGroup == "6HPipXSLx5") {
       productItems =
           mittplusProducts.where((element) => element['id'] == value).toList();
+productItems[0]['seriesCategory']=productItems[0]['id'];
+      print(productItems);
     } else {
-      productItems =
+      productItems=
           products.where((element) => element['skuId'] == value).toList();
     }
   }
@@ -158,6 +187,8 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       // Check if the response is valid
       if (response != null) {
         final data = response['data'];
+        print(data);
+        print("mittplus producs");
         setState(() {
           mittplusTypes = data;
         });
@@ -171,6 +202,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
 
   filterMittplusItems(value) {
     setState(() {
+      selectedProduct=null;
       filteredMittplusItems =
           mittplusProducts.where((ele) => ele['productType'] == value).toList();
     });
@@ -293,24 +325,28 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       setState(() {
         isLoading=true;
       });
-      final response = await ApiService.post(
-        endpoint: orderType.toString().toLowerCase()!='sales'? '/product/getSpecimenProduct':'/product/getProduct', // Use your API endpoint
-        body: {},
-      );
-
-      // Check if the response is valid
-      if (response != null) {
-
-        final data = response['data'];
-
-        setState(() {
-          products = data;
-          // print(products.length);
-          // filteredProducts=data;
-        });
-      } else {
-        throw Exception('Failed to load orders');
+      if(orderType.toString().toLowerCase()!='sales'){
+        getProductSpecimenINventory();
       }
+
+        final response = await ApiService.post(
+          endpoint:orderType.toString().toLowerCase()!='sales'?'/product/getSpecimenProduct': '/product/getProduct', // Use your API endpoint
+          body: {},
+        );
+
+        // Check if the response is valid
+        if (response != null) {
+          final data = response['data'];
+
+          setState(() {
+            products = data;
+            // print(products.length);
+            // filteredProducts=data;
+          });
+        } else {
+          throw Exception('Failed to load orders');
+        }
+
     } catch (error) {
       print("Error fetching orders: $error");
     }
@@ -320,6 +356,18 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       });
     }
   }
+
+  bool checkInventory(value){
+    print(value);
+    List<dynamic> a=specimenProducts.where((element) => element['skuId']==value).toList();
+    print(a);
+    if(a.length>0 && a[0]['quantity']>=int.parse(quantityController.text)){
+      return true;
+    }else{
+      return false;
+    }
+  }
+
 
   fetchPicklist() async {
     final body = {};
@@ -353,10 +401,71 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
           classes = response['class_list'];
           mediums = response['medium_list'];
           groups = response['productGroup_list'];
+          filteredGroups = response['productGroup_list'];
           partyType = response['partyType_list'];
           shippingAddressController.text = widget.party['AddressLine1'] ?? "";
           emailController.text = widget.party['email'] ?? "";
           phoneNumberController.text = widget.party['makerContact'] ?? "";
+        });
+      } else {
+        throw Exception('Failed to load orders');
+      }
+    } catch (error) {
+      print("Error fetcffdfdhing orders: $error");
+    }
+    finally{
+      setState(() {
+        isLoading=false;
+      });
+    }
+  }
+
+  getProductSpecimenINventory() async {
+    setState(() {
+      isLoading=true;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final t = await prefs.getString('user');
+    var id = t != null ? jsonDecode(t)['id'] : "";
+    final body = {
+      'user_id':id
+    };
+
+    try {
+      final response = await ApiService.post(
+        endpoint: '/specimen/getProductWithSeries',
+        body: body,
+      );
+
+      // Check if the response is valid
+      if (response != null) {
+        setState(() {
+          List<dynamic> b=[];
+          List<dynamic> c=[];
+          List<dynamic> d=[];
+          for (int i = 0; i < response['data'].length; i++) {
+            var seriesItem = {
+              "seriesTableId": response['data'][i]['seriesCategory'],
+              "seriesName": response['data'][i]['seriesName']
+            };
+
+            if (!b.any((item) => item['seriesTableId'] == seriesItem['seriesTableId'])) {
+              b.add(seriesItem);
+            }
+
+            var classItem = {
+              "classId": response['data'][i]['classId'],
+              "className": response['data'][i]['className']
+            };
+
+            if (!c.any((item) => item['classId'] == classItem['classId'])) {
+              c.add(classItem);
+            }
+          }
+
+          specimenSeries=b;
+          specimenClasses=c;
+          specimenProducts=response['data'];
         });
       } else {
         throw Exception('Failed to load orders');
@@ -376,6 +485,9 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
     // TODO: implement initState
     super.initState();
     fetchPicklist();
+    fetchMittplusProducts();
+    fetchMittplusItems();
+    // getProductSpecimenINventory();
   }
 
   @override
@@ -430,17 +542,23 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     filteredProducts=[];
                     filteredSeries=[];
                     productGroup = null;
+                    allSets=[];
+                    selectedOrders=[];
+                    fetchProduct();
+                    filterSeries();
+                    removeMittPlus();
                   });
-                  fetchProduct();
-                  filterSeries();
+
+
                 }),
 
                 const SizedBox(height: 12),
                 _buildDropdown(
-                    'Product Group', groups, "id", "name", productGroup,
+                    'Product Group', filteredGroups, "id", "name", productGroup,
                     (value) {
                   setState(() {
                     productGroup = value;
+                    selectedPro=[];
                     selectedProduct = null;
                     bookType = 'Choose from Individual Book';
                     productType = null;
@@ -458,53 +576,32 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     : SizedBox(
                         height: 0,
                       )
-                // _buildDropdown('Book Type',
-                //     [{"id":"Choose from Set","name":'Choose from Set'}, {"id":'Choose from Individual Book',"name":'Choose from Individual Book'}],"id","name", bookType, (value) {
-                //       setState(() {
-                //         bookType=value;
-                //         if(value=="Choose from Individual Book"){
-                //           fetchProduct();
-                //         }
-                //
-                //       });
-                //     }),
+
               ],
             ),
-            if (bookType == 'Choose from Set')
-              _buildSection(
-                title: "Product Details",
-                children: [
-                  _buildDropdown(
-                      'Choose Set', sets, "seriesId", "nameSeries", selectedSet,
-                      (value) {
-                    setState(() {
-                      addSetItems(value);
-                    });
-                  }),
-                  SizedBox(height: 12),
-                  _buildNumberField('Quantity', setQuantity, (value) {
-                    setState(() => setQuantity = value);
-                  }),
-                ],
-              ),
+
             if (bookType == 'Choose from Individual Book' &&
                 productGroup != "6HPipXSLx5")
               _buildSection(
-                title: "Individual Book Details",
+                title: "Product Details",
                 children: [
-                  _buildDropdown('Series', filteredSeries, "seriesTableId",
+                  _buildDropdown('Series', orderType.toString().toLowerCase()!='sales'?specimenSeries:filteredSeries, "seriesTableId",
                       "seriesName", selectedSeries, (value) {
-                    List<dynamic> pro = products
+                        List<dynamic> prodr=orderType.toString().toLowerCase()!='sales'?specimenProducts:products;
+
+                    List<dynamic> pro = prodr
                         .where((ele) => ele['seriesCategory'] == value)
                         .map((ele) => ele['classId'] as String)
                         .toList();
+
                     var disc = series
                         .where((element) => element['seriesTableId'] == value)
                         .toList();
 
                     setState(() {
                       selectedClass = null;
-                      filteredClass = classes
+                      List<dynamic> cls=orderType.toString().toLowerCase()!='sales'?specimenClasses:classes;
+                      filteredClass = cls
                           .where((ele) => pro.contains(ele['classId']))
                           .toList();
                       filteredProducts = [];
@@ -519,15 +616,61 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                       selectedClass, (value) {
                     setState(() {
                       selectedClass = value;
+
                       filterProductsByClass(value);
                     });
                   }),
                   SizedBox(height: 5),
-                  _buildDropdown('Product', filteredProducts, "skuId",
-                      "nameSku", selectedProduct, (value) {
-                    setState(() => selectedProduct = value);
-                    addProductIems(value);
-                  }),
+                  // _buildDropdown('Product', filteredProducts, "skuId",
+                  //     "nameSku", selectedProduct, (value) {
+                  //   setState(() => selectedProduct = value);
+                  //   addProductIems(value);
+                  // }),
+
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Select Products",
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey), // Border color
+                          borderRadius:
+                          BorderRadius.circular(8), // Optional: rounded corners
+                        ),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4), // Optional: inner spacing
+                        child: MultiSelectDialogField(
+                          items: filteredProducts
+                              .map<MultiSelectItem<String>>(
+                                (opt) => MultiSelectItem<String>(
+                              opt['skuId'].toString(),
+                              opt['nameSku'].toString(),
+                            ),
+                          )
+                              .toList(),
+                          title: Text("Select Products"),
+                          selectedColor: Colors.blue,
+                          decoration:
+                          BoxDecoration(), // Needed to remove internal field's decoration
+                          initialValue: (selectedPro??[])
+                              .map<String>((e) => e.toString())
+                              .toList(),
+    onConfirm: (values) {
+                            setState(() {
+
+                              selectedPro=values;
+                            });
+                          },
+                          chipDisplay: MultiSelectChipDisplay(),
+
+                        ),
+                      ),
+                    ],
+                  ),
                   SizedBox(height: 5),
                   _buildNumberField('Quantity', bookQuantity, (value) {
                     setState(() => setQuantity = value);
@@ -538,11 +681,46 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
               _buildSection(
                 title: "Product Details",
                 children: [
-                  _buildDropdown('Product', filteredMittplusItems, "id",
-                      "product_name", selectedProduct, (value) {
-                    setState(() => selectedProduct = value);
-                    addProductIems(value);
-                  }),
+                  // _buildDropdown('Product', filteredMittplusItems, "id",
+                  //     "product_name", selectedProduct, (value) {
+                  //   setState(() => selectedProduct = value);
+                  //   addProductIems(value);
+                  // }),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey), // Border color
+                      borderRadius:
+                      BorderRadius.circular(8), // Optional: rounded corners
+                    ),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 4), // Optional: inner spacing
+                    child: MultiSelectDialogField(
+                      items: filteredMittplusItems
+                          .map<MultiSelectItem<String>>(
+                            (opt) => MultiSelectItem<String>(
+                          opt['id'].toString(),
+                          opt['product_name'].toString(),
+                        ),
+                      )
+                          .toList(),
+                      title: Text("Select Products"),
+                      selectedColor: Colors.blue,
+                      decoration:
+                      BoxDecoration(), // Needed to remove internal field's decoration
+                      initialValue: (selectedPro??[])
+                          .map<String>((e) => e.toString())
+                          .toList(),
+                      onConfirm: (values) {
+                        setState(() {
+
+                          selectedPro=values;
+                        });
+                      },
+                      chipDisplay: MultiSelectChipDisplay(),
+
+                    ),
+                  ),
+
                   SizedBox(height: 5),
                   _buildNumberField('Quantity', bookQuantity, (value) {
                     setState(() => setQuantity = value);
@@ -557,37 +735,59 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
                     children: [
                       ElevatedButton.icon(
                         onPressed: () {
-                          if ((selectedSet != null ||
-                                  selectedProduct != null) &&
+
+
+                          if (
                               setQuantity != null &&
-                              setQuantity != '0') {
+                              setQuantity != '0' && selectedPro.length>0 ) {
+
                             setState(() {
-                              allSets.add({
-                                "id": bookType == "Choose from Set"
-                                    ? selectedSet
-                                    : selectedProduct,
-                                "quantity": setQuantity,
-                                "type": bookType,
-                                "productGroup": productGroup
-                              });
 
-                              selectedOrders.add({
-                                "data": bookType == "Choose from Set"
-                                    ? [...setItems]
-                                    : [...productItems],
-                                "quantity": setQuantity,
-                                "group": productGroup,
-                                "discount": seriesDisc,
-                                "orderType": productItems[0]['type'] == 'set'
-                                    ? 'Choose from Set'
-                                    : 'Choose from Individual Book'
-                              });
+                              bool stable=true;
+                              if(orderType.toString().toLowerCase()!='sales')
+                              {
+                                for (int i = 0; i < selectedPro.length; i++) {
+                                  stable = checkInventory(selectedPro[i]);
 
-                              selectedSet = null;
-                              selectedProduct = null;
-                              setQuantity = '0';
-                              quantityController.text = '0';
-                              productItems = [];
+                                  if (!stable) {
+                                    break;
+                                  }
+                                }
+                              }
+                              if(stable) {
+                                for (int i = 0; i < selectedPro.length; i++) {
+                                  addProductIems(selectedPro[i]);
+
+
+                                  allSets.add({
+                                    "id": bookType == "Choose from Set"
+                                        ? selectedSet
+                                        : selectedPro[i],
+                                    "quantity": setQuantity,
+                                    "type": bookType,
+                                    "productGroup": productGroup
+                                  });
+
+                                  selectedOrders.add({
+                                    "data": bookType == "Choose from Set"
+                                        ? [...setItems]
+                                        : [...productItems],
+                                    "quantity": setQuantity,
+                                    "group": productGroup,
+                                    "discount": seriesDisc,
+                                    "orderType": orderType
+                                  });
+                                }
+
+                                selectedSet = null;
+                                selectedProduct = null;
+                                selectedPro = [];
+                                setQuantity = '0';
+                                quantityController.text = '0';
+                                productItems = [];
+                              }else{
+                                DialogUtils.showCommonPopup(context: context, message: "You Do not have enough stock", isSuccess: false);
+                              }
                             });
                           }
                         },

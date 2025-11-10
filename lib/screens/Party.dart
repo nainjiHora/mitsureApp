@@ -345,7 +345,7 @@ class _PartyScreenState extends State<PartyScreen> {
             userData['role']!='se'? Row(
               children: [
                 SizedBox(width: 5,),
-                userData['role'].contains('admin')||userData['role']=='zsm'?Expanded(
+                userData['role']!.contains('admin')||userData['role']=='zsm'?Expanded(
                   child:DropdownButtonFormField<String>(
                     value: selectedRsm,
                     decoration: InputDecoration(

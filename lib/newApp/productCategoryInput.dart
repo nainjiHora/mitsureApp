@@ -100,7 +100,12 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
     return b.isEmpty ? "" : b[0]['name'];
   }
 
-  void nextQuestion(int nextQuestionId) {
+  void nextQuestion(int nextQuestionId,que) {
+
+    for(int i=0;i<que['options'].length;i++){
+
+      questionList[selectedindex].removeWhere((element) => element['question_id']==que['options'][i]['next_question_id']);
+    }
     final nextQ = questions.firstWhere(
       (q) => q['question_id'] == nextQuestionId,
       orElse: () => null,
@@ -108,6 +113,7 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
     if (nextQ != null &&
         !questionList[selectedindex]
             .any((q) => q['question_id'] == nextQ['question_id'])) {
+      answers[selectedindex].removeWhere((key, value) =>key==nextQ['question']?.toString());
       setState(() {
         questionList[selectedindex].add(nextQ);
       });
@@ -279,7 +285,7 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                             child: Text("How many more visits do you think are needed to close the deal ?",style: TextStyle(fontWeight: FontWeight.bold),),
                           ),
                            _buildDropdown(
-                            "", [{"name":"1"},{"name":"2"},{"name":"3"}], "name", "name", daysNeeded,
+                            "", [{"name":"0"},{"name":"1"},{"name":"2"},{"name":"3"}], "name", "name", daysNeeded,
                             (value) {
                             setState(() {
                               daysNeeded = value;
@@ -349,7 +355,7 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                       answers[index]['title'] = value;
                     }
                   });
-                  nextQuestion(opt['next_question_id']);
+                  nextQuestion(opt['next_question_id'],question);
                 },
               );
             }).toList(),
@@ -396,7 +402,7 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                         answers[index]['title'] = values.join(",");
                       }
                       answers[index][question['question']] = values;
-                      nextQuestion(question['next_question_id']);
+                      nextQuestion(question['next_question_id'],question);
                     });
                   },
                   chipDisplay: MultiSelectChipDisplay(),
@@ -434,9 +440,9 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                   });
                   final selected = options
                       .firstWhere((opt) => opt['option'].toString() == value);
-                  print(question);
+
                   nextQuestion(question['next_question_id'] ??
-                      selected['next_question_id']);
+                      selected['next_question_id'],question);
                 },
               ),
             ],
