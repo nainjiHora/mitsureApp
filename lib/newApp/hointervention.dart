@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
+import 'package:mittsure/newApp/endVisitScreen.dart';
+import 'package:mittsure/newApp/summaryScreen.dart';
+import 'package:mittsure/newApp/visitPartyDetail.dart';
 import 'package:path/path.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/services/apiService.dart';
@@ -17,12 +21,24 @@ class HoInterventionScreen extends StatefulWidget {
   final interested;
   final meetingHappen;
   final visit;
+  final visitId;
+  final data;
+  final visitStatus;
+
+  final type;
+  final date;
+
 
   HoInterventionScreen(
       {required this.payload,
       this.answers,
+        required this.type,
+        required this.date,
+        required this.data,
+        required this.visitStatus,
       required this.interested,
        required this.meetingHappen,
+        required this.visitId,
       required this.visit});
 
   @override
@@ -34,7 +50,8 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
   bool followUpRequired = false;
   bool mittsureAccountNeeded = false;
   final _formKey = GlobalKey<FormState>();
-
+  bool isVisitEndRemarkEmpty = false;
+  bool summaryScreen=false;
   // Controllers
   final TextEditingController schoolName = TextEditingController();
   final TextEditingController parentSchoolName = TextEditingController();
@@ -84,6 +101,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
   DateTime? followUpDate;
   Timer? _otpTimer;
+  Map <String,dynamic> summaryData={};
   int _remainingSeconds = 30;
   bool _canResendOtp = false;
   bool partyUpdateRequired = false;
@@ -101,7 +119,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
     return RegExp(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$").hasMatch(email);
   }
 
-  Future<void> _submitRequest(BuildContext context) async {
+  Future<void> _submitRequest(BuildContext context,bool view) async {
     setState(() => isLoading = true);
 
 
@@ -119,6 +137,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
       return;
     }
     if (visitEndRemark.text.trim().isEmpty) {
+      isVisitEndRemarkEmpty=true;
       // _showSnackbar("Please enter a visit End Remark.", context);
       DialogUtils.showCommonPopup(
           context: context,
@@ -153,7 +172,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
 
     final pcat = {"interested": widget.interested, "data": widget.answers};
-    final uri = Uri.parse('https://mittsure.qdegrees.com:3001/visit/endVisit');
+    final uri = Uri.parse('https://mittsureOne.com:3001/visit/endVisit');
     var request = http.MultipartRequest('POST', uri);
 
     widget.payload.fields.forEach((key, value) {
@@ -236,29 +255,42 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
     try {
       print(request.fields);
-      final response = await request.send();
-      var respons = await http.Response.fromStream(response);
-      final res = jsonDecode(respons.body);
+      if(view) {
+        final response = await request.send();
+        var respons = await http.Response.fromStream(response);
+        final res = jsonDecode(respons.body);
 
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300 &&
-          res['status'] == false) {
-
+        if (response.statusCode >= 200 &&
+            response.statusCode < 300 &&
+            res['status'] == false) {
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => MainMenuScreen()),
-            (_) => false,
+                (_) => false,
           );
-
-      } else {
-        DialogUtils.showCommonPopup(
-            context: context, message: res['message'], isSuccess: false);
-        setState(() => isLoading = false);
+        } else {
+          DialogUtils.showCommonPopup(
+              context: context, message: res['message'], isSuccess: false);
+          setState(() => isLoading = false);
+        }
       }
+      else{
+        setState(() {
+          summaryData=request.fields;
+          summaryScreen=true;
+          isLoading=false;
+        });
+      }
+
     } catch (e) {
       DialogUtils.showCommonPopup(
           context: context, message: "Something went wrong", isSuccess: false);
       setState(() => isLoading = false);
+    }
+    finally{
+      setState(() {
+        isLoading=false;
+      });
     }
   }
 
@@ -290,7 +322,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
         if (a.length > 0) {
           selectedRole = a[0]['contactPersonRoleId'];
         }
-        print(mediumList);
+
 
         final b = mediumList
             .where((element) => element['mediumName'] == widget.visit['Medium'])
@@ -299,7 +331,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
         if (b.length > 0) {
           selectedMedium = b[0]['mediumTableId'];
         }
-        print(boardList);
+
         final c = boardList
             .where((element) => element['boardName'] == widget.visit['Board'])
             .toList();
@@ -371,7 +403,9 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
   }
 
   void _showSnackbar(String msg, cont) {
-    ScaffoldMessenger.of(cont).showSnackBar(SnackBar(content: Text(msg)));
+     DialogUtils.showCommonPopup(
+        context: cont, message: msg, isSuccess: false);
+   
   }
 
   void _showPopup(String message, bool success, cont) {
@@ -383,8 +417,11 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    print(widget.visit['partyType']);
-    print("po");
+   print(widget.data);
+   print("dsadasdad");
+    if(widget.payload.fields['visitOutcome']=='FpPIgxcOrY'){
+      followUpRequired=true;
+    }
     fetchAllPicklists();
     contactPersonController.text = widget.visit['makerName'] ?? "";
     accountMobileController.text = widget.visit['makerContact'] ?? "";
@@ -459,8 +496,49 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
             const Text('Submit Visit', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo,
         iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            if (widget.meetingHappen != null &&
+                widget.meetingHappen.toString().toLowerCase() == "no") {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      RouteDetailsScreen(
+                        userReq: false,
+                        visitStatus: widget.visitStatus,
+                        data: widget.data,
+                        visitId: widget.visitId,
+                        type: widget.type,
+                        date: widget.date,
+                      ),
+                ),
+              );
+            }else{
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) =>
+                      EndVisitScreen(
+                       data: widget.data,
+                        visit: widget.visit,
+                        meetingHappen: widget.meetingHappen,
+ visitStatus: widget.visitStatus,
+                        visitId: widget.visitId,
+                        type: widget.type,
+                        date: widget.date,
+                      ),
+                ),
+              );
+            }
+
+          },
+        ),
       ),
-      body: SingleChildScrollView(
+      body: isLoading?BookPageLoader():
+      // summaryScreen? VisitSummaryScreen(data:summaryData,submit:_submitRequest,cont:context):
+      SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -482,6 +560,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
             SizedBox(height: 12),
             CheckboxListTile(
               title: Text("Follow-up Required"),
+              enabled: widget.payload.fields['visitOutcome']!='FpPIgxcOrY',
               value: followUpRequired,
               onChanged: (value) => setState(() => followUpRequired = value!),
             ),
@@ -700,11 +779,27 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
               },
             ),
             Divider(height: 24),
-            TextField(
+            TextFormField(
               controller: visitEndRemark,
               decoration: InputDecoration(
-                  labelText: "Visit End Remark", border: OutlineInputBorder()),
-              maxLines: 1,
+                labelText: "Visit End Remark",
+                border: const OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isVisitEndRemarkEmpty ? Colors.red : Colors.grey,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(
+                    color: isVisitEndRemarkEmpty ? Colors.red : Colors.blue,
+                  ),
+                ),
+              ),
+              onChanged: (val) {
+                setState(() {
+                  isVisitEndRemarkEmpty = val.trim().isEmpty;
+                });
+              },
             ),
             SizedBox(height: 10,),
            
@@ -715,7 +810,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
                     ? null
                     : () {
                         
-                          _submitRequest(context);
+                          _submitRequest(context,true);
                         
                       },
                 icon: isLoading

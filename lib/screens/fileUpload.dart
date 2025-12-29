@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
 
+import '../newApp/bookLoader.dart';
+
 class FileUploadScreen extends StatefulWidget {
   final Function saveFiles;
 
@@ -15,6 +17,7 @@ class FileUploadScreen extends StatefulWidget {
 
 class _FileUploadScreenState extends State<FileUploadScreen> {
   List<File> selectedFiles = [];
+  bool isLoading=false;
 
   // Function to pick multiple files
   Future<void> pickFiles() async {
@@ -39,11 +42,14 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
       );
       return;
     }
+    setState(() {
+      isLoading=true;
+    });
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
-      // Uri.parse('https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
+      Uri.parse('https://mittsureOne.com:3001/user/uploadMultipleImages'),
+      // Uri.parse('https://mittsureOne.com:3001/user/uploadMultipleImages'),
     );
 
     for (var file in selectedFiles) {
@@ -58,6 +64,9 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
     var response = await request.send();
 
     if (response.statusCode == 200) {
+      setState(() {
+        isLoading=false;
+      });
       String responseBody = await response.stream.bytesToString();
 
       var jsonResponse = jsonDecode(responseBody);
@@ -66,6 +75,9 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
         SnackBar(content: Text("Files uploaded successfully!")),
       );
     } else {
+      setState(() {
+        isLoading=false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to upload files.")),
       );
@@ -122,98 +134,102 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: handleBack,
-      child: Scaffold(
-
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              ElevatedButton.icon(
-                onPressed: pickFiles,
-                icon: Icon(Icons.upload_file),
-                label: Text("Select Files"),
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      child: Stack(
+        children: [
+          Scaffold(
+          body: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: pickFiles,
+                  icon: Icon(Icons.upload_file),
+                  label: Text("Select Files"),
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    textStyle: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
                 ),
-              ),
-              SizedBox(height: 20),
-              Expanded(
-                child: selectedFiles.isEmpty
-                    ? Center(
-                  child: Text(
-                    "No files selected.",
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                )
-                    : GridView.builder(
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                  ),
-                  itemCount: selectedFiles.length,
-                  itemBuilder: (context, index) {
-                    File file = selectedFiles[index];
-                    return Card(
-                      elevation: 4,
-                      child: Stack(
-                        children: [
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              getFileIcon(file.path),
-                              SizedBox(height: 8),
-                              Text(
-                                file.path.split('/').last,
-                                textAlign: TextAlign.center,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 2,
-                                style: TextStyle(fontSize: 14),
-                              ),
-                            ],
-                          ),
-                          Positioned(
-                            top: 5,
-                            right: 5,
-                            child: IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => showDeleteConfirmation(index),
+                SizedBox(height: 20),
+                Expanded(
+                  child: selectedFiles.isEmpty
+                      ? Center(
+                    child: Text(
+                      "No files selected.",
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                    ),
+                  )
+                      : GridView.builder(
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemCount: selectedFiles.length,
+                    itemBuilder: (context, index) {
+                      File file = selectedFiles[index];
+                      return Card(
+                        elevation: 4,
+                        child: Stack(
+                          children: [
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                getFileIcon(file.path),
+                                SizedBox(height: 8),
+                                Text(
+                                  file.path.split('/').last,
+                                  textAlign: TextAlign.center,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  ElevatedButton(
-                    onPressed: uploadFiles,
-                    child: Text("Submit"),
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
-                  ),
-                  OutlinedButton(
-                    onPressed: () {
-                      widget.saveFiles(false, []);
-                      Navigator.pop(context);
+                            Positioned(
+                              top: 5,
+                              right: 5,
+                              child: IconButton(
+                                icon: Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => showDeleteConfirmation(index),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
                     },
-                    child: Text("Cancel"),
-                    style: OutlinedButton.styleFrom(
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    ),
                   ),
-                ],
-              ),
-            ],
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    ElevatedButton(
+                      onPressed: uploadFiles,
+                      child: Text("Submit"),
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: () {
+                        widget.saveFiles(false, []);
+                        Navigator.pop(context);
+                      },
+                      child: Text("Cancel"),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
+          if (isLoading) const BookPageLoader(),
+]
       ),
     );
   }

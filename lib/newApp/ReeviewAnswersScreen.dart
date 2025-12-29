@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mittsure/newApp/hointervention.dart';
+import 'package:mittsure/newApp/meetinghappen.dart';
 
 class ReviewAnswersScreen extends StatefulWidget {
   final List<Map<dynamic, dynamic>> answers;
@@ -7,14 +8,26 @@ class ReviewAnswersScreen extends StatefulWidget {
   final category;
   final interested;
   final visit;
+  final visitId;
+  final meetingHappen;
+  final visitStatus;
+  final data;
+  final date;
+  final type;
 
   const ReviewAnswersScreen({
     super.key,
     required this.visit,
     required this.answers,
+    required this.visitStatus,
+    required this.data,
+    required this.date,
     required this.payload,
     required this.category,
-    required this.interested
+    required this.interested,
+    required this.type,
+    this.visitId,
+    this.meetingHappen
   });
 
   @override
@@ -29,6 +42,11 @@ class _ReviewAnswersScreenState extends State<ReviewAnswersScreen> {
         builder: (context) => HoInterventionScreen(
           payload: widget.payload,
           answers: widget.answers,
+          visitId: widget.visitId,
+          visitStatus:widget.visitStatus,
+          data:widget.data,
+          date: widget.date,
+          type: widget.type,
           interested: widget.interested,
           visit: widget.visit,
           meetingHappen: "yes",

@@ -13,8 +13,9 @@ import 'orders.dart';
 
 class CreateOrderScreen extends StatefulWidget {
   final payload;
+  final seriesData;
 
-  CreateOrderScreen({required this.payload});
+  CreateOrderScreen({required this.payload, required this.seriesData});
   @override
   _CreateOrderScreenState createState() => _CreateOrderScreenState();
 }
@@ -26,10 +27,16 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   String? _selectedWarehouse;
   String? _selectedRemark;
   String? orderRemark;
-  bool otpNeed=true;
+  bool skipOtp = true;
+  Map<String,dynamic> addDiscounts={};
+  bool otpNeed = true;
+  bool discAdjust = false;
+
+  String selectedOption = 'Party';
   bool isLoading = false;
   List<dynamic> remarks = [];
-
+  final TextEditingController otherNumberController = TextEditingController();
+  final TextEditingController discAdjustController = TextEditingController();
   List<dynamic> attach = [];
   String _selectedAddressType = 'Party Address';
   String _selectedConsentPerson = 'Party Address';
@@ -51,6 +58,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       'email': '',
     },
   };
+
+  DateTime? selectedDate;
 
   final TextEditingController otpController = TextEditingController();
   final TextEditingController distriController = TextEditingController();
@@ -186,6 +195,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         body: body,
       );
 
+      print(response);
+
       if (response != null) {
         final data = response['data'];
 
@@ -205,8 +216,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                 a['makerContact'] ?? "";
             addressData['Distributor Address']!['id'] =
                 a['distributorID'] ?? "";
-            addressData['Distributor Address']!['addId'] =
-                a['addressId'] ?? "";
+            addressData['Distributor Address']!['addId'] = a['addressId'] ?? "";
             var matchingTransporters = alltransporters
                 .where((ele) => ele['transporterId'] == a['transporterId'])
                 .toList();
@@ -218,18 +228,16 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           }
           var obj = widget.payload['seriesDiscount'];
           var keys = obj.keys.toList();
-          print(data.length);
-          print("keys");
+
           int count = 0;
           final temp = [];
 
           for (var i = 0; i < data.length; i++) {
+            print(data[i]['series']);
             if (data[i]['series'] != null) {
               List<dynamic> ser = jsonDecode(data[i]['series']);
               bool flag = false;
               for (var j = 0; j < keys.length; j++) {
-                print(ser);
-                print("9999");
                 if (ser.contains(keys[j])) {
                 } else {
                   flag = true;
@@ -242,6 +250,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
               temp.add(data[i]);
             }
           }
+
+          print(temp);
 
           distributors = temp;
         });
@@ -266,7 +276,6 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       if (response != null) {
         final data = response['data'];
         setState(() {
-          print(data.length);
           stockists = data;
         });
       } else {
@@ -278,18 +287,24 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   void _createOrder(flag) {
-
-    if ((_selectedTransporter == null&&widget.payload['orderType'].toLowerCase()=='sales') ||
-        (_selectedDistributor == null && widget.payload['orderType'].toLowerCase()=='sales') ||
-        (_selectedStockist == null&& widget.payload['orderType'].toLowerCase()=='sales') ||
-        (_selectedWarehouse == null && widget.payload['orderType'].toLowerCase()=='sales')) {
+    if (
+        // (_selectedTransporter == null &&
+        //         widget.payload['orderType'].toLowerCase() == 'sales') ||
+        (_selectedDistributor == null &&
+            widget.payload['orderType'].toLowerCase() == 'sales')
+        // ||
+        // (_selectedStockist == null &&
+        //     widget.payload['orderType'].toLowerCase() == 'sales') ||
+        // (_selectedWarehouse == null &&
+        //     widget.payload['orderType'].toLowerCase() == 'sales')
+        ) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text('Please fill Distributor,Stockist ,Warehouse and Transporter')),
+        SnackBar(content: Text('Please fill Distributor')),
       );
       return;
     }
-    if (_selectedRemark == null ||
+    if ((_selectedRemark == null &&
+            widget.payload['orderType'].toLowerCase() == 'sales') ||
         orderRemark == "") {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -298,16 +313,14 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       return;
     }
 
-
-    if (_selectedConsentPerson.toLowerCase() == 'stockist address' &&
-        attach.length == 0) {
+    if (attach.length == 0 && widget.payload['orderprocess'] == 'new') {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Attachments can not be empty')),
       );
       return;
     }
 
-    if (flag ||!otpNeed) {
+    if (flag || !otpNeed) {
       order(flag);
     } else {
       proceed(flag);
@@ -324,11 +337,20 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     if (t != null) {
       id = jsonDecode(t)['id'];
     }
-
-    var body = {
-      "mobile": addressData[_selectedConsentPerson!]!['mobile'],
+    var body;
+    // if (widget.payload['orderType'].toLowerCase() != 'sales') {
+    body = {
+      "mobile": selectedOption == 'Other'
+          ? otherNumberController.text
+          : addressData[_selectedConsentPerson!]!['mobile'],
       "token": id
     };
+    // } else {
+    //   body = {
+    //     "mobile": addressData[_selectedConsentPerson!]!['mobile'],
+    //     "token": id
+    //   };
+    // }
 
     try {
       final response = await ApiService.post(
@@ -341,15 +363,15 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         });
         _showOtpDialog(flag);
       } else {
-        _showErrorMessage("Failed to send Verification Code. Please try again.");
+        _showErrorMessage(
+            "Failed to send Verification Code. Please try again.");
       }
     } catch (error) {
       print("Error sending Verification Code: $error");
       _showErrorMessage("Failed to send Verification Code. Please try again.");
-    }
-    finally{
+    } finally {
       setState(() {
-        isLoading=false;
+        isLoading = false;
       });
     }
   }
@@ -369,24 +391,25 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
 
   // Function to verify OTP
   Future<void> verifyOtp(flag) async {
-    print(addressData[_selectedAddressType]!['mobile']);
     var body = {
-      "mobile": addressData[_selectedConsentPerson]!['mobile'],
-      "otp": otpController.text,
+      "mobile": selectedOption == 'Other'
+          ? otherNumberController.text
+          : addressData[_selectedConsentPerson!]!['mobile'],
+      "otp": otpController.text
     };
 
     // try {
-      final response = await ApiService.post(
-        endpoint: '/user/verifyOtp',
-        body: body,
-      );
-       print(response);
-      if (response != null && response['status'] == false) {
-        Navigator.pop(context); // Close Verification Code dialog
-        await order(flag); // Proceed to order
-      } else {
-        _showErrorMessage("Incorrect Verification Code. Please try again.");
-      }
+    final response = await ApiService.post(
+      endpoint: '/user/verifyOtp',
+      body: body,
+    );
+    print(response);
+    if (response != null && response['status'] == false) {
+      Navigator.pop(context); // Close Verification Code dialog
+      await order(flag); // Proceed to order
+    } else {
+      _showErrorMessage("Incorrect Verification Code. Please try again.");
+    }
     // } catch (error) {
     //   print("Error verifying Verification Code: $error");
     //   _showErrorMessage("Failed to verify Verification Code. Please try again.");
@@ -409,11 +432,12 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       );
 
       if (response != null) {
-
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,type: widget.payload['orderType'])),
-              (route) => false, // remove all previous routes
+          MaterialPageRoute(
+              builder: (context) => OrdersScreen(
+                  userReq: false, type: widget.payload['orderType'])),
+          (route) => false, // remove all previous routes
         );
       } else {
         throw Exception('Failed to load orders');
@@ -423,36 +447,67 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     }
   }
 
-  Future<void> order(flag) async {
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 0)),
+      firstDate: now.add(const Duration(days: 0)),
+      lastDate: now.add(const Duration(days: 180)),
+    );
+    if (picked != null) {
+      setState(() {
+        selectedDate = picked;
+      });
+    }
+  }
 
+  Future<void> order(flag) async {
     var body = widget.payload;
     body['stockistId'] = _selectedStockist;
     body['distributorId'] = _selectedDistributor;
     body['transport'] = _selectedTransporter;
-    body['otp_need']=otpNeed;
+    body['otp_need'] = otpNeed;
+    body['additionalDiscount']=addDiscounts;
     body['mobileNo'] = addressData[_selectedAddressType]!['id']!;
     body['email'] = addressData[_selectedAddressType]!['email']!;
     body['address'] = addressData[_selectedAddressType]!['addId']!;
     body['otpConsent'] =
         "${_selectedConsentPerson.split(" ")[0]} (${addressData[_selectedConsentPerson]!['mobile']})";
-    body['attachment'] = attach;
+    if (widget.payload['orderProcess'] == 'new') {
+      body['attachment'] = attach;
+    }
     body['remark'] = _selectedRemark;
+    body['discAdjust'] = discAdjust;
+    body['discAdjustAmount'] = discAdjust ? discAdjustController.text : "";
     body['order_remark'] = orderRemark;
     body['saveLater'] = flag ? 1 : 0;
     body['warehouse'] = _selectedWarehouse;
+    var cDate;
+    if (selectedDate != null) {
+      cDate = selectedDate?.millisecondsSinceEpoch;
+      if (cDate != null) {
+        cDate = cDate / 1000;
+      }
+    }
+    body['date'] = cDate;
+
+    print(body);
     try {
-
-
       final response = await ApiService.post(
         endpoint: '/order/createOrder',
         body: body,
       );
-
+      print(body);
       if (response != null && response['status'] == false) {
         if (flag) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => OrdersScreen(userReq: false,type: widget.payload['orderType'],)),
+            MaterialPageRoute(
+                builder: (context) => OrdersScreen(
+                      userReq: false,
+                      type: widget.payload['orderType'],
+                    )),
           );
         } else {
           consentDone(response["data1"]);
@@ -473,7 +528,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       builder: (context) {
         return AlertDialog(
           title: Text(
-            "Verification Code sent to ${addressData[_selectedConsentPerson]!['mobile']} (${_selectedConsentPerson.split(" ")[0]})",
+            "Verification Code sent to ${selectedOption == 'Other' ? otherNumberController.text : addressData[_selectedConsentPerson!]!['mobile']}",
             style: TextStyle(fontSize: 13),
           ),
           content: TextField(
@@ -490,7 +545,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                await verifyOtp(flag); 
+                await verifyOtp(flag);
               },
               child: Text("Submit"),
             ),
@@ -501,6 +556,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   initialiseData() {
+    print(widget.payload['seriesDiscount']);
     addressData['Party Address']!['address'] = widget.payload['address'];
     addressData['Party Address']!['mobile'] = widget.payload['mobileNo'];
     addressData['Party Address']!['email'] = widget.payload['email'];
@@ -511,10 +567,10 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     //     otpNeed=false;
     //   });
     // }
-    fetchTransporter();
-    fetchStockist();
+    // fetchTransporter();
+    // fetchStockist();
     fetchDistributor();
-    fetchWarehouse();
+    // fetchWarehouse();
     fetchRemarks();
   }
 
@@ -537,7 +593,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         ),
         backgroundColor: Colors.indigo[900],
         title: Text(
-          widget.payload['orderType'].toLowerCase()=='sales'?'Create Order':'Create Specimen Order',
+          widget.payload['orderType'].toLowerCase() == 'sales'
+              ? 'Create Order'
+              : 'Create Specimen Order',
           style: TextStyle(color: Colors.white),
         ),
       ),
@@ -555,333 +613,412 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        widget.payload['partyType'] == 'cQpLw8vwZf'
-                            ? TypeAheadFormField<String>(
-                                textFieldConfiguration: TextFieldConfiguration(
-                                  controller: distriController,
-                                  decoration: InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    labelText: "Distributor Name",
-                                    hintText: 'Enter Distributor Name or Id ',
+                        if (widget.payload['orderType'].toLowerCase() ==
+                            'sales')
+                          widget.payload['partyType'] == 'cQpLw8vwZf'
+                              ? TypeAheadFormField<String>(
+                                  textFieldConfiguration:
+                                      TextFieldConfiguration(
+                                    controller: distriController,
+                                    decoration: InputDecoration(
+                                      border: OutlineInputBorder(),
+                                      labelText: "Distributor Name",
+                                      hintText: 'Enter Distributor Name or Id ',
+                                    ),
                                   ),
-                                ),
-                                suggestionsCallback: (pattern) async {
-                                  return await fetchSuggestions(pattern);
-                                },
-                                itemBuilder: (context, suggestion) {
-                                  return ListTile(
-                                    title: Text(suggestion),
-                                  );
-                                },
-                                onSuggestionSelected: (suggestion) {
-                                  print(suggestion);
-                                  print("========gh===");
-                                  final id = suggestion.split("D-")[1];
-                                  final a = distributors
-                                      .where((distri) =>
-                                          distri['distributorID'] == "D-${id}")
-                                      .toList()[0];
-                                  setState(() {
-                                    addressData['Distributor Address']![
-                                        'address'] = formatAddress(a);
-                                    addressData['Distributor Address']![
-                                        'email'] = a['email'] ?? "";
-                                    addressData['Distributor Address']![
-                                        'mobile'] = a['makerContact'] ?? "";
-                                    addressData['Distributor Address']!['id'] =
-                                        "D-${id}" ?? "";
-                                    addressData['Distributor Address']![
-                                        'addId'] = a['addressId'] ?? "";
-                                    var matchingTransporters = alltransporters
-                                        .where((ele) =>
-                                            ele['transporterId'] ==
-                                            a['transporterId'])
-                                        .toList();
-                                    if (matchingTransporters.isNotEmpty) {
-                                      transporters['Distributor'] =
-                                          matchingTransporters[0];
-                                    } else {
-                                      transporters['Distributor'] = {};
-                                    }
-                                    distriController.text = suggestion;
-                                    _selectedDistributor = "D-${id}";
-                                  });
-                                  // field.itemController.text = suggestion;
-                                },
-                                noItemsFoundBuilder: (context) => Padding(
-                                  padding: const EdgeInsets.all(8.0),
-                                  child: Text(
-                                    'No Distributor Found',
-                                    style: TextStyle(color: Colors.grey),
+                                  suggestionsCallback: (pattern) async {
+                                    return await fetchSuggestions(pattern);
+                                  },
+                                  itemBuilder: (context, suggestion) {
+                                    return ListTile(
+                                      title: Text(suggestion),
+                                    );
+                                  },
+                                  onSuggestionSelected: (suggestion) {
+                                    final id = suggestion.split("D-")[1];
+                                    final a = distributors
+                                        .where((distri) =>
+                                            distri['distributorID'] ==
+                                            "D-${id}")
+                                        .toList()[0];
+                                    setState(() {
+                                      addressData['Distributor Address']![
+                                          'address'] = formatAddress(a);
+                                      addressData['Distributor Address']![
+                                          'email'] = a['email'] ?? "";
+                                      addressData['Distributor Address']![
+                                          'mobile'] = a['makerContact'] ?? "";
+                                      addressData['Distributor Address']![
+                                          'id'] = "D-${id}" ?? "";
+                                      addressData['Distributor Address']![
+                                          'addId'] = a['addressId'] ?? "";
+                                      var matchingTransporters = alltransporters
+                                          .where((ele) =>
+                                              ele['transporterId'] ==
+                                              a['transporterId'])
+                                          .toList();
+                                      if (matchingTransporters.isNotEmpty) {
+                                        transporters['Distributor'] =
+                                            matchingTransporters[0];
+                                      } else {
+                                        transporters['Distributor'] = {};
+                                      }
+                                      distriController.text = suggestion;
+                                      _selectedDistributor = "D-${id}";
+                                    });
+                                    // field.itemController.text = suggestion;
+                                  },
+                                  noItemsFoundBuilder: (context) => Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Text(
+                                      'No Distributor Found',
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
                                   ),
+                                )
+                              : SizedBox(
+                                  height: 0,
                                 ),
-                              )
-                            : SizedBox(
-                                height: 0,
-                              ),
-                        SizedBox(height: 12),
-                        DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            labelText: "Stockist",
-                            border: const OutlineInputBorder(),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 14),
+                        // if (widget.payload['orderType'].toLowerCase() ==
+                        //     'sales')
+                        //   SizedBox(height: 12),
+                        // if (widget.payload['orderType'].toLowerCase() ==
+                        //     'sales')
+                        //   DropdownButtonFormField<String>(
+                        //     decoration: InputDecoration(
+                        //       labelText: "Stockist",
+                        //       border: const OutlineInputBorder(),
+                        //       contentPadding: const EdgeInsets.symmetric(
+                        //           horizontal: 12, vertical: 14),
+                        //     ),
+                        //     value: _selectedStockist,
+                        //     items: stockists
+                        //         .map((item) => DropdownMenuItem(
+                        //             value: item['stockistID'].toString(),
+                        //             child: Text(item['StockistName'])))
+                        //         .toList(),
+                        //     onChanged: (onChanged) {
+                        //       setState(() {
+                        //         final a = stockists
+                        //             .where((distri) =>
+                        //                 distri['stockistID'] == onChanged)
+                        //             .toList()[0];
+                        //         addressData['Stockist Address']!['address'] =
+                        //             formatAddress(a);
+                        //         addressData['Stockist Address']!['email'] =
+                        //             a['email'] ?? "";
+                        //         addressData['Stockist Address']!['mobile'] =
+                        //             a['makerContact'] ?? "";
+                        //         addressData['Stockist Address']!['id'] =
+                        //             onChanged ?? "";
+                        //         addressData['Stockist Address']!['addId'] =
+                        //             a['addressId'] ?? "";
+                        //
+                        //         var matchingTransporters = alltransporters
+                        //             .where((ele) =>
+                        //                 ele['transporterId'] ==
+                        //                 a['transporterId'])
+                        //             .toList();
+                        //         if (matchingTransporters.isNotEmpty) {
+                        //           transporters['Stockist'] =
+                        //               matchingTransporters[0];
+                        //         } else {
+                        //           transporters['Stockist'] = {};
+                        //         }
+                        //       });
+                        //       _selectedStockist = onChanged;
+                        //     },
+                        //   ),
+                        // if (widget.payload['orderType'].toLowerCase() ==
+                        //     'sales')
+                        //   SizedBox(
+                        //     height: 10,
+                        //   ),
+                        // if (widget.payload['orderType'].toLowerCase() ==
+                        //     'sales')
+                        //   DropdownButtonFormField<String>(
+                        //     decoration: InputDecoration(
+                        //       labelText: "Warehouse",
+                        //       border: const OutlineInputBorder(),
+                        //       contentPadding: const EdgeInsets.symmetric(
+                        //           horizontal: 12, vertical: 14),
+                        //     ),
+                        //     value: _selectedWarehouse,
+                        //     items: warehouse
+                        //         .map((item) => DropdownMenuItem(
+                        //             value: item['wh_code'].toString(),
+                        //             child: Text(item['name'])))
+                        //         .toList(),
+                        //     onChanged: (onChanged) {
+                        //       _selectedWarehouse = onChanged;
+                        //     },
+                        //   ),
+                        // _selectedDistributor != null &&
+                        //         _selectedStockist != null
+                        //     ? Column(
+                        //         crossAxisAlignment: CrossAxisAlignment.start,
+                        //         children: [
+                        //           // Title
+                        //           Text(
+                        //             "Choose Transporter:",
+                        //             style: TextStyle(
+                        //               fontSize: 16,
+                        //               fontWeight: FontWeight.bold,
+                        //               color: Colors.black87,
+                        //             ),
+                        //           ),
+                        //           if (widget.payload['orderType']
+                        //                   .toLowerCase() ==
+                        //               'sales')
+                        //             const SizedBox(
+                        //                 height:
+                        //                     10), // Add spacing between title and options
+                        //
+                        //           // Distributor Transporter Option
+                        //           if (widget.payload['orderType']
+                        //                   .toLowerCase() ==
+                        //               'sales')
+                        //             ListTile(
+                        //               contentPadding: EdgeInsets.zero,
+                        //               dense: true,
+                        //               title: Text(
+                        //                 transporters['Distributor']![
+                        //                         'transporter_name'] ??
+                        //                     "",
+                        //                 style: TextStyle(
+                        //                     fontSize: 14,
+                        //                     color: Colors.black87),
+                        //               ),
+                        //               subtitle: Text(
+                        //                 'Distributor',
+                        //                 style: TextStyle(
+                        //                     fontSize: 12, color: Colors.grey),
+                        //               ),
+                        //               leading: Radio<String>(
+                        //                 value: transporters['Distributor']![
+                        //                         'transporterId'] ??
+                        //                     "",
+                        //                 groupValue: _selectedTransporter,
+                        //                 onChanged: (value) {
+                        //                   setState(() {
+                        //                     _selectedTransporter = value!;
+                        //                   });
+                        //                 },
+                        //               ),
+                        //             ),
+                        //
+                        //           // Stockist Transporter Option (Only if available)
+                        //           if (transporters['Stockist']![
+                        //                   'transporterId'] !=
+                        //               transporters['Distributor']![
+                        //                   'transporterId'])
+                        //             ListTile(
+                        //               contentPadding: EdgeInsets.zero,
+                        //               dense: true,
+                        //               title: Text(
+                        //                 transporters['Stockist']![
+                        //                         'transporter_name'] ??
+                        //                     "",
+                        //                 style: TextStyle(
+                        //                     fontSize: 14,
+                        //                     color: Colors.black87),
+                        //               ),
+                        //               subtitle: Text(
+                        //                 'Stockist',
+                        //                 style: TextStyle(
+                        //                     fontSize: 12, color: Colors.grey),
+                        //               ),
+                        //               leading: Radio<String>(
+                        //                 value: transporters['Stockist']![
+                        //                         'transporterId'] ??
+                        //                     "",
+                        //                 groupValue: _selectedTransporter,
+                        //                 onChanged: (value) {
+                        //                   setState(() {
+                        //                     _selectedTransporter = value!;
+                        //                   });
+                        //                 },
+                        //               ),
+                        //             ),
+                        //         ],
+                        //       )
+                        //     : SizedBox(),
+                        //
+                        // if (widget.payload['orderType'].toLowerCase() ==
+                        //     'sales')
+                        //   SizedBox(height: 16),
+                        // if (widget.payload['orderType'].toLowerCase() ==
+                        //     'sales')
+                        //   Card(
+                        //     shape: RoundedRectangleBorder(
+                        //         borderRadius: BorderRadius.circular(10)),
+                        //     elevation: 3,
+                        //     margin: const EdgeInsets.only(bottom: 20),
+                        //     child: Padding(
+                        //       padding: const EdgeInsets.all(
+                        //           15), // Add padding inside the card for better spacing
+                        //       child: Column(
+                        //         crossAxisAlignment: CrossAxisAlignment.start,
+                        //         children: [
+                        //           // Title for the address type selection
+                        //           Text(
+                        //             'Select Shipping Address :',
+                        //             style: TextStyle(
+                        //               fontSize: 16,
+                        //               fontWeight: FontWeight.bold,
+                        //               color: Colors.black87,
+                        //             ),
+                        //           ),
+                        //           const SizedBox(height: 10),
+                        //
+                        //           // Radio buttons for address type selection
+                        //           Column(
+                        //             children: [
+                        //               widget.payload['partyType'] ==
+                        //                       'cQpLw8vwZf'
+                        //                   ? _buildAddressRadio(
+                        //                       'School', 'Party Address')
+                        //                   : SizedBox(
+                        //                       height: 0,
+                        //                     ),
+                        //               _buildAddressRadio(
+                        //                   'Distributor', 'Distributor Address'),
+                        //               _buildAddressRadio(
+                        //                   'Stockist', 'Stockist Address'),
+                        //             ],
+                        //           ),
+                        //           const SizedBox(height: 15),
+                        //
+                        //           // Display selected address details
+                        //           if (_selectedAddressType != null &&
+                        //               addressData[_selectedAddressType!] !=
+                        //                   null) ...[
+                        //             Divider(
+                        //                 thickness: 1,
+                        //                 color: Colors
+                        //                     .grey[300]), // Add a separator line
+                        //             const SizedBox(height: 10),
+                        //             _buildDetailRow(
+                        //                 'Address',
+                        //                 addressData[_selectedAddressType!]![
+                        //                         'address'] ??
+                        //                     'N/A'),
+                        //             const SizedBox(height: 8),
+                        //             _buildDetailRow(
+                        //                 'Mobile',
+                        //                 addressData[_selectedAddressType!]![
+                        //                         'mobile'] ??
+                        //                     'N/A'),
+                        //             const SizedBox(height: 8),
+                        //             _buildDetailRow(
+                        //                 'Email',
+                        //                 addressData[_selectedAddressType!]![
+                        //                         'email'] ??
+                        //                     'N/A'),
+                        //           ],
+                        //         ],
+                        //       ),
+                        //     ),
+                        //   ),
+                        SizedBox(height: 10,),
+                        if (widget.payload['orderType'].toLowerCase() ==
+                            'sales' && widget.payload['applyDiscount'] == "yes")
+                          CheckboxListTile(
+                            title: Text("Discount Adjustment",
+                                style: TextStyle(fontWeight: FontWeight.bold)),
+                            value: discAdjust,
+                            onChanged: (value) =>
+                                setState(() => discAdjust = value!),
                           ),
-                          value: _selectedStockist,
-                          items: stockists
-                              .map((item) => DropdownMenuItem(
-                                  value: item['stockistID'].toString(),
-                                  child: Text(item['StockistName'])))
-                              .toList(),
-                          onChanged: (onChanged) {
-                            setState(() {
-                              final a = stockists
-                                  .where((distri) =>
-                                      distri['stockistID'] == onChanged)
-                                  .toList()[0];
-                              addressData['Stockist Address']!['address'] =
-                                  formatAddress(a);
-                              addressData['Stockist Address']!['email'] =
-                                  a['email'] ?? "";
-                              addressData['Stockist Address']!['mobile'] =
-                                  a['makerContact'] ?? "";
-                              addressData['Stockist Address']!['id'] =
-                                  onChanged ?? "";
-                              addressData['Stockist Address']!['addId'] =
-                                  a['addressId'] ?? "";
 
-                              var matchingTransporters = alltransporters
-                                  .where((ele) =>
-                                      ele['transporterId'] ==
-                                      a['transporterId'])
-                                  .toList();
-                              if (matchingTransporters.isNotEmpty) {
-                                transporters['Stockist'] =
-                                    matchingTransporters[0];
-                              } else {
-                                transporters['Stockist'] = {};
-                              }
-                            });
-                            _selectedStockist = onChanged;
-                          },
-                        ),
-                        SizedBox(
-                          height: 10,
-                        ),
-                        DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            labelText: "Warehouse",
-                            border: const OutlineInputBorder(),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 14),
-                          ),
-                          value: _selectedWarehouse,
-                          items: warehouse
-                              .map((item) => DropdownMenuItem(
-                                  value: item['wh_code'].toString(),
-                                  child: Text(item['name'])))
-                              .toList(),
-                          onChanged: (onChanged) {
-                            _selectedWarehouse = onChanged;
-                          },
-                        ),
-                        _selectedDistributor != null &&
-                                _selectedStockist != null
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Title
-                                  Text(
-                                    "Choose Transporter:",
+                        if (discAdjust)
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              if (widget.payload['orderType'].toLowerCase() ==
+                                      'sales' &&
+                                  widget.payload['applyDiscount'] == "yes")
+                                ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    // Button size
+                                    backgroundColor:
+                                        Colors.green, // Button color
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    showGroupedCartPopup(
+                                        context,
+                                        widget.payload['seriesDiscount'],
+                                        widget.seriesData);
+                                  },
+                                  icon: const Icon(Icons.discount,
+                                      color:
+                                          Colors.white), // Icon for the button
+                                  label: const Text(
+                                    "Additional Discounts",
                                     style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.black87,
-                                    ),
+                                        fontSize: 14, color: Colors.white),
                                   ),
-                                  const SizedBox(
-                                      height:
-                                          10), // Add spacing between title and options
-
-                                  // Distributor Transporter Option
-                                  ListTile(
-                                    contentPadding: EdgeInsets.zero,
-                                    dense: true,
-                                    title: Text(
-                                      transporters['Distributor']![
-                                              'transporter_name'] ??
-                                          "",
-                                      style: TextStyle(
-                                          fontSize: 14, color: Colors.black87),
-                                    ),
-                                    subtitle: Text(
-                                      'Distributor',
-                                      style: TextStyle(
-                                          fontSize: 12, color: Colors.grey),
-                                    ),
-                                    leading: Radio<String>(
-                                      value: transporters['Distributor']![
-                                              'transporterId'] ??
-                                          "",
-                                      groupValue: _selectedTransporter,
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedTransporter = value!;
-                                        });
-                                      },
-                                    ),
-                                  ),
-
-                                  // Stockist Transporter Option (Only if available)
-                                  if (transporters['Stockist']![
-                                          'transporterId'] !=
-                                      transporters['Distributor']![
-                                          'transporterId'])
-                                    ListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      dense: true,
-                                      title: Text(
-                                        transporters['Stockist']![
-                                                'transporter_name'] ??
-                                            "",
-                                        style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.black87),
-                                      ),
-                                      subtitle: Text(
-                                        'Stockist',
-                                        style: TextStyle(
-                                            fontSize: 12, color: Colors.grey),
-                                      ),
-                                      leading: Radio<String>(
-                                        value: transporters['Stockist']![
-                                                'transporterId'] ??
-                                            "",
-                                        groupValue: _selectedTransporter,
-                                        onChanged: (value) {
-                                          setState(() {
-                                            _selectedTransporter = value!;
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                ],
-                              )
-                            : SizedBox(),
-
-                        SizedBox(height: 16),
-                        Card(
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                          elevation: 3,
-                          margin: const EdgeInsets.only(bottom: 20),
-                          child: Padding(
-                            padding: const EdgeInsets.all(
-                                15), // Add padding inside the card for better spacing
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                                ),
+                            ],
+                          ),
+                        if (widget.payload['orderProcess'] == 'new')
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green, // Green background
+                              foregroundColor:
+                                  Colors.white, // White text & icon
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                uploadFileScreen = true;
+                              });
+                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                // Title for the address type selection
+                                const Icon(Icons.upload_file),
+                                const SizedBox(width: 8),
                                 Text(
-                                  'Select Shipping Address :',
-                                  style: TextStyle(
-                                    fontSize: 16,
+                                  "Upload Attachments ${attach.isNotEmpty ? '(' + attach.length.toString() + ' Uploaded)' : ''}",
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
                                   ),
                                 ),
-                                const SizedBox(height: 10),
-
-                                // Radio buttons for address type selection
-                                Column(
-                                  children: [
-                                    widget.payload['partyType'] == 'cQpLw8vwZf'
-                                        ? _buildAddressRadio(
-                                            'School', 'Party Address')
-                                        : SizedBox(
-                                            height: 0,
-                                          ),
-                                    _buildAddressRadio(
-                                        'Distributor', 'Distributor Address'),
-                                    _buildAddressRadio(
-                                        'Stockist', 'Stockist Address'),
-                                  ],
-                                ),
-                                const SizedBox(height: 15),
-
-                                // Display selected address details
-                                if (_selectedAddressType != null &&
-                                    addressData[_selectedAddressType!] !=
-                                        null) ...[
-                                  Divider(
-                                      thickness: 1,
-                                      color: Colors
-                                          .grey[300]), // Add a separator line
-                                  const SizedBox(height: 10),
-                                  _buildDetailRow(
-                                      'Address',
-                                      addressData[_selectedAddressType!]![
-                                              'address'] ??
-                                          'N/A'),
-                                  const SizedBox(height: 8),
-                                  _buildDetailRow(
-                                      'Mobile',
-                                      addressData[_selectedAddressType!]![
-                                              'mobile'] ??
-                                          'N/A'),
-                                  const SizedBox(height: 8),
-                                  _buildDetailRow(
-                                      'Email',
-                                      addressData[_selectedAddressType!]![
-                                              'email'] ??
-                                          'N/A'),
-                                ],
                               ],
                             ),
                           ),
-                        ),
-                        IconButton(
-                          onPressed: () {
-                            setState(() {
-                              uploadFileScreen = true;
-                            });
-                          },
-                          icon: Row(
-                            children: [
-                              Icon(Icons.upload_file, color: Colors.blue),
-                              SizedBox(width: 8),
-                              Text(
-                                "Upload Attachments  ${attach.length > 0 ? '(' + attach.length.toString() + ' Uploaded)' : ""}",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                         SizedBox(height: 16),
 // Add Dropdown for Remarks
-                        DropdownButtonFormField<String>(
-                          decoration: InputDecoration(
-                            labelText: "Remarks",
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 14),
+                        if (widget.payload['orderType'].toLowerCase() ==
+                            'sales')
+                          DropdownButtonFormField<String>(
+                            decoration: InputDecoration(
+                              labelText: "Remarks",
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 14),
+                            ),
+                            value: _selectedRemark,
+                            items: remarks.map((remark) {
+                              return DropdownMenuItem(
+                                value: remark['name'].toString(),
+                                child: Text(remark['name']),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedRemark = value;
+                              });
+                            },
                           ),
-                          value: _selectedRemark,
-                          items: remarks.map((remark) {
-                            return DropdownMenuItem(
-                              value: remark['name'].toString(),
-                              child: Text(remark['name']),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedRemark = value;
-                            });
-                          },
-                        ),
                         SizedBox(
                           height: 10,
                         ),
@@ -901,7 +1038,31 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                 200), // Limits input length
                           ],
                         ),
-                        if(widget.payload['orderType'].toLowerCase()!='sales')
+                        SizedBox(
+                          height: 10,
+                        ),
+                        if (widget.payload['orderType'].toLowerCase() ==
+                            'sales')
+                          TextFormField(
+                            readOnly: true,
+                            onTap: () {
+                              _pickDate();
+                            },
+                            decoration: InputDecoration(
+                              hintText: selectedDate == null
+                                  ? 'Delivery Date'
+                                  : "${selectedDate!.day}-${selectedDate!.month}-${selectedDate!.year}",
+                              suffixIcon: const Icon(Icons.calendar_today),
+                              border: const OutlineInputBorder(),
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 14),
+                            ),
+                          ),
+                        // if (widget.payload['orderType'].toLowerCase() !=
+                        //         'sales' ||
+                        //     (widget.payload['orderType'].toLowerCase() ==
+                        //             'sales' &&
+                        //         widget.payload['orderProcess'] == 'upload'))
                         CheckboxListTile(
                           title: Text("Verify With Code",
                               style: TextStyle(fontWeight: FontWeight.bold)),
@@ -909,98 +1070,146 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                           onChanged: (value) =>
                               setState(() => otpNeed = value!),
                         ),
-                        if(otpNeed)
-                        Card(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 4,
-                          margin: const EdgeInsets.symmetric(
-                              vertical: 15, horizontal: 10),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Title
-                                Text(
-                                  "Choose Consent Person:  (for Verification Code)",
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 10),
-
-                                // Party Option
-                                widget.payload['partyType'] == 'cQpLw8vwZf'
-                                    ? ListTile(
-                                        contentPadding: EdgeInsets.zero,
-                                        dense: true,
-                                        title: Text(
-                                          'School',
-                                          style: TextStyle(
-                                              fontSize: 14,
-                                              color: Colors.black87),
-                                        ),
-                                        leading: Radio<String>(
-                                          value: 'Party Address',
-                                          groupValue: _selectedConsentPerson,
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _selectedConsentPerson = value!;
-                                            });
-                                          },
-                                        ),
-                                      )
-                                    : SizedBox(
-                                        height: 0,
+                        if (otpNeed)
+                          Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 4,
+                              margin: const EdgeInsets.symmetric(
+                                  vertical: 15, horizontal: 10),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Title
+                                    Text(
+                                      "Choose Consent Person:  (for Verification Code)",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
                                       ),
+                                    ),
+                                    const SizedBox(height: 10),
 
-                                // Distributor Option
-                                ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  title: Text(
-                                    'Distributor',
-                                    style: TextStyle(
-                                        fontSize: 14, color: Colors.black87),
-                                  ),
-                                  leading: Radio<String>(
-                                    value: 'Distributor Address',
-                                    groupValue: _selectedConsentPerson,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedConsentPerson = value!;
-                                      });
-                                    },
+                                    DropdownButtonFormField<String>(
+                                      decoration: InputDecoration(
+                                        contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 14),
+                                        border: OutlineInputBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      value: _selectedConsentPerson.isEmpty
+                                          ? null
+                                          : _selectedConsentPerson,
+                                      hint: Text(
+                                        "Select Consent Person",
+                                        style: TextStyle(fontSize: 14),
+                                      ),
+                                      items: [
+                                        // Show School only if condition true
+                                        if (widget.payload['partyType'] ==
+                                            'cQpLw8vwZf')
+                                          DropdownMenuItem(
+                                            value: 'Party Address',
+                                            child: Text("School"),
+                                          ),
+
+                                        DropdownMenuItem(
+                                          value: 'Distributor Address',
+                                          child: Text("Distributor"),
+                                        ),
+
+                                        // DropdownMenuItem(
+                                        //   value: 'Stockist Address',
+                                        //   child: Text("Stockist"),
+                                        // ),
+                                      ],
+                                      onChanged: (value) {
+                                        setState(() {
+                                          _selectedConsentPerson = value!;
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              )),
+                        if (otpNeed)
+                          Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 4,
+                              margin: const EdgeInsets.symmetric(
+                                  vertical: 15, horizontal: 10),
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  bottom:
+                                      MediaQuery.of(context).viewInsets.bottom,
+                                  top: 16,
+                                  left: 16,
+                                  right: 16,
+                                ),
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // CheckboxListTile(
+                                      //   title: const Text(
+                                      //       "Verify Visit with Verification Code"),
+                                      //   value: skipOtp,
+                                      //   onChanged: (value) => setState(
+                                      //       () => skipOtp = value!),
+                                      // ),
+                                      if (otpNeed) ...[
+                                        const SizedBox(height: 10),
+                                        const Text(
+                                          "Message Send To",
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16),
+                                        ),
+                                        ListTile(
+                                          title: const Text(
+                                              'Registered Mobile Number'),
+                                          leading: Radio(
+                                            value: 'Party',
+                                            groupValue: selectedOption,
+                                            onChanged: (value) => setState(() =>
+                                                selectedOption =
+                                                    value.toString()),
+                                          ),
+                                        ),
+                                        ListTile(
+                                          title: const Text('Other'),
+                                          leading: Radio(
+                                            value: 'Other',
+                                            groupValue: selectedOption,
+                                            onChanged: (value) => setState(() =>
+                                                selectedOption =
+                                                    value.toString()),
+                                          ),
+                                        ),
+                                        if (selectedOption == 'Other')
+                                          TextField(
+                                            controller: otherNumberController,
+                                            keyboardType: TextInputType.phone,
+                                            decoration: const InputDecoration(
+                                              labelText: "Enter phone number",
+                                              border: OutlineInputBorder(),
+                                            ),
+                                          ),
+                                      ],
+                                    ],
                                   ),
                                 ),
-
-                                // Stockist Option
-                                ListTile(
-                                  contentPadding: EdgeInsets.zero,
-                                  dense: true,
-                                  title: Text(
-                                    'Stockist',
-                                    style: TextStyle(
-                                        fontSize: 14, color: Colors.black87),
-                                  ),
-                                  leading: Radio<String>(
-                                    value: 'Stockist Address',
-                                    groupValue: _selectedConsentPerson,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedConsentPerson = value!;
-                                      });
-                                    },
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                              )),
 
                         SizedBox(height: 24),
                         ElevatedButton(
@@ -1076,6 +1285,211 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void showGroupedCartPopup(
+      BuildContext context, cartItems, List<dynamic> seriesData) {
+    // final Map<String, dynamic> groupedItems = {};
+    //
+    //
+    //   for (var item in cartItems) {
+    //
+    //       if (!groupedItems.containsKey(item.series)) {
+    //         groupedItems[item.series] = [];
+    //       }
+    //       groupedItems[item.series]!.add(item);
+    //     }
+
+    //
+    //
+    //
+    //
+    // groupedItems.forEach((series, items) {
+    //   seriesTotals[series] = items.fold(0, (sum, item) {
+    //     return sum + (item.price * item.qty * (1 - item.discount / 100));
+    //   });
+    // });
+
+    final Map<String, TextEditingController> controllers = {};
+    final Map<String, String?> errorMessages = {};
+    final Map<String, String?> adD = {};
+
+    cartItems.forEach((series, items) {
+      controllers[series] = TextEditingController(
+          text: addDiscounts[series]!=null ? addDiscounts[series] : ''
+      );
+      errorMessages[series] = null;
+    });
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter popupSetState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      blurRadius: 10,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Apply Additional Discount',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ...cartItems.entries.map((entry) {
+                        final series = entry.key;
+                        final items = entry.value;
+                        // final total = seriesTotals[series]!;
+                        final seriesInfo = seriesData.firstWhere(
+                          (element) => element['seriesTableId'] == series,
+                          orElse: () => null,
+                        );
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Series: ${seriesInfo?['seriesName'] ?? series}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              'Till Now : ${items} %',
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: controllers[series],
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Update Discount (%)',
+                                labelStyle: const TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: 'Poppins',
+                                ),
+                                errorText: errorMessages[series],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                if (value.isNotEmpty) {
+                                  final newDiscount = int.tryParse(value) ?? 0;
+
+                                  if (seriesInfo != null) {
+                                    final discountType =
+                                        seriesInfo['discountType'];
+                                    final minDiscount =
+                                        seriesInfo['minDiscount'] ?? 0;
+                                    final maxDiscount =
+                                        seriesInfo['maxDiscount'] ?? 100;
+
+                                    String? errorMessage;
+                                    if (discountType == 'flat') {
+                                      if (newDiscount != minDiscount) {
+                                        errorMessage =
+                                            'Discount must be exactly $minDiscount%';
+                                      }
+                                    } else if (discountType == 'range') {
+                                      if (newDiscount >
+                                          maxDiscount - items) {
+                                        errorMessage =
+                                            'Discount must be between $minDiscount% and ${maxDiscount - items}%';
+                                      }
+                                    }
+                                    // setState(() {
+                                    //   if (errorMessage == null) {
+                                    //     seriedDiscount[series] = newDiscount;
+                                    //     for (var item in items) {
+                                    //       item.discount = newDiscount;
+                                    //     }
+                                    //
+                                    //     seriesTotals[series] =
+                                    //         items.fold(0, (sum, item) {
+                                    //           return sum +
+                                    //               (item.price *
+                                    //                   item.qty *
+                                    //                   (1 - item.discount / 100));
+                                    //         });
+                                    //   }
+                                    // });
+                                    popupSetState(() {
+                                      errorMessages[series] = errorMessage;
+                                      if (errorMessage == null) {
+                                        addDiscounts[series]=value;
+                                      }
+                                    });
+                                  }
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            Divider(
+                              thickness: 1,
+                              color: Colors.grey[300],
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            backgroundColor: Colors.blueAccent,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: const Text(
+                            'Close',
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

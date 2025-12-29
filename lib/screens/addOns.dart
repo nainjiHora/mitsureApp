@@ -102,7 +102,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) =>CreateOrderScreen(payload: body)), // Route to HomePage
+        MaterialPageRoute(builder: (context) =>CreateOrderScreen(payload: body,seriesData: widget.series,)), // Route to HomePage
       );
 
     } catch (error) {
@@ -286,7 +286,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      color: Colors.indigo[900],
+                      color: Colors.indigo[10],
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Column(

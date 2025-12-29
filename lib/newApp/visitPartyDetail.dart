@@ -117,8 +117,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       );
 
       if (response != null && response['success'] == true) {
-        print(response);
-        print("ssssss");
+
         setState(() {
          meetingScreen=response['rows']['meeting_with_decision_maker'];
         });
@@ -145,6 +144,7 @@ class _RouteDetailsScreenState extends State<RouteDetailsScreen> {
       if (response != null && response['status'] == false) {
         setState(() {
           visitTypeOptions.addAll(response['data']);
+          visitType=widget.data['visitType'];
 
           if (widget.visitStatus != null) {
             status = widget.visitStatus;
@@ -348,7 +348,7 @@ print(googleApiKey);
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('Update Data'),
+              title: const Text('Update Route'),
               content: SizedBox(
                 height: 150,
                 child: Padding(
@@ -395,6 +395,7 @@ print(googleApiKey);
                 ElevatedButton(
                   child: const Text('Submit'),
                   onPressed: () {
+
                     Navigator.of(dialogContext).pop();
                     onSubmit();
                   },
@@ -560,6 +561,7 @@ print(googleApiKey);
           : widget.data['makerContact'],
       "token": id
     };
+    print(body);
 
     try {
       final response =
@@ -573,11 +575,7 @@ print(googleApiKey);
       }
     } catch (error) {
       _showPopup("Failed to send Verification Code. Please try later.", false, context);
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (_) => MainMenuScreen()),
-        (_) => false,
-      );
+
     }
   }
 
@@ -694,7 +692,7 @@ print(googleApiKey);
     var body = {
       "mobile": selectedOption == 'Other'
           ? otherNumberController.text
-          : widget.data['phone'],
+          :  widget.data['makerContact'],
       "otp": otpController.text,
       "visitId": widget.data['visitId'] ?? widget.visitId,
     };
@@ -856,6 +854,18 @@ print(googleApiKey);
   }
 
   void _submitRoutes() async {
+print(visitType);
+    if (visitType==null || visitType=="") {
+      print("Visit has already started or its done");
+      DialogUtils.showCommonPopup(context: context, message: 'Please Select Visit type', isSuccess: false);
+      return;
+    }
+
+if (selectedDate==null || selectedDate=="") {
+  print("Visit has already started or its done");
+  DialogUtils.showCommonPopup(context: context, message: 'Please Select date', isSuccess: false);
+  return;
+}
     setState(() {
       isLoading = true;
     });
@@ -1448,7 +1458,9 @@ print(googleApiKey);
                                 builder: (context) => EndVisitScreen(
                                     visit: widget.data,
                                     date: widget.date,
+                                    visitStatus: widget.visitStatus,
                                     type: widget.type,
+                                    data: widget.data,
                                     meetingHappen:meetingScreen??"",
                                     visitId: widget.visitId),
                               ),

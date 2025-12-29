@@ -348,7 +348,9 @@ print(googleApiKey);
   }
 
   void showSnackbar(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    
+      DialogUtils.showCommonPopup(
+        context: context, message: msg, isSuccess:false);
   }
 
   @override

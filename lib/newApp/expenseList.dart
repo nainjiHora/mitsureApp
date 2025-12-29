@@ -5,6 +5,7 @@ import 'package:mittsure/newApp/addExpense.dart';
 import 'package:mittsure/newApp/expenseDetails.dart';
 import 'package:mittsure/services/apiService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/utils.dart';
 import 'MainMenuScreen.dart';
 
 class ExpenseListScreen extends StatefulWidget {
@@ -218,10 +219,9 @@ _selectedDateRange = DateTimeRange(
           }).toList();
         });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(response['message']),
-          backgroundColor: Colors.red,
-        ));
+          DialogUtils.showCommonPopup(
+        context: context, message: response['message'], isSuccess: false);
+      
       }
     } catch (error) {
       print("Error fetching visits: $error");

@@ -40,8 +40,12 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
   String? visitType = "";
   String? partyType = '';
   String? selectedRM = '';
+  String selectedCat = '';
+  String selectedBoard = '';
+  List<dynamic> boardList = [];
+  List<dynamic> categoryList = [];
   String? selectedSchool;
-    String? selectedRoute;
+  String? selectedRoute;
   DateTime? selectedDate;
   List<dynamic> selectedparty = [];
 
@@ -50,28 +54,60 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
   List<dynamic> schools = [];
   List<dynamic> distributors = [];
   List<dynamic> filteredSchools = [];
+  List<dynamic> allSchools = [];
   List<dynamic> filteredDistributors = [];
+  List<dynamic> allDistributors = [];
+
+  Future<void> fetchAllPicklists() async {
+    try {
+      final responses = await Future.wait([
+        // ApiService.post(endpoint: '/picklist/getSchoolTypeList', body: {}),
+        ApiService.post(endpoint: '/picklist/getSchoolCategory', body: {}),
+        // ApiService.post(endpoint: '/picklist/getMedium', body: {}),
+        // ApiService.post(endpoint: '/picklist/getGrade', body: {}),
+        // ApiService.post(endpoint: '/picklist/getCustomerTypeList', body: {}),
+        ApiService.post(endpoint: '/picklist/getBoard', body: {}),
+        // ApiService.post(endpoint: '/picklist/getContactPersonRole', body: {}),
+      ]);
+
+      setState(() {
+        // schoolTypeList = responses[0]['data'] ?? [];
+        categoryList = responses[0]['data'] ?? [];
+        // mediumList = responses[2]['data'] ?? [];
+        // gradeList = responses[3]['data'] ?? [];
+        // customerTypeList = responses[4]['data'] ?? [];
+        boardList = responses[1]['data'] ?? [];
+        // roles = widget.visit['partyType']==1||widget.visit['partyType']=="1"?responses[6]['data']:responses[6]['data2'];
+
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching picklists: $e');
+    }
+  }
+
 
   getName(item) {
     if (item['partyType'] == '1') {
-      final n = schools
+      final n = allSchools
           .where((element) => element['schoolId'] == item['partyId'])
           .toList()[0];
       return n['schoolName'];
     } else {
-      final n = distributors
+      final n = allDistributors
           .where((element) => element['distributorID'] == item['partyId'])
           .toList()[0];
       return n['DistributorName'];
     }
   }
 
-  Future<void> _fetchOrders(int pageNumber, {String? filter}) async {
-
-    if(userData['role'] != 'se' && (selectedRM==''||selectedRM==null)){
-      DialogUtils.showCommonPopup(context: context, message: "Assign RM or ARM First", isSuccess: false);
+  Future<void> _fetchOrders(int pageNumber,bool inito, {String? filter}) async {
+    if (userData['role'] != 'se' && (selectedRM == '' || selectedRM == null)) {
+      DialogUtils.showCommonPopup(
+          context: context,
+          message: "Assign RM or ARM First",
+          isSuccess: false);
       return;
-
     }
     setState(() {
       isLoading = true;
@@ -79,13 +115,16 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
 
     final body = {
       "ownerId": userData['role'] != "se" ? selectedRM : userData['id'],
-      "routeName":selectedRoute??"",
+      "routeName": selectedRoute ?? "",
+      "category":selectedCat,
+      "board":selectedBoard
       // "visitEndRequired":"yes"
     };
     print(body);
     print("bodyforoute");
     if ((partyType == "1" && schools.length == 0) ||
-        (partyType == "0" && distributors.length == 0)||true) {
+        (partyType == "0" && distributors.length == 0) ||
+        true) {
       try {
         final response = await ApiService.post(
           endpoint:
@@ -98,11 +137,16 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
             if (partyType == "1") {
               filteredSchools = data;
               schools = data;
+              if(inito){
+                allSchools=data;
+              }
               print(schools);
-
             } else {
               filteredDistributors = data;
               distributors = data;
+              if(inito){
+                allDistributors=data;
+              }
             }
             isLoading = false;
           });
@@ -174,8 +218,9 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
             rmsOnly = data
                 .where((e) =>
                     ((e['cluster'] == userData['cluster']) &&
-                    userData['id'] != e['id'] &&
-                    e['role'] == 'se') || e['id']==userData['id'])
+                        userData['id'] != e['id'] &&
+                        e['role'] == 'se') ||
+                    e['id'] == userData['id'])
                 .toList();
             print(userData);
             allUsers = data;
@@ -209,24 +254,13 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
     } finally {}
   }
 
-  _fetchSe(id) async {
-    try {
-      setState(() {
-        rms = allUsers
-            .where((e) =>
-                e['role'] == 'se' &&
-                e['reportingManager'] == id &&
-                e['id'] != userData['id'])
-            .toList();
-        // tagUserController = rms[0]['id'];
-        isLoading = false;
-      });
-    } catch (e) {
-      print(e);
-    }
-  }
-
   void _addRoute() {
+
+    if (visitType==null || visitType=="") {
+      print("Visit has already started or its done");
+      DialogUtils.showCommonPopup(context: context, message: 'Please Select Visit type', isSuccess: false);
+      return;
+    }
     if (visitType != null &&
         partyType != null &&
         selectedSchool != null &&
@@ -243,7 +277,6 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
         );
         return;
       } else {
-        print("Dassd");
         setState(() {
           selectedparty.add({
             'visitType': visitType,
@@ -256,29 +289,36 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
         });
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select all fields')),
-      );
+       DialogUtils.showCommonPopup(
+        context: context, message: 'Please select all fields', isSuccess: false);
+     
     }
   }
 
   void _goToNextPage() {
-    if (selectedparty.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No routes added')),
-      );
+    if (visitType==null && visitType=="") {
+      print("Visit has already started or its done");
+      DialogUtils.showCommonPopup(context: context, message: 'Please Select Visit type', isSuccess: false);
       return;
     }
+    if (selectedparty.isEmpty) {
+        DialogUtils.showCommonPopup(
+        context: context, message: 'No routes added', isSuccess: false);
+     
+      return;
+    }
+
+
 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ReorderRoutePage(
             routes: selectedparty,
-            schools: schools,
+            schools: allSchools,
             visitType: visitTypeOptions,
             tagPartner: tagUserController ?? superwisorController ?? "",
-            distributors: distributors,
+            distributors: allDistributors,
             selectedRM: selectedRM),
       ),
     );
@@ -286,7 +326,9 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
 
   fetchPicklist() async {
     final body = {};
-
+setState(() {
+  isLoading=true;
+});
     try {
       final response = await ApiService.post(
         endpoint: '/picklist/getRouteVisitType', // Use your API endpoint
@@ -303,6 +345,11 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
     } catch (error) {
       print("Error fetcffdfdhing orders: $error");
     }
+    finally{
+      setState(() {
+        isLoading=false;
+      });
+    }
   }
 
   @override
@@ -310,16 +357,14 @@ class _CreateRoutePageState extends State<CreateRoutePage> {
     // TODO: implement initState
     super.initState();
     fetchPicklist();
+    fetchAllPicklists();
     getUserData();
-
   }
 
   fetchAllRouteNames() async {
-    final body = {
-      "cluster":userData['cluster']
-    };
-print(body);
-print("getroutecluster");
+    final body = {"cluster": userData['cluster']};
+    print(body);
+    print("getroutecluster");
     try {
       final response = await ApiService.post(
         endpoint: '/picklist/getAllRouteNames',
@@ -506,53 +551,56 @@ print("getroutecluster");
                           "id",
                           'name',
                           partyType, (val) {
-                        if(userData['role'] != 'se' && (selectedRM==''||selectedRM==null)){
-                          DialogUtils.showCommonPopup(context: context, message: "Assign RM or ARM First", isSuccess: false);
+                        if (userData['role'] != 'se' &&
+                            (selectedRM == '' || selectedRM == null)) {
+                          DialogUtils.showCommonPopup(
+                              context: context,
+                              message: "Assign RM or ARM First",
+                              isSuccess: false);
                           setState(() {
-                            partyType=null;
+                            partyType = null;
                           });
                           return;
-
                         }
                         setState(() {
                           partyType = val;
                           prefDistributor.clear();
                         });
-                        _fetchOrders(int.parse(val ?? '0'));
+                        _fetchOrders(int.parse(val ?? '0'),true);
                       }),
                       const SizedBox(height: 12),
-                      if(userData['role']!="se")
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: TypeAheadFormField<String>(
-                          textFieldConfiguration: TextFieldConfiguration(
-                            controller: selectedRouteController,
-                            decoration: InputDecoration(
-                              labelText: 'Search Route',
-                              border: OutlineInputBorder(),
+                      if (userData['role'] != "se")
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          child: TypeAheadFormField<String>(
+                            textFieldConfiguration: TextFieldConfiguration(
+                              controller: selectedRouteController,
+                              decoration: InputDecoration(
+                                labelText: 'Search Route',
+                                border: OutlineInputBorder(),
+                              ),
                             ),
+                            suggestionsCallback: (pattern) {
+                              return routeNames
+                                  .where((route) => route
+                                      .toLowerCase()
+                                      .contains(pattern.toLowerCase()))
+                                  .cast<String>();
+                            },
+                            itemBuilder: (context, suggestion) {
+                              return ListTile(
+                                title: Text(suggestion),
+                              );
+                            },
+                            onSuggestionSelected: (suggestion) {
+                              setState(() {
+                                selectedRouteController.text = suggestion;
+                                selectedRoute = suggestion;
+                                _fetchOrders(1,false);
+                              });
+                            },
                           ),
-                          suggestionsCallback: (pattern) {
-                            return routeNames
-                                .where((route) => route
-                                    .toLowerCase()
-                                    .contains(pattern.toLowerCase()))
-                                .cast<String>();
-                          },
-                          itemBuilder: (context, suggestion) {
-                            return ListTile(
-                              title: Text(suggestion),
-                            );
-                          },
-                          onSuggestionSelected: (suggestion) {
-                            setState(() {
-                              selectedRouteController.text=suggestion;
-                              selectedRoute=suggestion;
-                              _fetchOrders(1);
-                            });
-                          },
                         ),
-                      ),
                       // partyType == '1'
                       //     ? _buildDropdown(
                       //         'Select School',
@@ -572,6 +620,93 @@ print("getroutecluster");
                       //         (val) => setState(() {
                       //               selectedSchool = val;
                       //             })),
+
+                      partyType == '1'
+                          ? Row(
+                              children: [
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: selectedBoard,
+                                    decoration: InputDecoration(
+                                      labelText: 'Select Board',
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    style: TextStyle(fontSize: 14),
+                                    dropdownColor: Colors.white,
+                                    items: [
+                                      DropdownMenuItem<String>(
+                                        value: '', // Blank value for "All"
+                                        child: Text('All',
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.black)),
+                                      ),
+                                      ...boardList.map((rsm) {
+                                        return DropdownMenuItem<String>(
+                                          value: rsm['boardId'].toString(),
+                                          child: Text(rsm['boardName'],
+                                              style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black)),
+                                        );
+                                      }).toList(),
+                                    ],
+                                    onChanged: (value) {
+                                      selectedBoard = value ?? "";
+                                      _fetchOrders(1,false);
+                                    },
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: selectedCat,
+                                    decoration: InputDecoration(
+                                      labelText: 'Select Category',
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 10, vertical: 8),
+                                    ),
+                                    style: TextStyle(fontSize: 14),
+                                    dropdownColor: Colors.white,
+                                    items: [
+                                      DropdownMenuItem<String>(
+                                        value: '', // Blank value for "All"
+                                        child: Text('All',
+                                            style: TextStyle(
+                                                fontSize: 14,
+                                                color: Colors.black)),
+                                      ),
+                                      ...categoryList.map((rsm) {
+                                        return DropdownMenuItem<String>(
+                                          value: rsm['id'].toString(),
+                                          child: Text(rsm['name'],
+                                              style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black)),
+                                        );
+                                      }).toList(),
+                                    ],
+                                    onChanged: (value) {
+                                      selectedCat = value ?? "";
+                                      _fetchOrders(1,false);
+                                    },
+                                  ),
+                                ),
+                                SizedBox(
+                                  width: 5,
+                                ),
+                              ],
+                            )
+                          : Container(),
+                      SizedBox(height: 10),
                       partyType == '1'
                           ?
                           // Text(
@@ -588,17 +723,19 @@ print("getroutecluster");
                               ),
                               suggestionsCallback: (pattern) {
                                 return schools
-                                    .where((dist) => dist['schoolName']
-                                        .toLowerCase()
-                                        .contains(pattern.toLowerCase())||
-          dist['AddressLine1']
-              .toLowerCase()
-              .contains(pattern.toLowerCase()))
+                                    .where((dist) =>
+                                        dist['schoolName']
+                                            .toLowerCase()
+                                            .contains(pattern.toLowerCase()) ||
+                                        dist['AddressLine1']
+                                            .toLowerCase()
+                                            .contains(pattern.toLowerCase()))
                                     .cast<Map<String, dynamic>>();
                               },
                               itemBuilder: (context, suggestion) {
                                 return ListTile(
-                                  title: Text("${suggestion['schoolId']}-${suggestion['schoolName']}"),
+                                  title: Text(
+                                      "${suggestion['schoolId']}-${suggestion['schoolName']}"),
                                 );
                               },
                               onSuggestionSelected: (suggestion) {
@@ -618,20 +755,20 @@ print("getroutecluster");
                                 ),
                               ),
                               suggestionsCallback: (pattern) {
-  return distributors
-      .where((dist) =>
-          dist['DistributorName']
-              .toLowerCase()
-              .contains(pattern.toLowerCase()) ||
-          dist['AddressLine1']
-              .toLowerCase()
-              .contains(pattern.toLowerCase()))
-      .cast<Map<String, dynamic>>();
-},
-
+                                return distributors
+                                    .where((dist) =>
+                                        dist['DistributorName']
+                                            .toLowerCase()
+                                            .contains(pattern.toLowerCase()) ||
+                                        dist['AddressLine1']
+                                            .toLowerCase()
+                                            .contains(pattern.toLowerCase()))
+                                    .cast<Map<String, dynamic>>();
+                              },
                               itemBuilder: (context, suggestion) {
                                 return ListTile(
-                                  title: Text("${suggestion['distributorID']}-${suggestion['DistributorName']}"),
+                                  title: Text(
+                                      "${suggestion['distributorID']}-${suggestion['DistributorName']}"),
                                 );
                               },
                               onSuggestionSelected: (suggestion) {

@@ -154,6 +154,9 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
 
   void submitForm() async {
     try{
+
+
+
     if (_formKey.currentState!.validate()) {
       final payload = {
         "addressLine1": addressLine1.text,
@@ -181,6 +184,16 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
         "website": website.text,
         "created_role": "rm"
       };
+      final phone = makerContact.text.trim();
+
+      if (!RegExp(r'^[0-9]{10}$').hasMatch(phone)) {
+        DialogUtils.showCommonPopup(
+          context: context,
+          message: "Phone number must contain exactly 10 digits and no spaces or letters",
+          isSuccess: false,
+        );
+        return;
+      }
       setState(() {
         isLoading=true;
       });
@@ -278,8 +291,19 @@ class _AddSchoolFormState extends State<AddSchoolForm> {
                     buildTextField(controller: makerContact, label: 'Decision Maker Contact Number',req:true),
 
                     SizedBox(height: 10),
-              
-                    ElevatedButton(onPressed: submitForm, child: Text('Submit')),
+
+                    ElevatedButton(
+                      onPressed: submitForm,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text('Submit'),
+                    ),
+
                   ],
                 ),
               ),

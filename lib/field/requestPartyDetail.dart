@@ -67,6 +67,7 @@ class _RequestPartyDetailScreenState extends State<RequestPartyDetailScreen> {
         isLoading = false;
       });
       if (response != null && response['success'] == true) {
+        
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text("Approved successfully")));
         Navigator.pop(context);

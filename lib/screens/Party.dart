@@ -23,11 +23,16 @@ class _PartyScreenState extends State<PartyScreen> {
   List<dynamic> parties = [];
   String selectedASM="";
   List<dynamic> asmList=[];
+  List<dynamic> boardList=[];
+  List<dynamic> categoryList=[];
   String selectedRsm="";
   List<dynamic> rsmList=[];
   String selectedSE="";
   List<dynamic> seList=[];
   String pageSize = "15";
+  String selectedCat='';
+  String selectedBoard='';
+
   String selectedFilter = 'school';
   String searchKeyword = '';
   int currentPage = 1;
@@ -175,9 +180,39 @@ class _PartyScreenState extends State<PartyScreen> {
   @override
   void initState() {
     super.initState();
+    fetchAllPicklists();
     getUserData();
 
   }
+
+  Future<void> fetchAllPicklists() async {
+    try {
+      final responses = await Future.wait([
+        // ApiService.post(endpoint: '/picklist/getSchoolTypeList', body: {}),
+        ApiService.post(endpoint: '/picklist/getSchoolCategory', body: {}),
+        // ApiService.post(endpoint: '/picklist/getMedium', body: {}),
+        // ApiService.post(endpoint: '/picklist/getGrade', body: {}),
+        // ApiService.post(endpoint: '/picklist/getCustomerTypeList', body: {}),
+        ApiService.post(endpoint: '/picklist/getBoard', body: {}),
+        // ApiService.post(endpoint: '/picklist/getContactPersonRole', body: {}),
+      ]);
+
+      setState(() {
+        // schoolTypeList = responses[0]['data'] ?? [];
+        categoryList = responses[0]['data'] ?? [];
+        // mediumList = responses[2]['data'] ?? [];
+        // gradeList = responses[3]['data'] ?? [];
+        // customerTypeList = responses[4]['data'] ?? [];
+        boardList = responses[1]['data'] ?? [];
+        // roles = widget.visit['partyType']==1||widget.visit['partyType']=="1"?responses[6]['data']:responses[6]['data2'];
+
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching picklists: $e');
+    }
+  }
+
 
   Future<void> _fetchOrders(int pageNumber, {String? filter}) async {
     setState(() {
@@ -190,7 +225,10 @@ class _PartyScreenState extends State<PartyScreen> {
       "recordPerPage": pageSize,
       "ownerId": selectedSE,
       "rsm": selectedRsm,
+      "board":selectedBoard,
+      "category":selectedCat,
       "asm": selectedASM,
+      "status":selectedFilter == 'school'?'active':1
     };
 
     if (filter != null && filter.isNotEmpty) {
@@ -201,7 +239,7 @@ class _PartyScreenState extends State<PartyScreen> {
     body['ownerId']=selectedSE;
   }
 
-
+print(body);
 
     try {
 
@@ -449,6 +487,73 @@ class _PartyScreenState extends State<PartyScreen> {
                 SizedBox(width: 5,),
               ],
             ):Container(),
+            SizedBox(height: 10,),
+            selectedFilter == 'school'?Row(
+              children: [
+
+
+                SizedBox(width: 5,),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedBoard,
+                    decoration: InputDecoration(
+                      labelText: 'Select Board',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    style: TextStyle(fontSize: 14),
+                    dropdownColor: Colors.white,
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: '', // Blank value for "All"
+                        child: Text('All', style: TextStyle(fontSize: 14, color: Colors.black)),
+                      ),
+                      ...boardList.map((rsm) {
+                        return DropdownMenuItem<String>(
+                          value: rsm['boardId'].toString(),
+                          child: Text(rsm['boardName'], style: TextStyle(fontSize: 14, color: Colors.black)),
+                        );
+                      }).toList(),
+                    ],
+                    onChanged: (value){
+                      selectedBoard=value??"";
+                      _fetchOrders(currentPage);
+                    },
+                  ),
+                ),
+                SizedBox(width: 5,),
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: selectedCat,
+                    decoration: InputDecoration(
+                      labelText: 'Select Category',
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    style: TextStyle(fontSize: 14),
+                    dropdownColor: Colors.white,
+                    items: [
+                      DropdownMenuItem<String>(
+                        value: '', // Blank value for "All"
+                        child: Text('All', style: TextStyle(fontSize: 14, color: Colors.black)),
+                      ),
+                      ...categoryList.map((rsm) {
+                        return DropdownMenuItem<String>(
+                          value: rsm['id'].toString(),
+                          child: Text(rsm['name'], style: TextStyle(fontSize: 14, color: Colors.black)),
+                        );
+                      }).toList(),
+                    ],
+                    onChanged: (value){
+                      selectedCat=value??"";
+                      _fetchOrders(currentPage);
+                    },
+                  ),
+                ),
+                SizedBox(width: 5,),
+              ],
+            ):Container(),
+
             Padding(
               padding: const EdgeInsets.all(6.0),
               child: TextField(
@@ -561,9 +666,21 @@ class _PartyScreenState extends State<PartyScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               _buildStatusBadge(party),
-                              // SizedBox(height: 30,),
-                              // Icon(Icons.arrow_forward_ios,
-                              //     color: Colors.grey),
+                              SizedBox(height: 10,),
+                              party['schoolCategoryName']==null?SizedBox(height: 0,): Expanded(
+                                child: CircleAvatar(
+                                  radius: 40.0,
+                                  backgroundColor: Colors.indigo, // Background color
+                                  child: Text(
+                                    party['schoolCategoryName'] ?? "",
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 12,
+                                      color: Colors.white, // Better contrast on indigo
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),

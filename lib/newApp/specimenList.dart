@@ -35,7 +35,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
   int currentPage = 1;
   int totalCount = 0;
   String pageSize = "15";
-  List<dynamic> filteredOrders = [];
+  Map<String, List<Map<String, dynamic>>> filteredOrders = {};
   ScrollController _scrollController = ScrollController();
   Map<String, dynamic> userData = {};
   bool isLoading = false;
@@ -224,6 +224,23 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
     return role.toString().contains(targetRole);
   }
 
+  Map<String, List<Map<String, dynamic>>> groupBySeriesName(
+      List<dynamic> data) {
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+
+    for (var item in data) {
+      final seriesName = item['series_name'] ?? 'Unknown';
+
+      if (!grouped.containsKey(seriesName)) {
+        grouped[seriesName] = [];
+      }
+
+      grouped[seriesName]!.add(item);
+    }
+
+    return grouped;
+  }
+
   Future<void> _fetchOrders(pageN, status) async {
     final body = {
       "pageNumber": pageN - 1,
@@ -237,7 +254,7 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
     setState(() {
       isLoading = true;
     });
-    print(body);
+
     String url = '';
     if (selectedTab == 1) {
       url = '/specimen/getMyAcceptedAllotSpecimens';
@@ -254,12 +271,14 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
       // Check if the response is valid
       if (response != null && response['success'] == true) {
         final data = response['data'];
-        print("dsdsdsdsdsdsdsdsdsdsd");
+
 
         setState(() {
           orders = data;
-          filteredOrders = data;
 
+          var a=groupBySeriesName(data);
+print(a);
+          filteredOrders = a;
           totalCount = response['data1'];
           isLoading = false;
         });
@@ -545,6 +564,10 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                                         )));
                           }
                         },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,   // <-- Green background
+                          foregroundColor: Colors.white,   // <-- Icon & text color
+                        ),
                         icon: Icon(Icons.add),
                         label:
                             Text(selectedTab == 2 ? "Distribute" : "Requests"))
@@ -566,86 +589,90 @@ class _SpecimenScreenState extends State<SpecimenScreen> {
                           ),
                         )
                       : Expanded(
-                          child: ListView.builder(
-                            itemCount: filteredOrders.length,
-                            itemBuilder: (context, index) {
-                              final order = filteredOrders[index];
-                              // final skuItems =
-                              //     order['skuItems'] as List<dynamic>;
+                child: ListView(
+                  children: filteredOrders.entries.map((entry) {
+                    final seriesName = entry.key;
+                    final orders = entry.value;
 
-                              return Card(
-                                elevation: 3, // shadow depth
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                      12), // rounded corners
-                                ),
-                                margin: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 8),
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(12),
-                                  onTap: () {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                SpecimenDetailsScreen(
-                                                  specimenDetails: order,
-                                                  tab: selectedTab,
-                                                )));
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(
-                                        16), // internal padding
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // ---------- SERIES HEADER ----------
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Text(
+                            seriesName.toString().toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+
+                        // ---------- LIST OF ORDERS ----------
+                        ...orders.map((order) {
+                          return Card(
+                            elevation: 3,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(12),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => SpecimenDetailsScreen(
+                                      specimenDetails: order,
+                                      tab: selectedTab,
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      order['nameSku']?.toString().toUpperCase() ?? '',
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
                                       children: [
                                         Text(
-                                          order['nameSku']
-                                                  ?.toString()
-                                                  .toUpperCase() ??
-                                              '',
+                                          order['sku_code']?.toString().toUpperCase() ?? '',
                                           style: const TextStyle(
                                             fontSize: 16,
-                                            fontWeight: FontWeight.bold,
+                                            fontWeight: FontWeight.w400,
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              order['sku_code']
-                                                      ?.toString()
-                                                      .toUpperCase() ??
-                                                  '',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            const SizedBox(
-                                                width:
-                                                    16), // space between SKU and quantity
-                                            Text(
-                                              "Quantity - ${order['quantity']?.toString()}" ??
-                                                  '',
-                                              style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                          ],
+                                        const SizedBox(width: 16),
+                                        Text(
+                                          "Quantity - ${order['quantity']}",
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w400,
+                                          ),
                                         ),
                                       ],
                                     ),
-                                  ),
+                                  ],
                                 ),
-                              );
-                            },
-                          ),
-                        )
+                              ),
+                            ),
+                          );
+                        }).toList()
+                      ],
+                    );
+                  }).toList(),
+                ),
+              )
                   : Center(
                       child: BookPageLoader(),
                     ),

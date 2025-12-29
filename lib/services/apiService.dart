@@ -6,8 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   // Base URL of your API
-  static const String baseUrl = 'https://mittsure.qdegrees.com:3001';
-  // static const String baseUrl = 'https://mittsure.qdegrees.comm:3001';
+  static const String baseUrl = 'https://mittsureOne.com:3001';
+  // static const String baseUrl = 'https://mittsureOne.comm:3001';
   //
   // Function to get the token from SharedPreferences
   static Future<String?> _getToken() async {
@@ -45,7 +45,7 @@ class ApiService {
     http.Response response;
 
     try {
-      print(url);
+
       switch (method.toUpperCase()) {
         case 'GET':
           response = await http.get(url, headers: headers);

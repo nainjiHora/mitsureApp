@@ -62,6 +62,10 @@ return n['DistributorName'];
 }
 
 void _submitReorderedRoutes() async {
+    if(isLoading){
+      print("double clicked");
+      return;
+    }
   setState(() {
      isLoading = true;
    });
@@ -114,12 +118,10 @@ print(body);
     );
       
      } else {
-      print("popop");
-      print(response);
-       ScaffoldMessenger.of(context).showSnackBar(
-         SnackBar(content: Text(response['message']),backgroundColor: Colors.red,),
-         
-      );
+    
+       DialogUtils.showCommonPopup(
+        context: context, message: response['message'], isSuccess: false);
+    
        
      }
    } catch (error) {

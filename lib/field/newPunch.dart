@@ -39,6 +39,7 @@ class _PunchScreenState extends State<PunchScreen> {
   String selectedRsm = "";
   List<dynamic> rsmList = [];
   String selectedSE = "";
+  String todayTime = "";
   List<dynamic> seList = [];
   bool isLoading = false;
   bool isLoadingCards = false;
@@ -61,9 +62,12 @@ class _PunchScreenState extends State<PunchScreen> {
   getUserData() async {
     final prefs = await SharedPreferences.getInstance();
     final a = prefs.getString('user');
+    final t = prefs.getString('time');
+
     if (a!.isNotEmpty) {
       setState(() {
         userData = jsonDecode(a ?? "");
+        todayTime=t??"";
 
         if (widget.mark && userData['role'] != 'se') {
           _fetchWorkingHours(null);
@@ -233,12 +237,9 @@ class _PunchScreenState extends State<PunchScreen> {
         setState(() {
           isLoadingCards = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error'),
-            backgroundColor: Colors.red,
-          ),
-        );
+          DialogUtils.showCommonPopup(
+        context: context, message: 'Error', isSuccess: false);
+       
       }
     } catch (error) {
       print("Error fetchingmmm orders: $error");
@@ -379,7 +380,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
     try {
       var uri = Uri.parse(
-          'https://mittsure.qdegrees.com:3001/attendance/punchAttendance');
+          'https://mittsureOne.com:3001/attendance/punchAttendance');
 
       var request = http.MultipartRequest('POST', uri);
 
@@ -463,7 +464,8 @@ class _PunchScreenState extends State<PunchScreen> {
               setState(() {
                 isLoading = false;
               });
-            });
+            }
+            );
       }
     } catch (error) {
       print(error);
@@ -858,7 +860,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
       // ✅ Make POST request using Dio
       final response = await dio.post(
-        "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovementPDF",
+        "https://mittsureOne.com:3001/attendance/downloadStaffMovementPDF",
         data: data,
         options: Options(responseType: ResponseType.bytes),
       );
@@ -918,7 +920,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
         // ✅ Make POST request using Dio
         final response = await dio.post(
-          "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovement",
+          "https://mittsureOne.com:3001/attendance/downloadStaffMovement",
           data: data,
           options: Options(responseType: ResponseType.bytes),
         );
@@ -1149,9 +1151,9 @@ class _PunchScreenState extends State<PunchScreen> {
                                     ),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Center(
+                                  child:  Center(
                                     child: Text(
-                                      "Today @ 10",
+                                      "Team @ ${todayTime}",
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 12,

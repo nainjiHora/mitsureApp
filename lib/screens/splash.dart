@@ -5,10 +5,10 @@ import 'package:mittsure/newApp/MainMenuScreen.dart';
 import 'package:mittsure/screens/home.dart';
 import 'package:mittsure/screens/login.dart';
 import 'package:mittsure/screens/mainMenu.dart';
+import 'package:mittsure/services/apiService.dart';
+import 'package:mittsure/services/utils.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
-
-
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -43,13 +43,41 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
     Timer(const Duration(seconds: 3), () {
       if (mounted) {
-        _checkForExistingSession();
+        _fetchversion();
       }
     });
-
   }
 
+  Future<void> _fetchversion() async {
+    final body = {};
 
+
+    print("Dsadasdasdasking");
+    final prefs = await SharedPreferences.getInstance();
+
+    try {
+      final response = await ApiService.post(
+        endpoint: '/picklist/getVersionAndTimne', // Use your API endpoint
+        body: body,
+      );
+      print(response);
+      if (response != null && response['status'] == true) {
+        final data = response['data'];
+        await prefs.setString("time",data['todayTime'] );
+        // if (data['appVersion'] == '2.2.0') {
+          _checkForExistingSession();
+        // } else {
+        //   DialogUtils.showCommonPopup(
+        //       context: context,
+        //       message: "Please Update your app",
+        //       isSuccess: false);
+        // }
+      } else {}
+    } catch (error) {
+      print("Dsadsadadad,");
+      print(error);
+    }
+  }
 
   Future<void> _checkForExistingSession() async {
     final prefs = await SharedPreferences.getInstance();
@@ -58,12 +86,14 @@ class _SplashScreenState extends State<SplashScreen>
     if (hasData) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => MainMenuScreen()), // Route to HomePage
+        MaterialPageRoute(
+            builder: (context) => MainMenuScreen()), // Route to HomePage
       );
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LoginScreen()), // Route to HomePage
+        MaterialPageRoute(
+            builder: (context) => LoginScreen()), // Route to HomePage
       );
     }
   }
@@ -92,7 +122,6 @@ class _SplashScreenState extends State<SplashScreen>
                 'All in One',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-
                   fontSize: 20.0,
                   color: Colors.white,
                 ),

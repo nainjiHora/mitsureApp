@@ -15,28 +15,29 @@ class OrderDetailsScreen extends StatefulWidget {
   final order;
   final bool userReq;
   final type;
-  OrderDetailsScreen({required this.order,required this.userReq,required this.type});
+  OrderDetailsScreen(
+      {required this.order, required this.userReq, required this.type});
 
   @override
   State<OrderDetailsScreen> createState() => _OrderDetailsScreenState();
 }
 
 class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
-
-  Map<String,dynamic> userData={};
+  Map<String, dynamic> userData = {};
   String _selectedOption = '';
-  bool isLoading=false;
-  String otpMobile="";
-  getUserData() async{
-    final prefs = await SharedPreferences.getInstance();
-    final a = prefs.getString('user') ;
-    if(a!.isNotEmpty) {
-      setState(() {
-        userData = jsonDecode(a??"");
+  bool isLoading = false;
+  String otpMobile = "";
 
+  getUserData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user');
+    if (a!.isNotEmpty) {
+      setState(() {
+        userData = jsonDecode(a ?? "");
       });
     }
   }
+
   void _showSuccessMessage(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.green),
@@ -45,22 +46,22 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
 
   List<dynamic> orderItems = [];
 
-  approveRejectOrder(status,remark)async{
-   setState(() {
-     isLoading=true;
-   });
+  approveRejectOrder(status, remark) async {
+    setState(() {
+      isLoading = true;
+    });
 
-
-    var body={};
-    body['ownerId']=userData['id'];
-    body['approvalStatus']=status;
-    body['id']=widget.order['orderId'];
-    body['reason']=remark;
-    body['orderId']=widget.order['orderId'];
+    var body = {};
+    body['ownerId'] = userData['id'];
+    body['approvalStatus'] = status;
+    body['id'] = widget.order['orderId'];
+    body['reason'] = remark;
+    body['orderId'] = widget.order['orderId'];
     try {
-
       final response = await ApiService.post(
-        endpoint:userData['role']!='asm'? '/order/updateOrder':'/order/updateAsmApproval',
+        endpoint: userData['role'] != 'asm'
+            ? '/order/updateOrder'
+            : '/order/updateAsmApproval',
         body: body,
       );
 
@@ -70,7 +71,11 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
         });
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,type: widget.type,)),
+          MaterialPageRoute(
+              builder: (context) => OrdersScreen(
+                    userReq: widget.userReq,
+                    type: widget.type,
+                  )),
         );
       } else {
         throw Exception('Failed to load orders');
@@ -83,20 +88,19 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       });
     }
   }
-  getAddress(add){
-print(add);
-    if(add==null||add=='null'){
+
+  getAddress(add) {
+    print(add);
+    if (add == null || add == 'null') {
       return "";
-    }else{
-      var t=jsonDecode(add);
-      return t['addressLine1']??"N/A";
+    } else {
+      var t = jsonDecode(add);
+      return t['addressLine1'] ?? "N/A";
     }
   }
 
   fetchOrderItems() async {
-    final body = {
-      "id": widget.order['orderId']
-    };
+    final body = {"id": widget.order['orderId']};
 
     try {
       final response = await ApiService.post(
@@ -108,7 +112,6 @@ print(add);
         final data = response['data'];
         setState(() {
           orderItems = data;
-
         });
       } else {
         throw Exception('Failed to load orders');
@@ -141,7 +144,7 @@ print(add);
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                 Text(
+                Text(
                   'Order Items (${orderItems.length})',
                   style: TextStyle(
                     fontSize: 18,
@@ -152,37 +155,39 @@ print(add);
                 orderItems.isEmpty
                     ? const Text('No items found')
                     : Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: orderItems.length,
-                    itemBuilder: (context, index) {
-                      final item = orderItems[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: orderItems.length,
+                          itemBuilder: (context, index) {
+                            final item = orderItems[index];
+                            return Card(
+                              margin: const EdgeInsets.symmetric(
+                                  vertical: 6, horizontal: 4),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                  horizontal: 12,
+                                ),
+                                title: Text(
+                                  "${item['nameSku'] ?? item['product_name']} ${item['sku_code'] != null ? '(' + item['sku_code'] + ')' : ""}",
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14),
+                                ),
+                                subtitle: Text(
+                                  'Qty: ${item['QTY']}   •   Rs.${item['Price']}',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                dense: true,
+                              ),
+                            );
+                          },
                         ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 12,
-                          ),
-                          title: Text(
-                            "${item['nameSku'] ?? item['product_name']} ${item['sku_code']!=null?'('+item['sku_code']+')':""}",
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-                          ),
-                          subtitle: Text(
-                            'Qty: ${item['QTY']}   •   Rs.${item['Price']}',
-                            style: const TextStyle(fontSize: 13),
-                          ),
-                          dense: true,
-                        ),
-                      );
-                    },
-                  ),
-                )
-                ,
+                      ),
                 const SizedBox(height: 10),
                 TextButton(
                   onPressed: () {
@@ -198,148 +203,263 @@ print(add);
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
-
     return CommonLayout(
-    title:widget.order['so_id'] ?? "Order",
-       currentIndex: 1,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          const SectionTitle(title: 'Order Details'),
-          OrderDetailsRow(label: 'Party', value: widget.order['schoolName'] ?? widget.order['DistributorName']),
-          OrderDetailsRow(
-            label: 'Date',
-            value: DateFormat('dd MMM yyyy').format(DateTime.parse(widget.order['createdAt'].toString())),
-          ),
-          OrderDetailsRow(label: 'Remark', value: widget.order['remark'] ?? ""),
-          const Divider(),
-
-          const SectionTitle(title: 'Item Details'),
-          GestureDetector(
-            onTap: _showOrderItemsDialog,
-            child: OrderDetailsRow(
-              label: 'Order Items',
-              value: orderItems.length.toString(),
-              // showChevron: true,
+        title: widget.order['so_id'] ?? "Order",
+        currentIndex: 1,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            const SectionTitle(title: 'Order Details'),
+            OrderDetailsRow(
+                label: 'Party',
+                value: widget.order['schoolName'] ??
+                    widget.order['DistributorName']),
+            OrderDetailsRow(
+              label: 'Date',
+              value: DateFormat('dd MMM yyyy')
+                  .format(DateTime.parse(widget.order['createdAt'].toString())),
             ),
-          ),
-          OrderDetailsRow(label: 'Sub Total', value: '₹${widget.order['originalAmount'] ?? "0"}'),
-          OrderDetailsRow(
-            label: 'Discount',
-            value: "${(double.parse(widget.order['originalAmount']) - double.parse(widget.order['totalAmount'])).toString()}",
-          ),
-          OrderDetailsRow(label: 'Total', value: '₹${widget.order['totalAmount'] ?? ""}'),
-          const SizedBox(height: 16),
+            OrderDetailsRow(
+                label: 'Remark', value: widget.order['remark'] ?? ""),
+            const Divider(),
 
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              TextButton.icon(
-                onPressed: _showOrderItemsDialog,
-                icon: const Icon(Icons.show_chart, color: Colors.blue),
-                label: const Text('Show Items', style: TextStyle(color: Colors.blue)),
+            const SectionTitle(title: 'Item Details'),
+            GestureDetector(
+              onTap: _showOrderItemsDialog,
+              child: OrderDetailsRow(
+                label: 'Order Items',
+                value: orderItems.length.toString(),
+                // showChevron: true,
               ),
-              if (widget.order['approvalStatus'] != 2)
-                TextButton.icon(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => ReturnItemsScreen(order: widget.order)));
-                  },
-                  icon: const Icon(Icons.refresh, color: Colors.blue),
-                  label: const Text('Return Order', style: TextStyle(color: Colors.blue)),
-                ),
-            ],
-          ),
-          const Divider(),
-
-          const SectionTitle(title: 'Delivery Details'),
-          OrderDetailsRow(label: 'Order Type', value: widget.order['orderType']),
-          OrderDetailsRow(label: 'Address', value: widget.order['partyId'].toString().contains('S-')?getAddress(widget.order['sAddress']):getAddress(widget.order['dAddress'])),
-          OrderDetailsRow(label: 'Contact Person', value: widget.order['name']),
-          OrderDetailsRow(label: 'Contact Number', value: widget.order['mobno'].toString()),
-          OrderDetailsRow(label: 'E-mail Id', value: widget.order['emailId']),
-          const SizedBox(height: 12),
-
-          Center(
-            child: TextButton.icon(
-              onPressed: () => _showAttachmentsDialog(context),
-              icon: const Icon(Icons.file_copy_sharp, color: Colors.blue),
-              label: const Text('View Attachments', style: TextStyle(color: Colors.blue)),
             ),
-          ),
-        ],
-      )
+            OrderDetailsRow(
+                label: 'Sub Total',
+                value: '₹${widget.order['originalAmount'] ?? "0"}'),
+            OrderDetailsRow(
+              label: 'Discount',
+              value:
+                  "${(double.parse(widget.order['originalAmount']) - double.parse(widget.order['totalAmount'])).toString()}",
+            ),
+            OrderDetailsRow(
+                label: 'Total', value: '₹${widget.order['totalAmount'] ??""}'),
+            if(widget.order['orderProcess']=='upload')
+            OrderDetailsRow(
+                label: 'Tentative Amount', value: '₹${widget.order['tentativeAmount'] ??""}'),
+            const SizedBox(height: 16),
 
-    );
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                TextButton.icon(
+                  onPressed: _showOrderItemsDialog,
+                  icon: const Icon(Icons.show_chart, color: Colors.blue),
+                  label: const Text('Show Items',
+                      style: TextStyle(color: Colors.blue)),
+                ),
+                if (widget.order['approvalStatus'] != 2)
+                  TextButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  ReturnItemsScreen(order: widget.order)));
+                    },
+                    icon: const Icon(Icons.refresh, color: Colors.blue),
+                    label: const Text('Return Order',
+                        style: TextStyle(color: Colors.blue)),
+                  ),
+              ],
+            ),
+            const Divider(),
+
+            const SectionTitle(title: 'Delivery Details'),
+            OrderDetailsRow(
+                label: 'Order Type', value: widget.order['orderType']),
+            OrderDetailsRow(
+                label: 'Address',
+                value: widget.order['partyId'].toString().contains('S-')
+                    ? getAddress(widget.order['sAddress'])
+                    : getAddress(widget.order['dAddress'])),
+            OrderDetailsRow(
+                label: 'Contact Person', value: widget.order['name']),
+            OrderDetailsRow(
+                label: 'Contact Number',
+                value: widget.order['mobile'].toString()),
+            OrderDetailsRow(label: 'E-mail Id', value: widget.order['emailId']),
+            const SizedBox(height: 12),
+
+            // Center(
+            //   child: TextButton.icon(
+            //     onPressed: () => _showAttachmentsDialog(context),
+            //     icon: const Icon(Icons.file_copy_sharp, color: Colors.blue),
+            //     label: const Text('View Attachments', style: TextStyle(color: Colors.blue)),
+            //   ),
+            // ),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () {
+                      _showAttachmentsDialog(context);
+                    },
+                    icon: const Icon(Icons.file_copy_sharp, color: Colors.blue),
+                    label: const Text('View Attachments',
+                        style: TextStyle(color: Colors.blue)),
+                  ),
+                ),
+              ],
+            ),
+            widget.order['approvalStatus'] == 6
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: _showConsentDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo[900],
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                        ),
+                        child: Text('Proceed',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                      ElevatedButton(
+                        onPressed: _showDeleteDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                        ),
+                        child: Text('Discard',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  )
+                : SizedBox(
+                    height: 0,
+                  ),
+            (userData['role'] != 'se' &&
+                        userData["role"] != "asm" &&
+                        widget.order['approvalStatus'] == 0) ||
+                    (userData["role"] == "asm" &&
+                        widget.order['asmApproval'] == 0 &&
+                        widget.order['approvalStatus'] == 0)
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          approveRejectOrder(1, "Approved");
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                        ),
+                        child: Text('Accept',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          _showRejectDialog(context);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 24, vertical: 12),
+                        ),
+                        child: Text('Reject',
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  )
+                : SizedBox(
+                    height: 0,
+                  )
+          ],
+        ));
   }
 
+  Future<void> proceed(otp, selected, number) async {
+    // setState(() {
+    //   isLoading=true;
+    // });
+    var id = "";
+    if (_selectedOption == 'Stockist') {
+      id = widget.order['stockistId'];
+    } else if (_selectedOption == 'Distributor') {
+      id = widget.order['partyId'].contains('S-')
+          ? widget.order['distributorIDforSchool']
+          : widget.order['partyId'];
+    } else {
+      id = widget.order['partyId'];
+    }
 
-
-
-  Future<void> proceed() async {
-    setState(() {
-      isLoading=true;
-    });
-    var id="";
-    if(_selectedOption=='Stockist') {
-      id=widget.order['stockistId'];
-    }else if(_selectedOption=='Distributor'){
-id=widget.order['partyId'].contains('S-')? widget.order['distributorIDforSchool']:widget.order['partyId'];
-    }else{
-id=widget.order['partyId'];
+    if (widget.order['orderType'].toString().toLowerCase() != 'sales') {
+      id = widget.order['partyId'];
     }
 
     var body = {
-      "id": id
+      "id": id,
+      "other": selected.toString().toLowerCase() == 'other' &&
+              widget.order['orderType'].toString().toLowerCase() != 'sales'
+          ? true
+          : false,
+      "otherNumber": number
     };
+    print(body);
 
     try {
-      final response = await ApiService.post(
-        endpoint: '/user/sendOtpParty',
-        body: body,
-      );
-      if (response != null && response['status'] == false) {
-        setState(() {
-          otpMobile=response['mobile'];
-          isLoading=false;
-        });
-        _showOtpDialog();
-      }else{
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Fail"), backgroundColor: Colors.red),
+      if (otp) {
+        final response = await ApiService.post(
+          endpoint: '/user/sendOtpParty',
+          body: body,
         );
+        if (response != null && response['status'] == false) {
+          setState(() {
+            otpMobile = response['mobile'];
+            isLoading = false;
+          });
+          _showOtpDialog();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Fail"), backgroundColor: Colors.red),
+          );
+        }
+      } else {
+        consentDone();
       }
-
-
-    }catch(error){
+    } catch (error) {
       print("Error sending Verification Code: $error");
-
     }
   }
+
   void _showDeleteDialog() {
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder( // Add StatefulBuilder to manage state inside dialog
+        return StatefulBuilder(
+          // Add StatefulBuilder to manage state inside dialog
           builder: (context, setDialogState) {
             return AlertDialog(
               title: Text(" ${widget.order['so_id']}"),
               content: Text(
-                "Are you sure to Discard this order , Discarded order will not be available later."
-              ),
-
+                  "Are you sure to Discard this order , Discarded order will not be available later."),
               actions: [
                 ElevatedButton(
                   onPressed: () {
-                     discardOrder(widget.order['orderId']);
+                    discardOrder(widget.order['orderId']);
                   },
                   child: Text("Discard"),
                 ),
                 ElevatedButton(
                   onPressed: () {
-     Navigator.pop(context);
+                    Navigator.pop(context);
                   },
                   child: Text("Cancel"),
                 )
@@ -351,14 +471,11 @@ id=widget.order['partyId'];
     );
   }
 
-  discardOrder(id) async{
+  discardOrder(id) async {
     setState(() {
-      isLoading=true;
+      isLoading = true;
     });
-    var body = {
-      "id": id
-
-    };
+    var body = {"id": id};
 
     try {
       final response = await ApiService.post(
@@ -369,72 +486,139 @@ id=widget.order['partyId'];
       if (response != null && response['status'] == true) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,type: widget.type,)),
+          MaterialPageRoute(
+              builder: (context) => OrdersScreen(
+                    userReq: widget.userReq,
+                    type: widget.type,
+                  )),
         );
-      } else {
-
-      }
+      } else {}
     } catch (error) {
       print("Error verifying Verification Code: $error");
-
     }
   }
+
   void _showConsentDialog() {
+    bool otpNeed = true;
+    String error = '';
+    String selectedOption = 'Party';
+    TextEditingController otherNumberController = new TextEditingController();
     showDialog(
       context: context,
       builder: (context) {
-        return StatefulBuilder( // Add StatefulBuilder to manage state inside dialog
+        return StatefulBuilder(
+          // Add StatefulBuilder to manage state inside dialog
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text("Take Consent"),
+              title: Text("Proceed to Order"),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  widget.order['partyId'].contains('S-')
-                      ? RadioListTile(
-                    title: Text("School"),
-                    value: "School",
-                    groupValue: _selectedOption,
-                    onChanged: (value) {
-                      setDialogState(() { // Use setDialogState to update state within dialog
-                        _selectedOption = value.toString();
-                      });
-                    },
-                  )
-                      : SizedBox(height: 0),
-                  RadioListTile(
-                    title: Text("Distributor"),
-                    value: "Distributor",
-                    groupValue: _selectedOption,
-                    onChanged: (value) {
-                      setDialogState(() {
-                        _selectedOption = value.toString();
-                      });
-                    },
+                  CheckboxListTile(
+                    title: Text("Verify With Code",
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    value: otpNeed,
+                    onChanged: (value) =>
+                        setDialogState(() => otpNeed = value!),
                   ),
-                  RadioListTile(
-                    title: Text("Stockist"),
-                    value: "Stockist",
-                    groupValue: _selectedOption,
-                    onChanged: (value) {
-                      setDialogState(() {
-                        _selectedOption = value.toString();
-                      });
-                    },
-                  ),
+                  if (otpNeed && widget.order['orderType'] == 'sales')
+                    widget.order['partyId'].contains('S-')
+                        ? RadioListTile(
+                            title: Text("School"),
+                            value: "School",
+                            groupValue: _selectedOption,
+                            onChanged: (value) {
+                              setDialogState(() {
+                                // Use setDialogState to update state within dialog
+                                _selectedOption = value.toString();
+                              });
+                            },
+                          )
+                        : SizedBox(height: 0),
+                  if (otpNeed && widget.order['orderType'] == 'sales')
+                    RadioListTile(
+                      title: Text("Distributor"),
+                      value: "Distributor",
+                      groupValue: _selectedOption,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _selectedOption = value.toString();
+                        });
+                      },
+                    ),
+                  if (otpNeed && widget.order['orderType'] == 'sales')
+                    RadioListTile(
+                      title: Text("Stockist"),
+                      value: "Stockist",
+                      groupValue: _selectedOption,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _selectedOption = value.toString();
+                        });
+                      },
+                    ),
+                  if (otpNeed && widget.order['orderType'] != 'sales')
+                    ListTile(
+                      title: const Text('Registered Mobile Number'),
+                      leading: Radio(
+                          value: 'Party',
+                          groupValue: selectedOption,
+                          onChanged: (value) {
+                            setDialogState(
+                                () => selectedOption = value.toString());
+                            error = '';
+                          }),
+                    ),
+                  if (otpNeed && widget.order['orderType'] != 'sales')
+                    ListTile(
+                      title: const Text('Other'),
+                      leading: Radio(
+                        value: 'Other',
+                        groupValue: selectedOption,
+                        onChanged: (value) => setDialogState(
+                            () => selectedOption = value.toString()),
+                      ),
+                    ),
+                  if (selectedOption == 'Other' && otpNeed)
+                    TextField(
+                      controller: otherNumberController,
+                      keyboardType: TextInputType.phone,
+                      decoration: const InputDecoration(
+                        labelText: "Enter phone number",
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  if (error != '' && otpNeed)
+                    Text(
+                      error,
+                      style: TextStyle(
+                          color: Colors.red, fontWeight: FontWeight.w400),
+                    )
                 ],
               ),
               actions: [
                 ElevatedButton(
                   onPressed: () {
-                    if (_selectedOption.isNotEmpty) {
+                    if (widget.order['orderType'] != 'sales' &&
+                        selectedOption == 'Other' &&
+                        otherNumberController.text == "") {
+                      setDialogState(() {
+                        error = 'Please Enter the number';
+                      });
+                      return;
+                    }
+                    if ((_selectedOption.isNotEmpty ||
+                            selectedOption.isNotEmpty) ||
+                        !otpNeed) {
                       Navigator.pop(context); // Close popup
                       setState(() {}); // Update main widget state if needed
-                      proceed();
+                      proceed(
+                          otpNeed, selectedOption, otherNumberController.text);
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Please select an option")),
-                      );
+                      setDialogState(() {
+                        error = 'Please Select the option';
+                      });
+                      return;
                     }
                   },
                   child: Text("Proceed"),
@@ -446,10 +630,11 @@ id=widget.order['partyId'];
       },
     );
   }
+
   Future<void> verifyOtp(flag) async {
-setState(() {
-  isLoading=true;
-});
+    setState(() {
+      isLoading = true;
+    });
     var body = {
       "mobile": otpMobile,
       "otp": flag.text,
@@ -461,39 +646,37 @@ setState(() {
         body: body,
       );
 
-       if (response != null && response['status'] == false) {
-
-        await consentDone(); // Proceed to order
-      } else {
-
-      }
+      if (response != null && response['status'] == false) {
+        await consentDone();
+      } else {}
     } catch (error) {
       print("Error verifying Verification Code: $error");
-
     }
   }
 
-  consentDone() async{
-
+  consentDone() async {
     setState(() {
-      isLoading=true;
+      isLoading = true;
     });
-    var body={};
-    body['ownerId']=userData['id'];
-    body['OrderId']=widget.order['orderId'];
+    var body = {};
+    body['ownerId'] = userData['id'];
+    body['OrderId'] = widget.order['orderId'];
 
     try {
-       print(body);
+      print(body);
       final response = await ApiService.post(
         endpoint: '/order/updateApprovalAndSendMailWithPdf',
         body: body,
       );
 
       if (response != null) {
-
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => OrdersScreen(userReq:widget.userReq,type: widget.type,)),
+          MaterialPageRoute(
+              builder: (context) => OrdersScreen(
+                    userReq: widget.userReq,
+                    type: widget.type,
+                  )),
         );
       } else {
         throw Exception('Failed to load orders');
@@ -502,7 +685,6 @@ setState(() {
       print("Error fetchidddddng orders: $error");
     }
   }
-
 
   void _showOtpDialog() {
     TextEditingController otpController = TextEditingController();
@@ -554,9 +736,8 @@ setState(() {
               onPressed: () {
                 String remark = _remarkController.text.trim();
                 if (remark.isNotEmpty) {
-                  approveRejectOrder(2,remark);
+                  approveRejectOrder(2, remark);
                   Navigator.pop(context);
-
                 } else {
                   // Show error if no remark entered
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -564,14 +745,19 @@ setState(() {
                   );
                 }
               },
-              child: Text('Submit',style: TextStyle(color: Colors.white),),
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.indigo[900]),
+              child: Text(
+                'Submit',
+                style: TextStyle(color: Colors.white),
+              ),
+              style:
+                  ElevatedButton.styleFrom(backgroundColor: Colors.indigo[900]),
             ),
           ],
         );
       },
     );
   }
+
   void _showAttachmentsDialog(BuildContext context) {
     final attachments = jsonDecode(widget.order['attachment']) ?? [];
 
@@ -599,21 +785,24 @@ setState(() {
                   attachments.isEmpty
                       ? const Text('No items found')
                       : ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: attachments.length,
-                    itemBuilder: (context, index) {
-                      final attachment = attachments[index];
-                      final fileName = attachment['originalName'] ?? 'Unknown File';
-                      // final fileUrl = "https://mittsure.qdegrees.com:3001/file/${attachment['fileName']}";
-                      final fileUrl = "https://mittsure.qdegrees.com:3001/file/${attachment['fileName']}";// File URL to open
-print(fileUrl);
-                      return ListTile(
-                        leading: _getFileIcon(fileName),
-                        title: Text(fileName),
-                        onTap: () => _openFile(context, fileUrl, fileName),
-                      );
-                    },
-                  ),
+                          shrinkWrap: true,
+                          itemCount: attachments.length,
+                          itemBuilder: (context, index) {
+                            final attachment = attachments[index];
+                            final fileName =
+                                attachment['originalName'] ?? 'Unknown File';
+                            // final fileUrl = "https://mittsureOne.com:3001/file/${attachment['fileName']}";
+                            final fileUrl =
+                                "https://mittsureOne.com:3001/file/${attachment['fileName']}"; // File URL to open
+                            print(fileUrl);
+                            return ListTile(
+                              leading: _getFileIcon(fileName),
+                              title: Text(fileName),
+                              onTap: () =>
+                                  _openFile(context, fileUrl, fileName),
+                            );
+                          },
+                        ),
                   const SizedBox(height: 10),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
@@ -628,6 +817,7 @@ print(fileUrl);
     );
   }
 }
+
 void _showImageDialog(BuildContext context, String imageUrl) {
   showDialog(
     context: context,
@@ -641,17 +831,23 @@ void _showImageDialog(BuildContext context, String imageUrl) {
     },
   );
 }
+
 void _openFile(BuildContext context, String fileUrl, String fileName) {
   if (fileUrl.isEmpty) return;
 
-  if (fileName.endsWith('.jpg') || fileName.endsWith('.png') || fileName.endsWith('.jpeg')) {
+  if (fileName.endsWith('.jpg') ||
+      fileName.endsWith('.png') ||
+      fileName.endsWith('.jpeg')) {
     _showImageDialog(context, fileUrl);
   } else {
     OpenFilex.open(fileUrl);
   }
 }
+
 Widget _getFileIcon(String fileName) {
-  if (fileName.endsWith('.jpg') || fileName.endsWith('.png') || fileName.endsWith('.jpeg')) {
+  if (fileName.endsWith('.jpg') ||
+      fileName.endsWith('.png') ||
+      fileName.endsWith('.jpeg')) {
     return const Icon(Icons.image, color: Colors.blue);
   } else if (fileName.endsWith('.pdf')) {
     return const Icon(Icons.picture_as_pdf, color: Colors.red);
@@ -730,7 +926,8 @@ class SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 8, top: 12),
       child: Text(
         title.toUpperCase(),
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
+        style: const TextStyle(
+            fontSize: 14, fontWeight: FontWeight.bold, color: Colors.black87),
       ),
     );
   }
@@ -741,7 +938,8 @@ class OrderDetailsRow extends StatelessWidget {
   final String value;
   final bool showChevron;
 
-  const OrderDetailsRow({required this.label, required this.value, this.showChevron = false});
+  const OrderDetailsRow(
+      {required this.label, required this.value, this.showChevron = false});
 
   @override
   Widget build(BuildContext context) {
@@ -749,14 +947,18 @@ class OrderDetailsRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
-          Expanded(flex: 4, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
+          Expanded(
+              flex: 4,
+              child: Text(label,
+                  style: const TextStyle(fontWeight: FontWeight.w600))),
           Expanded(
             flex: 6,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 Flexible(child: Text(value, textAlign: TextAlign.right)),
-                if (showChevron) const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
+                if (showChevron)
+                  const Icon(Icons.chevron_right, size: 18, color: Colors.grey),
               ],
             ),
           ),

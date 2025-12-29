@@ -148,31 +148,16 @@ class _MeetingHappenState extends State<MeetingHappen> {
                
               ])),
               ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,   // <-- Green background
+                  foregroundColor: Colors.white,   // <-- Icon & text color
+                ),
                 onPressed: () {
                   if (interested!.toLowerCase() == 'yes') {
-                  //  Navigator.pushReplacement(
-                  //     context,
-                  //     MaterialPageRoute(
-                  //       builder: (context) => RouteDetailsScreen(
-                  //           visitId:widget.visitId,
-                  //           visitStatus:widget.visitStatus,
-                  //           userReq:widget.userReq,
-                  //           date:widget.date,
-                  //           type:widget.type,
-                  //           data:widget.data
-                  //     )));
+
                     updteMeetin("Yes");
                   } else {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => HoInterventionScreen(
-                    //         answers: [],
-                    //         payload: widget.payload,
-                    //         visit: widget.visit,
-                    //         interested: selectedReason),
-                    //   ),
-                    // );
+
                     updteMeetin("No");
                   }
                 },

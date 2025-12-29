@@ -14,9 +14,11 @@ import 'package:mittsure/newApp/specimenList.dart';
 import 'package:mittsure/newApp/userRequests.dart';
 import 'package:mittsure/newApp/visitScreen.dart';
 import 'package:mittsure/screens/Party.dart';
+import 'package:mittsure/screens/incentiveScreen.dart';
 import 'package:mittsure/screens/login.dart';
 import 'package:mittsure/screens/notifications.dart';
 import 'package:mittsure/screens/orders.dart';
+import 'package:mittsure/services/utils.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/apiService.dart';
 
@@ -32,6 +34,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
   bool flag = false;
   String? hours;
   String _username = "";
+
   Timer? _timer;
   var visitData = {};
   List<Map<String,dynamic>> specimenSubmenu=[
@@ -93,7 +96,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     try {
       final response = await ApiService.post(
         endpoint: '/routePlan/getRoutesPartyCount',
-        body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:""},
+        body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:"",'version':'2.2.0'},
       );
       
 print(response);
@@ -117,7 +120,8 @@ print(":dasada");
         body: {
           "ownerId": userData['role'] == 'se' ? userData['id'] : "",
           "rsm": userData['role'] == 'rsm' ? userData['id'] : "",
-          "asm": userData['role'] == 'asm' ? userData['id'] : ""
+          "asm": userData['role'] == 'asm' ? userData['id'] : "",
+          'version':'2.2.0'
         },
       );
 
@@ -134,13 +138,16 @@ print(":dasada");
       if(error.toString().contains('401')){
         final prefs = await SharedPreferences.getInstance();
 
-        await prefs.remove("user");
-        await prefs.remove("Token");
-        await prefs.remove('vehicleType');
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (cont) => LoginScreen()),
-        );
+        DialogUtils.showCommonPopup(context: context, message: "Login again  or update your apk", isSuccess: false, onOkPressed: ()async {
+          await prefs.remove("user");
+          await prefs.remove("Token");
+          await prefs.remove('vehicleType');
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (cont) => LoginScreen()),
+          );
+        });
+
       }
       print("Error fetching working 67 hours: $error");
     }
@@ -150,7 +157,7 @@ print(":dasada");
     try {
       final response = await ApiService.post(
         endpoint: '/attendance/getAttendanceConfig',
-        body: {},
+        body: {'version':'2.2.0'},
       );
 
       if (response != null) {
@@ -164,6 +171,22 @@ print(":dasada");
       }
     } catch (error) {
       print("Error fetching working 989 hours: $error");
+      if (error.toString().contains('401')) {
+        final prefs = await SharedPreferences.getInstance();
+
+        DialogUtils.showCommonPopup(context: context,
+            message: "Login again  or update your apk",
+            isSuccess: false,
+            onOkPressed: () async {
+              await prefs.remove("user");
+              await prefs.remove("Token");
+              await prefs.remove('vehicleType');
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (cont) => LoginScreen()),
+              );
+            });
+      }
     }
   }
 
@@ -481,6 +504,7 @@ print(":dasada");
                     false,[]),
                     _drawerItem("Returns", Icons.bookmark_border,MainMenuScreen() , false,[]),
                 _drawerItem("Collections", Icons.monetization_on,MainMenuScreen() , false,[]),
+                _drawerItem("Incentives", Icons.monetization_on,MainMenuScreen() , false,[]),
                 _drawerItem("FAQs", Icons.question_mark,FAQScreen() , false,[]),
 
                 Divider(thickness: 1),

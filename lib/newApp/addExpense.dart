@@ -103,9 +103,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       });
       uploadFiles();
     } else if (selectedFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Please upload a bill file.")),
-      );
+        DialogUtils.showCommonPopup(
+        context: context, message:"Please upload a bill file.", isSuccess: false);
+     
     } else {
       DialogUtils.showCommonPopup(
           context: context,
@@ -126,8 +126,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       var request = http.MultipartRequest(
         'POST',
         Uri.parse(
-            'https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
-        // Uri.parse('https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
+            'https://mittsureOne.com:3001/user/uploadMultipleImages'),
+        // Uri.parse('https://mittsureOne.com:3001/user/uploadMultipleImages'),
       );
 
       request.files.add(

@@ -10,6 +10,8 @@ import 'package:mittsure/services/apiService.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/utils.dart';
+
 class VisitCaptureScreen extends StatefulWidget {
   final visit;
   final type;
@@ -59,6 +61,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
   @override
   void initState() {
     super.initState();
+
     getUserData();
     _fetchLocation();
     fetchPicklist();
@@ -198,83 +201,101 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
   }
 
   Future<void> _submitForm(cont) async {
-    if (widget.visit['visited_status'] != 0) {
-      print("Visit has already started or its done");
-      return;
-    }
-    if (_formKey.currentState!.validate() &&
-        latitude != null &&
-        longitude != null &&
-        _image != null) {
-      final uri = Uri.parse(
-          'https://mittsure.qdegrees.com:3001/visit/startVisit'); // Change this
-
-      final prefs = await SharedPreferences.getInstance();
-      final hasData = prefs.getString('user') != null;
-      var id = "";
-      if (hasData) {
-        id = jsonDecode(prefs.getString('user') ?? "")['id'];
-      } else {
+    try {
+      if (isLoading) {
+        print("double clicked");
         return;
       }
+      if (widget.visit['visited_status'] != 0) {
+        print("Visit has already started or its done");
+        return;
+      }
+      if (visitType==null && visitType=="") {
+        print("Visit has already started or its done");
+        DialogUtils.showCommonPopup(context: cont, message: 'Please Select Visit type', isSuccess: false);
+        return;
+      }
+      if (_formKey.currentState!.validate() &&
+          latitude != null &&
+          longitude != null &&
+          _image != null) {
+        final uri = Uri.parse(
+            'https://mittsureOne.com:3001/visit/startVisit'); // Change this
 
-      setState(() {
-        isLoading = true;
-      });
-      var request = http.MultipartRequest('POST', uri);
-      request.fields['ownerId'] = id;
-      request.fields['partyId'] = widget.visit['partyId'];
-      request.fields['partyType'] = widget.visit['partyType'].toString();
-      request.fields['start_lat'] = latitude.toString();
-      request.fields['start_long'] = longitude.toString();
-      request.fields['tag_User'] = tagUserController ?? "";
-      request.fields['superwisor'] = superwisorController ?? "";
-      request.fields['visitEntryType'] = visitType ?? "";
-      request.fields['extra'] = extraController.text;
+        final prefs = await SharedPreferences.getInstance();
+        final hasData = prefs.getString('user') != null;
+        var id = "";
+        if (hasData) {
+          id = jsonDecode(prefs.getString('user') ?? "")['id'];
+        } else {
+          return;
+        }
+        setState(() {
+          isLoading = true;
+        });
 
-      request.files.add(
-        await http.MultipartFile.fromPath(
-          'start_image',
-          _image!.path,
-          filename: basename(_image!.path),
-        ),
-      );
+        var request = http.MultipartRequest('POST', uri);
+        request.fields['ownerId'] = id;
+        request.fields['partyId'] = widget.visit['partyId'];
+        request.fields['partyType'] = widget.visit['partyType'].toString();
+        request.fields['start_lat'] = latitude.toString();
+        request.fields['start_long'] = longitude.toString();
+        request.fields['tag_User'] = tagUserController ?? "";
+        request.fields['superwisor'] = superwisorController ?? "";
+        request.fields['visitEntryType'] = visitType ?? "";
+        request.fields['extra'] = extraController.text;
 
-      final response = await request.send();
-      var respons = await http.Response.fromStream(response);
-
-      final res = jsonDecode(respons.body);
-
-      if (response.statusCode >= 200 &&
-          response.statusCode < 300 &&
-          res['status'] == false) {
-        Navigator.pushReplacement(
-          cont,
-          MaterialPageRoute(
-              builder: (context) => RouteDetailsScreen(
-                    data: widget.visit,
-                    type: widget.type,
-                    date: widget.date,
-                    visitStatus: 1,
-                    visitId: res['data']['visitId'],
-                    userReq: false,
-                  )),
+        request.files.add(
+          await http.MultipartFile.fromPath(
+            'start_image',
+            _image!.path,
+            filename: basename(_image!.path),
+          ),
         );
+
+        final response = await request.send();
+        var respons = await http.Response.fromStream(response);
+
+        final res = jsonDecode(respons.body);
+
+        if (response.statusCode >= 200 &&
+            response.statusCode < 300 &&
+            res['status'] == false) {
+          Navigator.pushReplacement(
+            cont,
+            MaterialPageRoute(
+                builder: (context) =>
+                    RouteDetailsScreen(
+                      data: widget.visit,
+                      type: widget.type,
+                      date: widget.date,
+                      visitStatus: 1,
+                      visitId: res['data']['visitId'],
+                      userReq: false,
+                    )),
+          );
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+          DialogUtils.showCommonPopup(
+              context: cont, message: res['message'], isSuccess: false);
+        }
       } else {
         setState(() {
           isLoading = false;
         });
-        ScaffoldMessenger.of(cont).showSnackBar(
-          SnackBar(content: Text(res['message'])),
-        );
+        DialogUtils.showCommonPopup(
+            context: cont,
+            message: 'Please fill all fields and capture image',
+            isSuccess: false);
       }
-    } else {
+    }catch(e){
+      DialogUtils.showCommonPopup(context: cont, message: "Something Went Wrong", isSuccess: false);
+    }finally{
       setState(() {
-        isLoading = false;
+        isLoading=false;
       });
-      ScaffoldMessenger.of(cont).showSnackBar(
-        SnackBar(content: Text('Please fill all fields and capture image')),
-      );
     }
   }
 

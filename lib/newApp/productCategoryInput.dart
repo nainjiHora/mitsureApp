@@ -6,12 +6,22 @@ import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart
 import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
 import 'package:multi_select_flutter/util/multi_select_item.dart';
 import 'ReeviewAnswersScreen.dart';
+import 'endVisitScreen.dart';
 
 class ProductCategoryInput extends StatefulWidget {
   final payload;
   final visit;
+  final visitId;
+  final visitStatus;
+  final data;
+
+  final type;
+  final date;
+  final meetingHappen;
   
-  const ProductCategoryInput({required this.payload,required this.visit});
+  const ProductCategoryInput({
+    this.visitStatus,
+    this.data,this.type,this.date,this.meetingHappen,required this.visitId,required this.payload,required this.visit});
 
   @override
   State<ProductCategoryInput> createState() => _ProductCategoryInputState();
@@ -127,6 +137,27 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
         title: const Text('Products', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.indigo,
         iconTheme: const IconThemeData(color: Colors.white),
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => EndVisitScreen(
+
+                  visit: widget.visit,
+                  meetingHappen: widget.meetingHappen,
+                  visitStatus:widget.visitStatus,
+                  data:widget.data,
+                  visitId: widget.visitId,
+                  type: widget.type,
+                  date: widget.date,
+                ),
+              ),
+            );
+
+          },
+        ),
       ),
       body: SafeArea(
         child: Padding(
@@ -303,9 +334,16 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                         builder: (context) => ReviewAnswersScreen(
                             answers: interested!.toLowerCase()=='yes'? answers:[],
                             payload: widget.payload,
+                            date: widget.date,
                             category: interested!.toLowerCase()=='yes'? categories:[],
                             visit: widget.visit,
-                            interested: selectedReason),
+                            interested: selectedReason,
+                            visitId:widget.visitId,
+                          type: widget.type,
+                          visitStatus:widget.visitStatus,
+                          data:widget.data,
+                          meetingHappen: widget.meetingHappen,
+                        ),
                       ),
                     );
                   } else {
@@ -313,10 +351,15 @@ class _ProductCategoryInputState extends State<ProductCategoryInput> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => HoInterventionScreen(
+                          type: widget.type,
                             answers: [],
                             meetingHappen: "yes",
+                            date: widget.date,
                             payload: widget.payload,
                             visit: widget.visit,
+                            visitId: widget.visitId,
+                            visitStatus:widget.visitStatus,
+                            data:widget.data,
                             interested: selectedReason),
                       ),
                     );

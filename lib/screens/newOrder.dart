@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:intl/intl.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/screens/CartScreen.dart';
 import 'package:mittsure/services/utils.dart';
 import 'package:multi_select_flutter/chip_display/multi_select_chip_display.dart';
@@ -12,6 +13,7 @@ import 'package:multi_select_flutter/dialog/multi_select_dialog_field.dart';
 import 'package:multi_select_flutter/util/multi_select_item.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/apiService.dart';
+import 'fileUpload.dart';
 import 'login.dart';
 
 class NewOrderScreen extends StatefulWidget {
@@ -29,11 +31,16 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   String? orderType;
   String? bookType;
   String? productType;
+  List<dynamic> attach = [];
+  String? applyDiscount='yes';
+  String? orderProcess='new';
 
   int seriesDisc = 0;
   List<dynamic> selectedPro=[];
+  List<dynamic> selectedUploadSeries=[];
   String? shippingError;
  bool isLoading=false;
+ bool uploadFileScreen=false;
   String? productGroup;
   List<dynamic> selectedOrders = [];
   List<dynamic> mittplusProducts = [];
@@ -51,6 +58,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   String? selectedMedium;
   String? selectedProduct;
   String? bookQuantity;
+  String? tntAmount;
 
   // Transporter
   String? selectedTransporter;
@@ -100,7 +108,6 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
         filteredGroups.removeWhere((element) => element['id']=='6HPipXSLx5');
       });
     }else{
-
       setState(() {
         filteredGroups=[...groups];
       });
@@ -156,7 +163,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
       } else {
         final a = products.where((element) => element['skuId'] == item['id']);
 
-        aList = a.toList()[0]['nameSku'];
+        aList = a.toList().length>0?a.toList()[0]['nameSku']:item['id'];
       }
     }
     return aList.length > 20 ? aList.substring(0, 20) + "..." : aList;
@@ -357,16 +364,32 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
     }
   }
 
-  bool checkInventory(value){
+  bool checkInventory(value, flag,quantity) {
     print(value);
-    List<dynamic> a=specimenProducts.where((element) => element['skuId']==value).toList();
-    print(a);
-    if(a.length>0 && a[0]['quantity']>=int.parse(quantityController.text)){
-      return true;
-    }else{
-      return false;
+
+    List<dynamic> matched = specimenProducts
+        .where((element) => element['skuId'] == value)
+        .toList();
+
+    print(matched);
+
+    if (matched.isNotEmpty) {
+      int requestedQty = int.parse(quantity);
+      int availableQty = matched[0]['quantity'];
+      if (flag) {
+        if (availableQty >= requestedQty) {
+          matched[0]['quantity'] = availableQty - requestedQty;
+          return true;
+        }
+      }else{
+        matched[0]['quantity'] = availableQty + requestedQty;
+        return true;
+      }
     }
+
+    return false;
   }
+
 
 
   fetchPicklist() async {
@@ -490,6 +513,13 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
     // getProductSpecimenINventory();
   }
 
+  saveFiles(bool flag, arr) {
+    setState(() {
+      attach = arr;
+      uploadFileScreen = flag;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -514,9 +544,17 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: isLoading?BookPageLoader(): SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
+
+        child: uploadFileScreen
+            ? SizedBox(
+            height: MediaQuery.of(context).size.height,
+              child: FileUploadScreen(
+                        saveFiles: saveFiles,
+                      ),
+            )
+            :Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSection(
@@ -525,13 +563,17 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                 _buildDropdown(
                     'Order Type',
                     [
-                      {"id": 'Sales', "name": 'Sales'},
-                      {"id": 'Specimen', "name": 'Specimen'}
+                      {"id": 'Sales', "name": 'Booking Confirmation'},
+                      {"id": 'Specimen', "name": 'Specimen'},
+                      {"id": 'saleS', "name": 'Sales Booking'},
                     ],
                     "id",
                     'name',
                     orderType, (value) {
                   setState(() {
+                    if(value=="Specimen"){
+                      applyDiscount='no';
+                    }
                     orderType = value;
                     selectedProduct = null;
                     selectedClass = null;
@@ -544,13 +586,15 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                     productGroup = null;
                     allSets=[];
                     selectedOrders=[];
+                    removeMittPlus();
                     fetchProduct();
                     filterSeries();
-                    removeMittPlus();
+
                   });
 
 
                 }),
+
 
                 const SizedBox(height: 12),
                 _buildDropdown(
@@ -575,13 +619,58 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                       })
                     : SizedBox(
                         height: 0,
-                      )
+                      ),
+                if(orderType.toString().toLowerCase()=='sales')
+                _buildDropdown(
+                    'Discount',
+                    [
+                      {"id": 'yes', "name": 'Yes'},
+                      {"id": 'no', "name": 'No'},
+                    ],
+                    "id",
+                    'name',
+                    applyDiscount, (value) {
+                  setState(() {
+                    applyDiscount=value;
+                  });
+
+
+                }),
+                const SizedBox(height: 12),
+                _buildDropdown(
+                    'Order Process',
+                    [
+                      {"id": 'new', "name": 'Create Order'},
+                      {"id": 'upload', "name": 'Upload Order'},
+                    ],
+                    "id",
+                    'name',
+                    orderProcess, (value) {
+                  setState(() {
+                    orderProcess=value;
+                  });
+
+
+                }),
 
               ],
             ),
 
+
+// if(orderProcess!="new")
+//   Column(
+//     children: [
+//
+//       const SizedBox(height: 12),
+//       _buildNumberField('Tentative Order Amount', tntAmount, (value) {
+//         setState(() => tntAmount = value);
+//       }),
+//
+//     ],
+//   ),
+
             if (bookType == 'Choose from Individual Book' &&
-                productGroup != "6HPipXSLx5")
+                productGroup != "6HPipXSLx5" && orderProcess=="new")
               _buildSection(
                 title: "Product Details",
                 children: [
@@ -677,7 +766,7 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                   }),
                 ],
               ),
-            if (productGroup == "6HPipXSLx5")
+            if (productGroup == "6HPipXSLx5" && orderProcess=="new")
               _buildSection(
                 title: "Product Details",
                 children: [
@@ -727,9 +816,9 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                   }),
                 ],
               ),
-            bookType == 'Choose from Set' ||
+            (bookType == 'Choose from Set' ||
                     bookType == 'Choose from Individual Book' ||
-                    productGroup == "6HPipXSLx5"
+                    productGroup == "6HPipXSLx5")&&orderProcess=="new"
                 ? Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -747,7 +836,7 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                               if(orderType.toString().toLowerCase()!='sales')
                               {
                                 for (int i = 0; i < selectedPro.length; i++) {
-                                  stable = checkInventory(selectedPro[i]);
+                                  stable = checkInventory(selectedPro[i],true,quantityController.text);
 
                                   if (!stable) {
                                     break;
@@ -865,6 +954,52 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                 // )
                 : SizedBox(),
             const SizedBox(height: 20),
+            if(orderProcess=='upload')
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Select Series",
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey), // Border color
+                      borderRadius:
+                      BorderRadius.circular(8), // Optional: rounded corners
+                    ),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 4), // Optional: inner spacing
+                    child: MultiSelectDialogField(
+                      items: filteredSeries
+                          .map<MultiSelectItem<String>>(
+                            (opt) => MultiSelectItem<String>(
+                          opt['seriesTableId'].toString(),
+                          opt['seriesName'].toString(),
+                        ),
+                      )
+                          .toList(),
+                      title: Text("Select Series"),
+                      selectedColor: Colors.blue,
+                      decoration:
+                      BoxDecoration(), // Needed to remove internal field's decoration
+                      initialValue: (selectedUploadSeries??[])
+                          .map<String>((e) => e.toString())
+                          .toList(),
+                      onConfirm: (values) {
+                        setState(() {
+
+                          selectedUploadSeries=values;
+                        });
+                      },
+                      chipDisplay: MultiSelectChipDisplay(),
+
+                    ),
+                  ),
+                ],
+              ),
+            if(orderProcess=="new")
             _buildSection(title: "Added Products", children: [
               Container(
                 height: 55 * (allSets.length).toDouble(),
@@ -920,6 +1055,8 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                               GestureDetector(
                                 onTap: () {
                                   setState(() {
+                                    print(allSets[index]);
+                                    checkInventory(allSets[index]['id'], false, allSets[index]['quantity']);
                                     allSets.removeAt(index);
                                     selectedOrders.removeAt(index);
                                   });
@@ -1041,19 +1178,22 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
       );
       return;
     }
-    if (selectedOrders.length == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please Select Atleast 1 Product'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (selectedOrders.length == 0 && orderProcess=='new') {
+
+      DialogUtils.showCommonPopup(context: context, message: 'Please Select Atleast 1 Product', isSuccess: false);
+
+      return;
+    }
+    if (selectedUploadSeries.length == 0 && orderProcess=='upload') {
+      DialogUtils.showCommonPopup(context: context, message: 'Please Select Atleast 1 Series', isSuccess: false);
+
       return;
     }
 
     DateTime now = DateTime.now();
     int milliseconds = now.millisecondsSinceEpoch;
     final obj = {
+      "orderProcess":orderProcess,
       "address": shippingAddressController.text,
       "approvalStatus": "0",
       "date": milliseconds,
@@ -1068,7 +1208,9 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
       "partyType": widget.type == 'distributor' ? "P6E9TGXewd" : "cQpLw8vwZf",
       "totalAmount": 0,
       "transport": selectedTransporter,
-      "transporter_name": getNameTransporter(selectedTransporter)
+      "transporter_name": getNameTransporter(selectedTransporter),
+      "applyDiscount":applyDiscount,
+      "uploadSeries":selectedUploadSeries
     };
 
     try {
@@ -1079,6 +1221,9 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                   payload: obj,
                   orders: selectedOrders,
                   series: series,
+                  applyDiscount:applyDiscount,
+                  uploadedSeries:selectedUploadSeries,
+                  specimenProducts:specimenProducts
                 )), // Route to HomePage
       );
     } catch (error) {

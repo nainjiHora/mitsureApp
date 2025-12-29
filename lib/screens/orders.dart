@@ -372,7 +372,7 @@ print(response);
     ) 
     :CommonLayout(
       currentIndex: 1,
-      title:"Orders",
+      title:widget.type.toLowerCase()!="specimen"?"Orders":" Specimen Orders",
       child:  getChildContent()
     );
   }
@@ -390,26 +390,37 @@ print(response);
                   _buildFilterButton("All", selectedFilter == 5, () {
                     _updateFilter(orders,5);
                   }),
+                  if(widget.type.toLowerCase()!="specimen")
                 _buildFilterButton("Approved", selectedFilter == 1, () {
                   _updateFilter(orders,1);
                 }),
-
+                  if(widget.type.toLowerCase()!="specimen")
                 _buildFilterButton("Pending", selectedFilter == 0, () {
                   _updateFilter(orders,0);
                 }),
+                  if(widget.type.toLowerCase()!="specimen")
                 _buildFilterButton("Rejected", selectedFilter ==2, () {
-                  _updateFilter(orders,2);
-                }),
-
+                  _updateFilter(orders,2);                }),
+                  if(widget.type.toLowerCase()=="specimen")
+                    _buildFilterButton("Delivered", selectedFilter ==4, () {
+                      _updateFilter(orders,4);
+                    }),
+                  if(widget.type.toLowerCase()=="specimen")
+                    _buildFilterButton("Saved For Later", selectedFilter ==6, () {
+                      _updateFilter(orders,6);
+                    }),
               ],),
              widget.userReq?Container(): Row(mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
+                  if(widget.type.toLowerCase()!="specimen")
                   _buildFilterButton("Shipped", selectedFilter ==3, () {
                     _updateFilter(orders,3);
                   }),
+                  if(widget.type.toLowerCase()!="specimen")
                   _buildFilterButton("Delivered", selectedFilter ==4, () {
                     _updateFilter(orders,4);
                   }),
+                  if(widget.type.toLowerCase()!="specimen")
                   _buildFilterButton("Saved For Later", selectedFilter ==6, () {
                     _updateFilter(orders,6);
                   }),
@@ -584,16 +595,16 @@ print(response);
                           trailing: Container(
                             padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                             decoration: BoxDecoration(
-                              color: getColor(filteredOrders[index]['approvalStatus']),
+                              color:widget.type.toLowerCase()!='specimen'?getColor(filteredOrders[index]['approvalStatus']):null,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Text(
+                            child: widget.type.toLowerCase()!='specimen'?Text(
                               getStatus(filteredOrders[index]['approvalStatus']),
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
-                            ),
+                            ):SizedBox(height: 0,),
                           ),
                         ),
                       )
