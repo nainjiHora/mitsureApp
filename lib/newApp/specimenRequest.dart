@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:mittsure/newApp/MainMenuScreen.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/newApp/specimenList.dart';
 import 'package:mittsure/screens/CartScreen.dart';
 import 'package:mittsure/screens/login.dart';
@@ -27,6 +28,8 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
   String? orderType;
   String? bookType;
   String? productType;
+  bool isLoading=false;
+  var userData;
   int seriesDisc = 0;
   String? shippingError;
   String? selectedSE;
@@ -157,7 +160,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
         endpoint: '/picklist/getProductTypeMittplus',
         body: body,
       );
-      print(response);
+
       // Check if the response is valid
       if (response != null) {
         final data = response['data'];
@@ -256,7 +259,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
 
       // Check if the response is valid
       if (response != null) {
-        print(response['data']);
+
         final data = response['data'];
 
         setState(() {
@@ -272,27 +275,44 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
     }
   }
 
+  getUserData() async {
+    setState(() {
+      isLoading=true;
+    });
+    final prefs = await SharedPreferences.getInstance();
+    final a = prefs.getString('user');
+    if (a!.isNotEmpty) {
+      setState(() {
+        userData = jsonDecode(a ?? "");
+        fetchPicklist();
+        fetchProduct();
+        fetchSets();
+        fetchMittplusProducts();
+        fetchMittplusItems();
+      });
+    }
+  }
+
   fetchPicklist() async {
     final body = {};
 
     try {
       final response = await ApiService.post(
-        endpoint: '/order/getDropdownListForOrder', // Use your API endpoint
+        endpoint: '/order/getDropdownListForSpecimen', // Use your API endpoint
         body: body,
+
       );
 
       // Check if the response is valid
       if (response != null) {
+        print(response['series_list']);
         setState(() {
-          series = response['series_list'].where((ee) {
-            print(ee);
-            return ee['specimen'] != null &&
-                ee['specimen'].toString().toLowerCase() == 'true';
-          }).toList();
+          series = response['series_list'];
           classes = response['class_list'];
           mediums = response['medium_list'];
           groups = response['productGroup_list'];
           partyType = response['partyType_list'];
+          isLoading=false;
         });
       } else {
         throw Exception('Failed to load orders');
@@ -363,11 +383,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
     // TODO: implement initState
     super.initState();
 
-    fetchPicklist();
-    fetchProduct();
-    fetchSets();
-    fetchMittplusProducts();
-    fetchMittplusItems();
+   getUserData();
   }
 
   @override
@@ -400,7 +416,7 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: isLoading? BookPageLoader():SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -867,14 +883,14 @@ class _SpecimenRequestScreenState extends State<SpecimenRequestScreen> {
       "ownerId": userData['id'],
       "products": selectedOrders
     };
-    print(obj);
+   ;
     // try {
     final response = await ApiService.post(
       endpoint: '/specimen/addSpecimenToUser',
       body: obj,
     );
 
-    print(response);
+
 
     if (response != null && response['status'] == false) {
       DialogUtils.showCommonPopup(

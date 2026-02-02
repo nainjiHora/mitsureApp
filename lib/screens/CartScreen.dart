@@ -23,7 +23,9 @@ class CartScreen extends StatefulWidget {
       {required this.orders,
       this.payload,
       required this.series,
-      required this.applyDiscount,required this.uploadedSeries,required this.specimenProducts});
+      required this.applyDiscount,
+      required this.uploadedSeries,
+      required this.specimenProducts});
 
   @override
   _CartScreenState createState() => _CartScreenState();
@@ -32,11 +34,13 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   // List of cart items
   List<CartItem> cartItems = [];
-  String? tntAmount="";
+  String? tntAmount = "";
   final TextEditingController quantityController = TextEditingController();
   var seriedDiscount = {};
   var seriesData = [];
   bool uploadFileScreen = false;
+  bool discAdjust = false;
+  Map<String, dynamic> addDiscounts = {};
   final TextEditingController otpController = TextEditingController();
 
   double getTotalPrice() {
@@ -45,7 +49,7 @@ class _CartScreenState extends State<CartScreen> {
     });
   }
 
-  bool checkInventory(value,flag) {
+  bool checkInventory(value, flag) {
     print(value);
     List<dynamic> matched = widget.specimenProducts
         .where((element) => element['skuId'] == value)
@@ -53,16 +57,15 @@ class _CartScreenState extends State<CartScreen> {
 
     print(matched);
 
-
     if (matched.isNotEmpty) {
       int requestedQty = 1;
       int availableQty = matched[0]['quantity'];
-      if(flag) {
+      if (flag) {
         if (availableQty >= requestedQty) {
           matched[0]['quantity'] = availableQty - requestedQty;
           return true;
         }
-      }else{
+      } else {
         matched[0]['quantity'] = availableQty + requestedQty;
         return true;
       }
@@ -71,9 +74,9 @@ class _CartScreenState extends State<CartScreen> {
     return false;
   }
 
-
   Future<void> order() async {
-    if (seriedDiscount.keys.toList().length == 0 && widget.applyDiscount.toString().toLowerCase()=='yes') {
+    if (seriedDiscount.keys.toList().length == 0 &&
+        widget.applyDiscount.toString().toLowerCase() == 'yes') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You Have Not filled the discount'),
@@ -82,7 +85,8 @@ class _CartScreenState extends State<CartScreen> {
       );
       return;
     }
-    if (widget.payload['orderProcess'].toString().toLowerCase()=='upload' && attach.length==0) {
+    if (widget.payload['orderProcess'].toString().toLowerCase() == 'upload' &&
+        attach.length == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You have not uploaded any document '),
@@ -92,7 +96,9 @@ class _CartScreenState extends State<CartScreen> {
 
       return;
     }
-    if (widget.payload['orderProcess'].toString().toLowerCase()=='upload' && widget.payload['orderType'].toLowerCase() == 'sales' && (tntAmount==null||tntAmount!.isEmpty||tntAmount=="")) {
+    if (widget.payload['orderProcess'].toString().toLowerCase() == 'upload' &&
+        widget.payload['orderType'].toLowerCase() == 'sales' &&
+        (tntAmount == null || tntAmount!.isEmpty || tntAmount == "")) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('You have not filled tentative amount '),
@@ -107,8 +113,9 @@ class _CartScreenState extends State<CartScreen> {
         ? getTotalPrice().toStringAsFixed(2)
         : 0;
     body['seriesDiscount'] = seriedDiscount;
-    body['tentativeAmount']=tntAmount;
+    body['tentativeAmount'] = tntAmount;
     body['attachment'] = attach;
+    body['additionalDiscount']=addDiscounts;
     body['orders'] = cartItems.map((item) {
       return {
         'itemId': item.itemId,
@@ -122,8 +129,6 @@ class _CartScreenState extends State<CartScreen> {
             : 0
       };
     }).toList();
-
-
 
     try {
       if (widget.payload['orderType'].toLowerCase() == 'sales') {
@@ -141,8 +146,10 @@ class _CartScreenState extends State<CartScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-              builder: (context) =>
-                  CreateOrderScreen(payload: body,seriesData: seriesData,)), // Route to HomePage
+              builder: (context) => CreateOrderScreen(
+                    payload: body,
+                    seriesData: seriesData,
+                  )), // Route to HomePage
         );
       }
     } catch (error) {
@@ -170,7 +177,6 @@ class _CartScreenState extends State<CartScreen> {
     var disc = {};
     seriesData = widget.series;
     for (var order in widget.orders) {
-
       int quantity = int.parse(order['quantity'].toString()) ?? 1;
       String group = order['group'];
       List<dynamic> items = order['data'];
@@ -178,6 +184,7 @@ class _CartScreenState extends State<CartScreen> {
       for (var item in items) {
         disc[item['seriesCategory']] = order["discount"];
         if (group == '6HPipXSLx5') {
+          print("lkjhjkjh");
           var discConf = {
             "seriesName": item['product_name'],
             "seriesTableId": item['id'],
@@ -199,7 +206,7 @@ class _CartScreenState extends State<CartScreen> {
                     : double.tryParse(item['landing_cost'].toString())) ??
                 0.0,
             qty: quantity,
-            series: item['seriesCategory'] ?? "",
+            series: item['seriesCategory'] ?? item['id'],
             itemId: item['skuId'] ?? item['id'],
             total: item['unitPrice'] != null
                 ? double.tryParse(item['unitPrice'].toString())! * quantity ??
@@ -211,6 +218,9 @@ class _CartScreenState extends State<CartScreen> {
     }
 
     setState(() {
+      print("===============================");
+      print(widget.uploadedSeries);
+      print(disc);
       seriedDiscount = disc;
     });
   }
@@ -260,7 +270,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -305,14 +314,13 @@ class _CartScreenState extends State<CartScreen> {
                                     Text(
                                       "Discounted Price: ₹ ${(item.price * item.qty * (1 - (item.discount / 100))).toStringAsFixed(2)}",
                                     ),
-
                                     Text("Price: ₹ ${item.price}",
                                         style: TextStyle(
                                             fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                                 trailing: discountTrailing(item.discount),
-                            // Row(
+                                // Row(
                                 //   mainAxisSize: MainAxisSize.min,
                                 //   children: [
                                 //     IconButton(
@@ -360,116 +368,170 @@ class _CartScreenState extends State<CartScreen> {
                           },
                         ),
                       )
-                    :
-                  Column(
-                    children: [
-                      SizedBox(height: 20),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green, // Green background
-                          foregroundColor: Colors.white, // White text & icon
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            uploadFileScreen = true;
-                          });
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.upload_file),
-                            const SizedBox(width: 8),
-                            Text(
-                              "Upload Attachments ${attach.isNotEmpty ? '(' + attach.length.toString() + ' Uploaded)' : ''}",
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-                      if(widget.payload['orderType'].toString().toLowerCase()=='sales')
-                      Padding(
-                        padding: const EdgeInsets.all(20.0),
-                        child: _buildNumberField('Tentative Order Amount', tntAmount, (value) {
-                          setState(() => tntAmount = value);
-                        }),
-                      ),
-
-                    ],
-                  ),
-
-
-
-
-                Container(
-                  padding: EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                  color: Colors.white,
-                  child: Column(
-                    children: [
-                      Divider(),
-                      if(widget.payload['orderProcess']=="new")Text(
-                          "Total: ₹ ${widget.payload['orderType'].toLowerCase() == 'sales' ? getTotalPrice().toStringAsFixed(2) : 0}",
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    : Column(
                         children: [
-                          if (widget.payload['orderType'].toLowerCase() ==
-                                  'sales' &&
-                              widget.applyDiscount == "yes")
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                // Button size
-                                backgroundColor: Colors.green, // Button color
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onPressed: () {
-                                showGroupedCartPopup(
-                                    context, cartItems, seriesData,widget.uploadedSeries);
-                              },
-                              icon: const Icon(Icons.discount,
-                                  color: Colors.white), // Icon for the button
-                              label: const Text(
-                                "Discounts",
-                                style: TextStyle(
-                                    fontSize: 14, color: Colors.white),
-                              ),
-                            ),
-                          if (widget.payload['orderType'].toLowerCase() !=
-                              'sales')
-                            SizedBox(width: 50),
-                          // Proceed Button
-                          ElevatedButton.icon(
+                          SizedBox(height: 20),
+                          ElevatedButton(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue, // Button color
+                              backgroundColor: Colors.green, // Green background
+                              foregroundColor:
+                                  Colors.white, // White text & icon
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
                             onPressed: () {
-                              order();
+                              setState(() {
+                                uploadFileScreen = true;
+                              });
                             },
-                            icon: const Icon(Icons.arrow_forward,
-                                color: Colors.white), // Icon for the button
-                            label: const Text(
-                              "Proceed",
-                              style:
-                                  TextStyle(fontSize: 14, color: Colors.white),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.upload_file),
+                                const SizedBox(width: 8),
+                                Text(
+                                  "Upload Attachments ${attach.isNotEmpty ? '(' + attach.length.toString() + ' Uploaded)' : ''}",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
+                          const SizedBox(height: 12),
+                          if (widget.payload['orderType']
+                                  .toString()
+                                  .toLowerCase() ==
+                              'sales')
+                            Padding(
+                              padding: const EdgeInsets.all(20.0),
+                              child: _buildNumberField(
+                                  'Tentative Order Amount', tntAmount, (value) {
+                                setState(() => tntAmount = value);
+                              }),
+                            ),
                         ],
                       ),
-                    ],
+                Card(
+                  elevation: 4,
+                  margin:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        /// Discount Adjustment Switch
+                        // if (widget.payload['orderType'].toLowerCase() ==
+                        //         'sales' &&
+                        //     widget.payload['applyDiscount'] == "yes")
+                        //   SwitchListTile(
+                        //     title: const Text(
+                        //       "Apply School Discount",
+                        //       style: TextStyle(fontWeight: FontWeight.bold),
+                        //     ),
+                        //     value: discAdjust,
+                        //     onChanged: (value) =>
+                        //         setState(() => discAdjust = value),
+                        //   ),
+
+                        const Divider(),
+
+                        /// Total Price
+                        if (widget.payload['orderProcess'] == "new")
+                          Text(
+                            "Total: ₹ ${widget.payload['orderType'].toLowerCase() == 'sales' ? getTotalPrice().toStringAsFixed(2) : 0}",
+                            style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold),
+                          ),
+
+                        const SizedBox(height: 12),
+
+                        /// School + Additional Discount Row
+                        if (widget.payload['orderType'].toLowerCase() ==
+                                'sales' &&
+                            widget.applyDiscount == "yes")
+                          Row(
+                            children: [
+                              /// School Discount
+                              Expanded(
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    showGroupedCartPopup(context, cartItems,
+                                        seriesData, widget.uploadedSeries);
+                                  },
+                                  icon: const Icon(Icons.school,
+                                      color: Colors.white),
+                                  label: const Text("Discount",style: TextStyle(color: Colors.white),),
+                                ),
+                              ),
+
+                              const SizedBox(width: 10),
+
+                              /// Additional Discount
+                              // if (discAdjust)
+                              //   Expanded(
+                              //     child: ElevatedButton.icon(
+                              //       style: ElevatedButton.styleFrom(
+                              //         backgroundColor: Colors.orange,
+                              //         padding: const EdgeInsets.symmetric(
+                              //             vertical: 12),
+                              //         shape: RoundedRectangleBorder(
+                              //           borderRadius: BorderRadius.circular(10),
+                              //         ),
+                              //       ),
+                              //       onPressed: () {
+                              //         showGroupedCartPopupfordistributor(
+                              //             context,
+                              //             seriedDiscount,
+                              //             widget.series);
+                              //       },
+                              //       icon: const Icon(Icons.discount,
+                              //           color: Colors.white),
+                              //       label: const Text("School Discount",style: TextStyle(color: Colors.white)),
+                              //     ),
+                              //   ),
+                            ],
+                          ),
+
+                        const SizedBox(height: 16),
+
+                        /// Proceed Button Full Width
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.indigo,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: order,
+                            icon: const Icon(Icons.arrow_forward,
+                                color: Colors.white),
+                            label: const Text(
+                              "Proceed",
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold,color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               ],
@@ -478,28 +540,33 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   void showGroupedCartPopup(BuildContext context, List<CartItem> cartItems,
-      List<dynamic> seriesData,uploadedSeries) {
+      List<dynamic> seriesData, uploadedSeries) {
     final Map<String, List<CartItem>> groupedItems = {};
 
-   if(widget.payload['orderProcess']=='new') {
+    if (widget.payload['orderProcess'] == 'new') {
+
       for (var item in cartItems) {
-        if (item.disApp) {
+        print(item.disApp);
+        // if (item.disApp) {
           if (!groupedItems.containsKey(item.series)) {
             groupedItems[item.series] = [];
           }
           groupedItems[item.series]!.add(item);
-        }
+        // }else{
+        //
+        // }
       }
-    }else{
-     for (var item in uploadedSeries) {
-       // if (item.disApp) {
-         if (!groupedItems.containsKey(item)) {
-           groupedItems[item] = [];
-         }
-         // groupedItems[item.series]!.add(item);
-       // }
-     }
-   }
+    } else {
+      for (var item in uploadedSeries) {
+        // if (item.disApp) {
+
+        if (!groupedItems.containsKey(item)) {
+          groupedItems[item] = [];
+        }
+        // groupedItems[item.series]!.add(item);
+        // }
+      }
+    }
 
     final Map<String, double> seriesTotals = {};
     groupedItems.forEach((series, items) {
@@ -546,7 +613,7 @@ class _CartScreenState extends State<CartScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Apply Discount',
+                        'Apply  Discount',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -562,12 +629,12 @@ class _CartScreenState extends State<CartScreen> {
                           (element) => element['seriesTableId'] == series,
                           orElse: () => null,
                         );
-                        print(seriesData);
+                        print(entry);
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Series: ${seriesInfo?['seriesName'] ?? series}',
+                              'Item: ${seriesInfo?['seriesName'] ?? series}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -699,6 +766,210 @@ class _CartScreenState extends State<CartScreen> {
       },
     );
   }
+
+  void showGroupedCartPopupfordistributor(
+      BuildContext context, cartItems, List<dynamic> seriesData) {
+    // final Map<String, dynamic> groupedItems = {};
+    //
+    //
+    //   for (var item in cartItems) {
+    //
+    //       if (!groupedItems.containsKey(item.series)) {
+    //         groupedItems[item.series] = [];
+    //       }
+    //       groupedItems[item.series]!.add(item);
+    //     }
+
+    //
+    //
+    //
+    //
+    // groupedItems.forEach((series, items) {
+    //   seriesTotals[series] = items.fold(0, (sum, item) {
+    //     return sum + (item.price * item.qty * (1 - item.discount / 100));
+    //   });
+    // });
+
+    final Map<String, TextEditingController> controllers = {};
+    final Map<String, String?> errorMessages = {};
+    final Map<String, String?> adD = {};
+
+    cartItems.forEach((series, items) {
+      controllers[series] = TextEditingController(
+          text: addDiscounts[series] != null ? addDiscounts[series] : '');
+      errorMessages[series] = null;
+    });
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter popupSetState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.2),
+                      blurRadius: 10,
+                      spreadRadius: 5,
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Apply Additional Discount',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Poppins',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      ...cartItems.entries.map((entry) {
+                        final series = entry.key;
+                        final items = entry.value;
+                        // final total = seriesTotals[series]!;
+                        final seriesInfo = seriesData.firstWhere(
+                          (element) => element['seriesTableId'] == series,
+                          orElse: () => null,
+                        );
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Series: ${seriesInfo?['seriesName'] ?? series}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                            Text(
+                              'Till Now : ${items} %',
+                              style: const TextStyle(
+                                  fontSize: 14, color: Colors.grey),
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: controllers[series],
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(
+                                labelText: 'Update Discount (%)',
+                                labelStyle: const TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: 'Poppins',
+                                ),
+                                errorText: errorMessages[series],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                if (value.isNotEmpty) {
+                                  final newDiscount = int.tryParse(value) ?? 0;
+
+                                  if (seriesInfo != null) {
+                                    final discountType =
+                                        seriesInfo['discountType'];
+                                    final minDiscount =
+                                        seriesInfo['minDiscount'] ?? 0;
+                                    final maxDiscount =
+                                        seriesInfo['maxDiscount'] ?? 100;
+
+                                    String? errorMessage;
+                                    if (discountType == 'flat') {
+                                      if (newDiscount != minDiscount) {
+                                        errorMessage =
+                                            'Discount must be exactly $minDiscount%';
+                                      }
+                                    } else if (discountType == 'range') {
+                                      if (newDiscount > maxDiscount - items) {
+                                        errorMessage =
+                                            'Discount must be between $minDiscount% and ${maxDiscount - items}%';
+                                      }
+                                    }
+                                    // setState(() {
+                                    //   if (errorMessage == null) {
+                                    //     seriedDiscount[series] = newDiscount;
+                                    //     for (var item in items) {
+                                    //       item.discount = newDiscount;
+                                    //     }
+                                    //
+                                    //     seriesTotals[series] =
+                                    //         items.fold(0, (sum, item) {
+                                    //           return sum +
+                                    //               (item.price *
+                                    //                   item.qty *
+                                    //                   (1 - item.discount / 100));
+                                    //         });
+                                    //   }
+                                    // });
+                                    popupSetState(() {
+                                      errorMessages[series] = errorMessage;
+                                      if (errorMessage == null) {
+                                        addDiscounts[series] = value;
+                                      }
+                                    });
+                                  }
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 10),
+                            Divider(
+                              thickness: 1,
+                              color: Colors.grey[300],
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            backgroundColor: Colors.blueAccent,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: const Text(
+                            'Close',
+                            style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildNumberField(
       String label, String? value, Function(String) onChanged) {
     return TextFormField(

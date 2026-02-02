@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -172,7 +173,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
 
     final pcat = {"interested": widget.interested, "data": widget.answers};
-    final uri = Uri.parse('https://mittsureOne.com:3001/visit/endVisit');
+    final uri = Uri.parse('https://mittsure.qdegrees.com:3001/visit/endVisit');
     var request = http.MultipartRequest('POST', uri);
 
     widget.payload.fields.forEach((key, value) {
@@ -263,6 +264,8 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
         if (response.statusCode >= 200 &&
             response.statusCode < 300 &&
             res['status'] == false) {
+
+          await FlutterForegroundTask.stopService();
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (_) => MainMenuScreen()),

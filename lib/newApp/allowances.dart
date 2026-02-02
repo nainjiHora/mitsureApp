@@ -536,6 +536,7 @@ Widget _buildTAList(List<dynamic> data) {
           itemCount: data.length,
           itemBuilder: (context, index) {
             final item = data[index];
+            print(item);
             final selectedType = selectedKMType[index];
 
             return Card(
@@ -688,7 +689,7 @@ Padding(
           children: [
             CircleAvatar(
               radius: 10, // background circle size
-              backgroundColor: Colors.indigo, // background color
+              backgroundColor: Colors.green, // background color
               child: Icon(
                 Icons.verified,
                 color: Colors.white,

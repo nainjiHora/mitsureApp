@@ -463,12 +463,15 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   Future<void> order(flag) async {
+    if(isLoading){
+      return;
+    }
     var body = widget.payload;
     body['stockistId'] = _selectedStockist;
     body['distributorId'] = _selectedDistributor;
     body['transport'] = _selectedTransporter;
     body['otp_need'] = otpNeed;
-    body['additionalDiscount']=addDiscounts;
+    // body['additionalDiscount']=addDiscounts;
     body['mobileNo'] = addressData[_selectedAddressType]!['id']!;
     body['email'] = addressData[_selectedAddressType]!['email']!;
     body['address'] = addressData[_selectedAddressType]!['addId']!;
@@ -493,6 +496,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     body['date'] = cDate;
 
     print(body);
+    setState(() {
+      isLoading=true;
+    });
     try {
       final response = await ApiService.post(
         endpoint: '/order/createOrder',
@@ -514,10 +520,16 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         }
       } else {
         throw Exception('Failed to create order');
+
       }
     } catch (error) {
       print("Error creating order: $error");
       _showErrorMessage("Failed to place the order. Please try again.");
+    }
+    finally{
+      setState(() {
+        isLoading=false;
+      });
     }
   }
 
@@ -921,49 +933,49 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                         //     ),
                         //   ),
                         SizedBox(height: 10,),
-                        if (widget.payload['orderType'].toLowerCase() ==
-                            'sales' && widget.payload['applyDiscount'] == "yes")
-                          CheckboxListTile(
-                            title: Text("Discount Adjustment",
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            value: discAdjust,
-                            onChanged: (value) =>
-                                setState(() => discAdjust = value!),
-                          ),
+                        // if (widget.payload['orderType'].toLowerCase() ==
+                        //     'sales' && widget.payload['applyDiscount'] == "yes")
+                        //   CheckboxListTile(
+                        //     title: Text("Discount Adjustment",
+                        //         style: TextStyle(fontWeight: FontWeight.bold)),
+                        //     value: discAdjust,
+                        //     onChanged: (value) =>
+                        //         setState(() => discAdjust = value!),
+                        //   ),
 
-                        if (discAdjust)
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              if (widget.payload['orderType'].toLowerCase() ==
-                                      'sales' &&
-                                  widget.payload['applyDiscount'] == "yes")
-                                ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    // Button size
-                                    backgroundColor:
-                                        Colors.green, // Button color
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                  ),
-                                  onPressed: () {
-                                    showGroupedCartPopup(
-                                        context,
-                                        widget.payload['seriesDiscount'],
-                                        widget.seriesData);
-                                  },
-                                  icon: const Icon(Icons.discount,
-                                      color:
-                                          Colors.white), // Icon for the button
-                                  label: const Text(
-                                    "Additional Discounts",
-                                    style: TextStyle(
-                                        fontSize: 14, color: Colors.white),
-                                  ),
-                                ),
-                            ],
-                          ),
+                        // if (discAdjust)
+                        //   Row(
+                        //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        //     children: [
+                        //       if (widget.payload['orderType'].toLowerCase() ==
+                        //               'sales' &&
+                        //           widget.payload['applyDiscount'] == "yes")
+                        //         ElevatedButton.icon(
+                        //           style: ElevatedButton.styleFrom(
+                        //             // Button size
+                        //             backgroundColor:
+                        //                 Colors.green, // Button color
+                        //             shape: RoundedRectangleBorder(
+                        //               borderRadius: BorderRadius.circular(8),
+                        //             ),
+                        //           ),
+                        //           onPressed: () {
+                        //             showGroupedCartPopup(
+                        //                 context,
+                        //                 widget.payload['seriesDiscount'],
+                        //                 widget.seriesData);
+                        //           },
+                        //           icon: const Icon(Icons.discount,
+                        //               color:
+                        //                   Colors.white), // Icon for the button
+                        //           label: const Text(
+                        //             "Additional Discounts",
+                        //             style: TextStyle(
+                        //                 fontSize: 14, color: Colors.white),
+                        //           ),
+                        //         ),
+                        //     ],
+                        //   ),
                         if (widget.payload['orderProcess'] == 'new')
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
@@ -1288,7 +1300,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     );
   }
 
-  void showGroupedCartPopup(
+  void showGroupedCartPopupfordistributor(
       BuildContext context, cartItems, List<dynamic> seriesData) {
     // final Map<String, dynamic> groupedItems = {};
     //

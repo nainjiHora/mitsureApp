@@ -48,8 +48,8 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('https://mittsureOne.com:3001/user/uploadMultipleImages'),
-      // Uri.parse('https://mittsureOne.com:3001/user/uploadMultipleImages'),
+      Uri.parse('https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
+      // Uri.parse('https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
     );
 
     for (var file in selectedFiles) {

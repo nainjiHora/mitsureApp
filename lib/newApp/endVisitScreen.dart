@@ -130,7 +130,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
         endpoint: '/party/getContactPersons', // Use your API endpoint
         body: body,
       );
-
+print(response);
       if (response != null && response['status'] == true) {
         setState(() {
           contactPersons = response['data'];
@@ -152,11 +152,13 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
         body: body,
       );
 
+
       if (response != null && response['status'] == false) {
         setState(() {
           contactPersonController.text = widget.visit['makerName'] ?? "";
           phoneNumberController.text = widget.visit['makerContact'] ?? "";
           dropdowns = response['data'];
+          print( dropdowns['contactRoleName']);
           // isLoading=false;
         });
       } else {
@@ -248,7 +250,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
         isLoading = true;
       });
       final uri = Uri.parse(
-          'https://mittsureOne.com:3001/visit/endVisit'); // Change this
+          'https://mittsure.qdegrees.com:3001/visit/endVisit'); // Change this
 
       final prefs = await SharedPreferences.getInstance();
       final hasData = prefs.getString('user') != null;
@@ -361,7 +363,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
         isLoading = true;
       });
       final uri = Uri.parse(
-          'https://mittsureOne.com:3001/visit/endVisit'); // Change this
+          'https://mittsure.qdegrees.com:3001/visit/endVisit'); // Change this
 
       final prefs = await SharedPreferences.getInstance();
       final hasData = prefs.getString('user') != null;
@@ -588,6 +590,7 @@ class _EndVisitScreenState extends State<EndVisitScreen> {
                               'contactPersonName',
                               contactPersonController, (suggestion) {
                             setState(() {
+                              print(suggestion);
                               contactPersonController.text =
                                   suggestion['contactPersonName'];
                               contactRoleController =

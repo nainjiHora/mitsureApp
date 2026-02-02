@@ -98,9 +98,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
         endpoint: '/routePlan/getRoutesPartyCount',
         body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:"",'version':'2.2.0'},
       );
-      
-print(response);
-print(":dasada");
+
       if (response != null) {
         final data = response['data'];
         setState(() {
@@ -475,6 +473,14 @@ print(":dasada");
                     "Orders",
                     Icons.money,
                     OrdersScreen(
+                      type: 'saleS',
+                      userReq: false,
+                    ),
+                    false,[]),
+                _drawerItem(
+                    "Booking Confirmation",
+                    Icons.money,
+                    OrdersScreen(
                       type: 'Sales',
                       userReq: false,
                     ),
@@ -628,6 +634,7 @@ print(":dasada");
     return Expanded(
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        color: Colors.indigo.shade50,
         elevation: 4,
         margin: const EdgeInsets.all(8),
         child: Padding(
@@ -787,6 +794,7 @@ print(":dasada");
     return Expanded(
       child: Card(
         elevation: 3,
+        color: Colors.green.shade50,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(12),

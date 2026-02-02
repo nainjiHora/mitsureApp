@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
@@ -10,6 +11,7 @@ import 'package:mittsure/services/apiService.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/foregroundService.dart';
 import '../services/utils.dart';
 
 class VisitCaptureScreen extends StatefulWidget {
@@ -200,6 +202,21 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
     }
   }
 
+
+  Future<void> startForegroundService(String visitId,lat,long) async {
+
+    await FlutterForegroundTask.saveData(key: 'visitId', value: visitId);
+    await FlutterForegroundTask.saveData(key: 'lat', value: lat);
+    await FlutterForegroundTask.saveData(key: 'long', value: long);
+    print("🚀 START SERVICE BUTTON CLICKED");
+    await FlutterForegroundTask.startService(
+      notificationTitle: 'Visit in progress',
+      notificationText: 'Location tracking active',
+      callback: startCallback,
+    );
+    print("🚀 START SERVICE CALLED");
+  }
+
   Future<void> _submitForm(cont) async {
     try {
       if (isLoading) {
@@ -220,7 +237,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
           longitude != null &&
           _image != null) {
         final uri = Uri.parse(
-            'https://mittsureOne.com:3001/visit/startVisit'); // Change this
+            'https://mittsure.qdegrees.com:3001/visit/startVisit'); // Change this
 
         final prefs = await SharedPreferences.getInstance();
         final hasData = prefs.getString('user') != null;
@@ -261,6 +278,8 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
         if (response.statusCode >= 200 &&
             response.statusCode < 300 &&
             res['status'] == false) {
+          await  startForegroundService(res['data']['visitId'],latitude.toString(),longitude.toString());
+
           Navigator.pushReplacement(
             cont,
             MaterialPageRoute(
@@ -482,6 +501,17 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
                         _submitForm(context);
                       },
                     ),
+                    // ElevatedButton.icon(
+                    //   style: ElevatedButton.styleFrom(
+                    //     backgroundColor: Colors.green,
+                    //     foregroundColor: Colors.white,
+                    //   ),
+                    //   icon: Icon(Icons.check),
+                    //   label: Text('stop'),
+                    //   onPressed: ()async {
+                    //     await FlutterForegroundTask.stopService();
+                    //   },
+                    // ),
                   ],
                 ),
               ),

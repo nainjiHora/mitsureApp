@@ -48,6 +48,7 @@ class _PunchScreenState extends State<PunchScreen> {
   var reasonData = null;
   Timer? _timer;
   int selectedMonth = 1;
+  int selectedYear=DateTime.now().year;
   bool lastPunchIn = false;
   Duration currentSessionDuration = Duration.zero;
 
@@ -71,13 +72,13 @@ class _PunchScreenState extends State<PunchScreen> {
 
         if (widget.mark && userData['role'] != 'se') {
           _fetchWorkingHours(null);
-          _fetchMonthlyAttendance(null);
+          _fetchMonthlyAttendance(null,null);
         }
 
         if (userData['role'] == 'se') {
           selectedSE = userData['id'];
           _fetchWorkingHours(null);
-          _fetchMonthlyAttendance(null);
+          _fetchMonthlyAttendance(null,null);
         } else if (userData['role'] == 'rsm') {
           selectedRsm = userData['id'];
           _fetchAsm(userData['id']);
@@ -201,7 +202,7 @@ class _PunchScreenState extends State<PunchScreen> {
   }
 
   // lastPunchIn = punches.isNotEmpty && punches.last.type == "In";
-  Future<void> _fetchMonthlyAttendance(month) async {
+  Future<void> _fetchMonthlyAttendance(month,year) async {
     setState(() {
       isLoadingCards = true;
     });
@@ -211,7 +212,7 @@ class _PunchScreenState extends State<PunchScreen> {
     Map<String, dynamic> body = {
       "userId": widget.mark ? userData['id'] : selectedSE,
       "month": month ?? now.month, // e.g., 6 for June
-      "year": now.year, // e.g., 2025
+      "year": year??now.year,
     };
 
     try {
@@ -226,6 +227,7 @@ class _PunchScreenState extends State<PunchScreen> {
         final data = response['data'];
         setState(() {
           selectedMonth = body['month'] ?? 0;
+          selectedYear=body['year'] ;
           halfDayCount = data['half_day'] ?? 0;
           presentCount = data['full_day'] ?? 0;
           leaveCount = data['leave'] ?? 0;
@@ -380,7 +382,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
     try {
       var uri = Uri.parse(
-          'https://mittsureOne.com:3001/attendance/punchAttendance');
+          'https://mittsure.qdegrees.com:3001/attendance/punchAttendance');
 
       var request = http.MultipartRequest('POST', uri);
 
@@ -691,7 +693,7 @@ class _PunchScreenState extends State<PunchScreen> {
                         selectedSE = value ?? "";
                         if (selectedSE != null && selectedSE != "") {
                           _fetchWorkingHours(null);
-                          _fetchMonthlyAttendance(null);
+                          _fetchMonthlyAttendance(null,null);
                         }
                       },
                     ),
@@ -752,7 +754,7 @@ class _PunchScreenState extends State<PunchScreen> {
           message: response['message'],
           isSuccess: true,
         );
-        _fetchMonthlyAttendance(selectedMonth);
+        _fetchMonthlyAttendance(selectedMonth,selectedYear);
       } else {
         DialogUtils.showCommonPopup(
           context: context,
@@ -860,7 +862,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
       // ✅ Make POST request using Dio
       final response = await dio.post(
-        "https://mittsureOne.com:3001/attendance/downloadStaffMovementPDF",
+        "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovementPDF",
         data: data,
         options: Options(responseType: ResponseType.bytes),
       );
@@ -920,7 +922,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
         // ✅ Make POST request using Dio
         final response = await dio.post(
-          "https://mittsureOne.com:3001/attendance/downloadStaffMovement",
+          "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovement",
           data: data,
           options: Options(responseType: ResponseType.bytes),
         );
@@ -1110,7 +1112,7 @@ class _PunchScreenState extends State<PunchScreen> {
                             icon: Icon(Icons.power_off,
                                 size: 26, color: Colors.white),
                             label: Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              padding:  EdgeInsets.symmetric(vertical: 8),
                               child: Text("Mark Leave",
                                   style: TextStyle(
                                       fontSize: 20,
@@ -1125,51 +1127,61 @@ class _PunchScreenState extends State<PunchScreen> {
                                   borderRadius: BorderRadius.circular(16)),
                             ),
                           ),
-                        SizedBox(height: 20),
+                        SizedBox(height: 10),
                         !widget.mark ? getAdminFilters() : Container(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            userData['role']!="se"? Expanded(
-                              // This makes the button take full width
-                              child: GestureDetector(
-                                onTap: () {
-                                  showExportDialog(context);
-                                  print("Gradient button tapped!");
-                                },
-                                child: Container(
-                                  padding:
-                                      const EdgeInsets.symmetric(vertical: 14),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Colors.indigo,
-                                        Colors.indigoAccent,
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child:  Center(
-                                    child: Text(
-                                      "Team @ ${todayTime}",
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
+
+                        userData['role']!="se"  ? GestureDetector(
+                          onTap: () {
+                            showExportDialog(context);
+                            print("Gradient button tapped!");
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [
+                                  Colors.indigo,
+                                  Colors.indigoAccent,
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child:  Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  "Team @ ${todayTime}",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
-                            ):Container(),
+                            ),
+                          ),
+                        ):Container(),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+
                             SizedBox(
                               width: 50,
                             ),
-                            MonthFilter(
-                              onMonthSelected: _fetchMonthlyAttendance,
-                              initialMonth: selectedMonth,
+                            // MonthYearFilter(
+                            //   onMonthSelected: _fetchMonthlyAttendance,
+                            //   initialMonth: selectedMonth,
+                            // ),
+                            Expanded(
+                              child: MonthYearFilter(
+                                initialMonth: selectedMonth,
+                                initialYear: selectedYear,
+                                onSelected: (month, year) {
+                                  _fetchMonthlyAttendance(month,year);
+                                  print("Selected: $month - $year");
+                                },
+                              ),
                             ),
                           ],
                         ),
@@ -1331,7 +1343,6 @@ class _PunchScreenState extends State<PunchScreen> {
     );
   }
 }
-
 Widget buildSkeletonCard() {
   return Shimmer.fromColors(
     baseColor: Colors.grey.shade300,

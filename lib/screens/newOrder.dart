@@ -38,6 +38,7 @@ class _NewOrderScreenState extends State<NewOrderScreen> {
   int seriesDisc = 0;
   List<dynamic> selectedPro=[];
   List<dynamic> selectedUploadSeries=[];
+  List<dynamic> selectedUploadPro=[];
   String? shippingError;
  bool isLoading=false;
  bool uploadFileScreen=false;
@@ -346,6 +347,7 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
           final data = response['data'];
 
           setState(() {
+            print(data);
             products = data;
             // print(products.length);
             // filteredProducts=data;
@@ -355,7 +357,7 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
         }
 
     } catch (error) {
-      print("Error fetching orders: $error");
+      print("Error fetching products: $error");
     }
     finally{
       setState(() {
@@ -863,7 +865,8 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                                         : [...productItems],
                                     "quantity": setQuantity,
                                     "group": productGroup,
-                                    "discount": seriesDisc,
+                                    // "discount": seriesDisc,
+                                    "discount": 0,
                                     "orderType": orderType
                                   });
                                 }
@@ -959,11 +962,11 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "Select Series",
+                    productGroup != "6HPipXSLx5"?"Select Series":"Select Product",
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(height: 8),
-                  Container(
+                  productGroup != "6HPipXSLx5"?Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey), // Border color
                       borderRadius:
@@ -991,6 +994,39 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                         setState(() {
 
                           selectedUploadSeries=values;
+                        });
+                      },
+                      chipDisplay: MultiSelectChipDisplay(),
+
+                    ),
+                  ): Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.grey), // Border color
+                      borderRadius:
+                      BorderRadius.circular(8), // Optional: rounded corners
+                    ),
+                    padding: EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 4), // Optional: inner spacing
+                    child: MultiSelectDialogField(
+                      items: filteredMittplusItems
+                          .map<MultiSelectItem<String>>(
+                            (opt) => MultiSelectItem<String>(
+                          opt['product_name'].toString(),
+                          opt['product_name'].toString(),
+                        ),
+                      )
+                          .toList(),
+                      title: Text("Select Products"),
+                      selectedColor: Colors.blue,
+                      decoration:
+                      BoxDecoration(), // Needed to remove internal field's decoration
+                      initialValue: (selectedUploadPro??[])
+                          .map<String>((e) => e.toString())
+                          .toList(),
+                      onConfirm: (values) {
+                        setState(() {
+
+                          selectedUploadPro=values;
                         });
                       },
                       chipDisplay: MultiSelectChipDisplay(),
@@ -1184,9 +1220,8 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
 
       return;
     }
-    if (selectedUploadSeries.length == 0 && orderProcess=='upload') {
+    if (selectedUploadSeries.length == 0 && selectedUploadPro.length==0  && orderProcess=='upload') {
       DialogUtils.showCommonPopup(context: context, message: 'Please Select Atleast 1 Series', isSuccess: false);
-
       return;
     }
 
@@ -1194,6 +1229,7 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
     int milliseconds = now.millisecondsSinceEpoch;
     final obj = {
       "orderProcess":orderProcess,
+      "productGroup":productGroup,
       "address": shippingAddressController.text,
       "approvalStatus": "0",
       "date": milliseconds,
@@ -1210,7 +1246,8 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
       "transport": selectedTransporter,
       "transporter_name": getNameTransporter(selectedTransporter),
       "applyDiscount":applyDiscount,
-      "uploadSeries":selectedUploadSeries
+      "uploadSeries":selectedUploadSeries,
+      "uploadedProducts":selectedUploadPro
     };
 
     try {
@@ -1222,7 +1259,7 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
                   orders: selectedOrders,
                   series: series,
                   applyDiscount:applyDiscount,
-                  uploadedSeries:selectedUploadSeries,
+                  uploadedSeries:productGroup != "6HPipXSLx5"?selectedUploadSeries:selectedUploadPro,
                   specimenProducts:specimenProducts
                 )), // Route to HomePage
       );

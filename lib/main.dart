@@ -2,13 +2,15 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:mittsure/screens/splash.dart';
 import 'package:mittsure/services/fbservice.dart';
+import 'package:mittsure/services/taskService.dart';
+
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import './services/navigation_service.dart';
-
 class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
@@ -17,18 +19,25 @@ class MyHttpOverrides extends HttpOverrides {
           (X509Certificate cert, String host, int port) => true;
   }
 }
+@pragma('vm:entry-point')
+void startCallback() {
+  print("⚙️ START CALLBACK CALLED");
+  FlutterForegroundTask.setTaskHandler(VisitTask());
+}
+
+
 
 FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
 void handleNotificationTap(String? payload) {
   if (payload != null && payload != "") {
-    
+
   }
 }
 
 void handleAction(RemoteMessage message) {
   if (message.data.isNotEmpty) {
-    
+
   }
 }
 
@@ -69,6 +78,29 @@ void main() async {
   }
   await Firebase.initializeApp();
   IrebaseApi().initNotification();
+  await FlutterForegroundTask.requestIgnoreBatteryOptimization();
+  FlutterForegroundTask.init(
+    androidNotificationOptions: AndroidNotificationOptions(
+      channelId: 'visit_tracking',
+      channelName: 'Visit Tracking',
+      channelDescription: 'Tracking visit location',
+      channelImportance: NotificationChannelImportance.LOW,
+      priority: NotificationPriority.LOW,
+
+    ),
+    iosNotificationOptions: const IOSNotificationOptions(
+      showNotification: true,
+      playSound: false,
+
+    ),
+    foregroundTaskOptions:  ForegroundTaskOptions(
+
+      autoRunOnBoot: false,
+      allowWakeLock: true,
+      allowWifiLock: true,
+      eventAction: ForegroundTaskEventAction.repeat(60000),
+    ),
+  );
 
   // await FirebaseMessaging.instance.requestPermission(
   //   alert: true,
@@ -79,7 +111,7 @@ void main() async {
   FirebaseMessaging.onBackgroundMessage(handleBackgroundMessage);
 
   const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('drawable/ic_launcher');
-  
+
   // iOS-specific notification settings
   final DarwinInitializationSettings initializationSettingsIOS = DarwinInitializationSettings(
     // onDidReceiveLocalNotification: (int id, String? title, String? body, String? payload) async {
