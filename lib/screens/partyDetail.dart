@@ -86,6 +86,7 @@ tagLocation() async {
 
      
     final distributor=widget.data;
+
     return CommonLayout(
       currentIndex: 0,
         title: widget.type=='school'?distributor['schoolName']:distributor['DistributorName'],
@@ -158,7 +159,8 @@ tagLocation();
                   )
                 : Container(),
                 SizedBox(height: 5,),
-                ElevatedButton.icon(
+
+          ElevatedButton.icon(
                     icon: Icon(
                       Icons.shop_two_outlined,
                       color: Colors.white,

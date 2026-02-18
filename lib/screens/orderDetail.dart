@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:mittsure/services/utils.dart';
 import 'package:open_filex/open_filex.dart'; // For opening different file types
 import 'package:photo_view/photo_view.dart'; // For viewing images in full screen
 import 'package:photo_view/photo_view_gallery.dart';
@@ -302,16 +303,31 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Center(
-                  child: TextButton.icon(
-                    onPressed: () {
-                      _showAttachmentsDialog(context);
-                    },
-                    icon: const Icon(Icons.file_copy_sharp, color: Colors.blue),
-                    label: const Text('View Attachments',
-                        style: TextStyle(color: Colors.blue)),
-                  ),
+                TextButton.icon(
+                  onPressed: () {
+                    _showAttachmentsDialog(context);
+                  },
+                  icon: const Icon(Icons.file_copy_sharp, color: Colors.blue),
+                  label: const Text('View Attachments',
+                      style: TextStyle(color: Colors.blue)),
                 ),
+
+
+                // if(widget.order['approvalStatus']==1&&widget.type=="Sales")
+                //   ElevatedButton.icon(
+                //     onPressed: () {
+                //       _showConvertedDialog();
+                //     },
+                //     icon: const Icon(Icons.swap_horiz_rounded),
+                //     label: const Text('Convert to Order'),
+                //     style: ElevatedButton.styleFrom(
+                //       backgroundColor: Colors.blue,   // bg blue
+                //       foregroundColor: Colors.white,  // text + icon white
+                //     ),
+                //   )
+
+
+
               ],
             ),
             widget.order['approvalStatus'] == 6
@@ -471,6 +487,38 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
+  void _showConvertedDialog() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          // Add StatefulBuilder to manage state inside dialog
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text(" ${widget.order['so_id']}"),
+              content: Text(
+                  "You are converting this entry as an Order. Make sure it is not by mistake and you intend to convert this Booking Consent to Order.Are you Sure?"),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    convertOrder(widget.order['orderId']);
+                  },
+                  child: Text("Yes"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text("No"),
+                )
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   discardOrder(id) async {
     setState(() {
       isLoading = true;
@@ -493,6 +541,35 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                   )),
         );
       } else {}
+    } catch (error) {
+      print("Error verifying Verification Code: $error");
+    }
+  }
+
+  convertOrder(id) async {
+    setState(() {
+      isLoading = true;
+    });
+    var body = {"orderId": id};
+
+    try {
+      final response = await ApiService.post(
+        endpoint: '/order/convertToOrder',
+        body: body,
+      );
+
+      if (response != null && response['status'] == true) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+              builder: (context) => OrdersScreen(
+                userReq: widget.userReq,
+                type: widget.type,
+              )),
+        );
+      } else {
+        DialogUtils.showCommonPopup(context: context, message: "Something Went Wrong", isSuccess: false);
+      }
     } catch (error) {
       print("Error verifying Verification Code: $error");
     }
@@ -791,9 +868,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                             final attachment = attachments[index];
                             final fileName =
                                 attachment['originalName'] ?? 'Unknown File';
-                            // final fileUrl = "https://mittsure.qdegrees.com:3001/file/${attachment['fileName']}";
+                            // final fileUrl = "https://mittsureone.com:3001/file/${attachment['fileName']}";
                             final fileUrl =
-                                "https://mittsure.qdegrees.com:3001/file/${attachment['fileName']}"; // File URL to open
+                                "https://mittsureone.com:3001/file/${attachment['fileName']}"; // File URL to open
                             print(fileUrl);
                             return ListTile(
                               leading: _getFileIcon(fileName),

@@ -169,10 +169,17 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
   }
 
   Future<void> _captureImage() async {
-    final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+    final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+      imageQuality: 70,
+      maxWidth: 2048,
+      maxHeight: 2048,
+    );
     if (photo != null) {
       setState(() {
         _image = File(photo.path);
+
+
       });
     }
   }
@@ -210,8 +217,8 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
     await FlutterForegroundTask.saveData(key: 'long', value: long);
     print("🚀 START SERVICE BUTTON CLICKED");
     await FlutterForegroundTask.startService(
-      notificationTitle: 'Visit in progress',
-      notificationText: 'Location tracking active',
+      notificationTitle: 'Visit Started',
+      notificationText: 'Your visit is started',
       callback: startCallback,
     );
     print("🚀 START SERVICE CALLED");
@@ -237,7 +244,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
           longitude != null &&
           _image != null) {
         final uri = Uri.parse(
-            'https://mittsure.qdegrees.com:3001/visit/startVisit'); // Change this
+            'https://mittsureone.com:3001/visit/startVisit'); // Change this
 
         final prefs = await SharedPreferences.getInstance();
         final hasData = prefs.getString('user') != null;

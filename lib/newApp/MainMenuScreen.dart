@@ -96,7 +96,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     try {
       final response = await ApiService.post(
         endpoint: '/routePlan/getRoutesPartyCount',
-        body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:"",'version':'2.2.0'},
+        body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:"",'version':'2.3.0'},
       );
 
       if (response != null) {
@@ -119,7 +119,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           "ownerId": userData['role'] == 'se' ? userData['id'] : "",
           "rsm": userData['role'] == 'rsm' ? userData['id'] : "",
           "asm": userData['role'] == 'asm' ? userData['id'] : "",
-          'version':'2.2.0'
+          'version':'2.3.0'
         },
       );
 
@@ -155,7 +155,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     try {
       final response = await ApiService.post(
         endpoint: '/attendance/getAttendanceConfig',
-        body: {'version':'2.2.0'},
+        body: {'version':'2.3.0'},
       );
 
       if (response != null) {
@@ -634,7 +634,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     return Expanded(
       child: Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        color: Colors.indigo.shade50,
+        color: Colors.yellow.shade50,
         elevation: 4,
         margin: const EdgeInsets.all(8),
         child: Padding(

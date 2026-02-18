@@ -127,7 +127,12 @@ class _CommonLayoutState extends State<CommonLayout> {
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () {
-            Navigator.pop(context);
+
+            if(widget.title.toString().toLowerCase().contains('order')){
+              _navigateToHome();
+            }else {
+              Navigator.pop(context);
+            }
           },
         ),
         title: Text(widget.title, style: TextStyle(fontSize: 18, color: Colors.white)),

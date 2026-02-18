@@ -564,11 +564,11 @@ productItems[0]['seriesCategory']=productItems[0]['id'];
               children: [
                 _buildDropdown(
                     'Order Type',
-                    [
+                    widget.type=='school' || widget.party['onboarding']=='yes'?[
                       {"id": 'Sales', "name": 'Booking Confirmation'},
                       {"id": 'Specimen', "name": 'Specimen'},
-                      {"id": 'saleS', "name": 'Sales Booking'},
-                    ],
+                      // {"id": 'saleS', "name": 'Sales Booking'},
+                    ]:[{"id": 'Specimen', "name": 'Specimen'}],
                     "id",
                     'name',
                     orderType, (value) {

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../services/apiService.dart';
 import 'package:flutter_typeahead/flutter_typeahead.dart';
 import 'package:dropdown_textfield/dropdown_textfield.dart';
+import '../services/utils.dart';
 import 'orders.dart';
 
 class CreateOrderScreen extends StatefulWidget {
@@ -29,7 +30,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   String? orderRemark;
   bool skipOtp = true;
   Map<String,dynamic> addDiscounts={};
-  bool otpNeed = true;
+  bool otpNeed = false;
   bool discAdjust = false;
 
   String selectedOption = 'Party';
@@ -187,7 +188,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   fetchDistributor() async {
-    final body = {"ownerId": widget.payload['ownerId']};
+    final body = {"ownerId": widget.payload['ownerId'],"onboarding":"yes"};
 
     try {
       final response = await ApiService.post(
@@ -463,6 +464,10 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   Future<void> order(flag) async {
+    if (widget.payload['orderProcess'] == 'new' && attach.length==0) {
+      DialogUtils.showCommonPopup(context: context, message: 'You have not uploaded any document ', isSuccess: false);
+      return;
+    }
     if(isLoading){
       return;
     }

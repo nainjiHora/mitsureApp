@@ -75,24 +75,22 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> order() async {
-    if (seriedDiscount.keys.toList().length == 0 &&
-        widget.applyDiscount.toString().toLowerCase() == 'yes') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You Have Not filled the discount'),
-          backgroundColor: Colors.red,
-        ),
-      );
+print(seriedDiscount);
+    if (widget.applyDiscount.toString().toLowerCase() == 'yes' && (seriedDiscount.keys.toList().length == 0||
+        seriedDiscount.values.any((value) => value <= 0))) {
+      DialogUtils.showCommonPopup(context: context, message: 'You have not filled the discount correctly', isSuccess: false);
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(
+      //     content: Text(),
+      //     backgroundColor: Colors.red,
+      //   ),
+      // );
       return;
     }
     if (widget.payload['orderProcess'].toString().toLowerCase() == 'upload' &&
         attach.length == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You have not uploaded any document '),
-          backgroundColor: Colors.red,
-        ),
-      );
+      DialogUtils.showCommonPopup(context: context, message: 'You have not uploaded any document ', isSuccess: false);
+
 
       return;
     }

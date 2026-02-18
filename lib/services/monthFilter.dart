@@ -32,7 +32,11 @@ class _MonthYearFilterState extends State<MonthYearFilter> {
     super.initState();
 
     final currentYear = DateTime.now().year;
-    years = List.generate(10, (index) => currentYear - index); // last 10 years
+
+     years = List.generate(
+      5,
+          (index) => currentYear - 1 + index,
+    );
 
     selectedMonth = widget.initialMonth ?? DateTime.now().month;
     selectedYear = widget.initialYear ?? currentYear;
@@ -46,33 +50,11 @@ class _MonthYearFilterState extends State<MonthYearFilter> {
       child: Row(
         children: [
 
-          /// Month Dropdown
-          Expanded(
-            child: DropdownButtonFormField<int>(
-              value: selectedMonth,
-              decoration: const InputDecoration(
-                labelText: "Month",
-                border: OutlineInputBorder(),
-                isDense: true,
-              ),
-              items: List.generate(12, (index) {
-                return DropdownMenuItem(
-                  value: index + 1,
-                  child: Text(monthNames[index]),
-                );
-              }),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => selectedMonth = value);
-                  widget.onSelected(selectedMonth, selectedYear);
-                }
-              },
-            ),
-          ),
+
 
           const SizedBox(width: 12),
 
-          /// Year Dropdown
+
           Expanded(
             child: DropdownButtonFormField<int>(
               value: selectedYear,
@@ -90,6 +72,30 @@ class _MonthYearFilterState extends State<MonthYearFilter> {
               onChanged: (value) {
                 if (value != null) {
                   setState(() => selectedYear = value);
+                  widget.onSelected(selectedMonth, selectedYear);
+                }
+              },
+            ),
+          ),
+          SizedBox(width: 10),
+
+          Expanded(
+            child: DropdownButtonFormField<int>(
+              value: selectedMonth,
+              decoration: const InputDecoration(
+                labelText: "Month",
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: List.generate(12, (index) {
+                return DropdownMenuItem(
+                  value: index + 1,
+                  child: Text(monthNames[index]),
+                );
+              }),
+              onChanged: (value) {
+                if (value != null) {
+                  setState(() => selectedMonth = value);
                   widget.onSelected(selectedMonth, selectedYear);
                 }
               },

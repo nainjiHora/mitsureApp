@@ -173,7 +173,7 @@ class _HoInterventionScreenState extends State<HoInterventionScreen> {
 
 
     final pcat = {"interested": widget.interested, "data": widget.answers};
-    final uri = Uri.parse('https://mittsure.qdegrees.com:3001/visit/endVisit');
+    final uri = Uri.parse('https://mittsureone.com:3001/visit/endVisit');
     var request = http.MultipartRequest('POST', uri);
 
     widget.payload.fields.forEach((key, value) {

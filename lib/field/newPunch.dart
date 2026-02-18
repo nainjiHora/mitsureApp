@@ -382,7 +382,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
     try {
       var uri = Uri.parse(
-          'https://mittsure.qdegrees.com:3001/attendance/punchAttendance');
+          'https://mittsureone.com:3001/attendance/punchAttendance');
 
       var request = http.MultipartRequest('POST', uri);
 
@@ -862,7 +862,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
       // ✅ Make POST request using Dio
       final response = await dio.post(
-        "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovementPDF",
+        "https://mittsureone.com:3001/attendance/downloadStaffMovementPDF",
         data: data,
         options: Options(responseType: ResponseType.bytes),
       );
@@ -922,7 +922,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
         // ✅ Make POST request using Dio
         final response = await dio.post(
-          "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovement",
+          "https://mittsureone.com:3001/attendance/downloadStaffMovement",
           data: data,
           options: Options(responseType: ResponseType.bytes),
         );
@@ -1224,9 +1224,10 @@ class _PunchScreenState extends State<PunchScreen> {
                                   final picked = await showDatePicker(
                                     context: context,
                                     initialDate: DateTime.now(),
-                                    firstDate: DateTime(DateTime.now().year),
+                                    firstDate: DateTime(2025, 7, 17),
                                     lastDate: DateTime.now(),
                                   );
+
                                   if (picked != null)
                                     setState(() {
                                       followUpDate = picked;

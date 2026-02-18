@@ -372,7 +372,7 @@ print(response);
     ) 
     :CommonLayout(
       currentIndex: 1,
-      title:widget.type.toLowerCase()!="specimen"?"Orders":" Specimen Orders",
+      title:widget.type.toLowerCase()!="specimen"?widget.type=="Sales"?"Booking Confirmation":"Orders":" Specimen Orders",
       child:  getChildContent()
     );
   }
@@ -599,7 +599,7 @@ print(response);
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: widget.type.toLowerCase()!='specimen'?Text(
-                              getStatus(filteredOrders[index]['approvalStatus']),
+                               getStatus(filteredOrders[index]['approvalStatus']),
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,

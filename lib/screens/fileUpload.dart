@@ -2,7 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:http/http.dart' as http;
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 import '../newApp/bookLoader.dart';
 
@@ -34,7 +37,100 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
     }
   }
 
+  Future<List<File>> optimizeFiles(List<File> files) async {
+    List<File> optimized = [];
+
+    for (final file in files) {
+      if (isImage(file)) {
+        final optimizedImage = await optimizeImage(file);
+        optimized.add(optimizedImage);
+      } else {
+        optimized.add(file); // PDFs & docs untouched
+      }
+    }
+
+    return optimized;
+  }
+  bool isImage(File file) {
+    final ext = file.path.split('.').last.toLowerCase();
+    return ext == 'jpg' || ext == 'jpeg' || ext == 'png';
+  }
+
+  Future<File> optimizeImage(File file) async {
+    final tempDir = await getTemporaryDirectory();
+    final targetPath = p.join(
+      tempDir.path,
+      '${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
+
+    final XFile? compressed =
+    await FlutterImageCompress.compressAndGetFile(
+      file.path,
+      targetPath,
+      quality: 85,
+      minWidth: 1080,
+      minHeight: 1080,
+      format: CompressFormat.jpeg,
+    );
+
+    // 🔥 FIX: convert XFile → File
+    if (compressed != null) {
+      return File(compressed.path);
+    }
+
+    // fallback if compression fails
+    return file;
+  }
   // Function to upload files to the API
+  // Future<void> uploadFiles() async {
+  //   if (selectedFiles.isEmpty) {
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text("Please select files before submitting.")),
+  //     );
+  //     return;
+  //   }
+  //   setState(() {
+  //     isLoading=true;
+  //   });
+  //
+  //   var request = http.MultipartRequest(
+  //     'POST',
+  //     Uri.parse('https://mittsureone.com:3001/user/uploadMultipleImages'),
+  //     // Uri.parse('https://mittsureone.com:3001/user/uploadMultipleImages'),
+  //   );
+  //
+  //   for (var file in selectedFiles) {
+  //     request.files.add(
+  //       await http.MultipartFile.fromPath(
+  //         'files', // Key name for the array in the API
+  //         file.path,
+  //       ),
+  //     );
+  //   }
+  //
+  //   var response = await request.send();
+  //
+  //   if (response.statusCode == 200) {
+  //     setState(() {
+  //       isLoading=false;
+  //     });
+  //     String responseBody = await response.stream.bytesToString();
+  //
+  //     var jsonResponse = jsonDecode(responseBody);
+  //     widget.saveFiles(false, jsonResponse['files']);
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text("Files uploaded successfully!")),
+  //     );
+  //   } else {
+  //     setState(() {
+  //       isLoading=false;
+  //     });
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text("Failed to upload files.")),
+  //     );
+  //   }
+  // }
+
   Future<void> uploadFiles() async {
     if (selectedFiles.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -42,20 +138,21 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
       );
       return;
     }
-    setState(() {
-      isLoading=true;
-    });
+
+    setState(() => isLoading = true);
+
+    // 🔥 OPTIMIZE HERE
+    final optimizedFiles = await optimizeFiles(selectedFiles);
 
     var request = http.MultipartRequest(
       'POST',
-      Uri.parse('https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
-      // Uri.parse('https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
+      Uri.parse('https://mittsureone.com:3001/user/uploadMultipleImages'),
     );
 
-    for (var file in selectedFiles) {
+    for (var file in optimizedFiles) {
       request.files.add(
         await http.MultipartFile.fromPath(
-          'files', // Key name for the array in the API
+          'files',
           file.path,
         ),
       );
@@ -63,26 +160,24 @@ class _FileUploadScreenState extends State<FileUploadScreen> {
 
     var response = await request.send();
 
-    if (response.statusCode == 200) {
-      setState(() {
-        isLoading=false;
-      });
-      String responseBody = await response.stream.bytesToString();
+    setState(() => isLoading = false);
 
-      var jsonResponse = jsonDecode(responseBody);
+    if (response.statusCode == 200) {
+      final responseBody = await response.stream.bytesToString();
+      final jsonResponse = jsonDecode(responseBody);
+
       widget.saveFiles(false, jsonResponse['files']);
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Files uploaded successfully!")),
       );
     } else {
-      setState(() {
-        isLoading=false;
-      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Failed to upload files.")),
       );
     }
   }
+
 
   // Function to determine the file icon based on its type
   Widget getFileIcon(String fileName) {

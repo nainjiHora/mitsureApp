@@ -5,6 +5,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
@@ -85,12 +88,29 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     viewpage = false;
   });
 
+
   // Delay until after widget tree is rebuilt
   WidgetsBinding.instance.addPostFrameCallback((_) {
     _reviewAndSubmit();
   });
 }
+  Future<File?> compressImage(File file) async {
+    final dir = await getTemporaryDirectory();
+    final targetPath = path.join(
+      dir.path,
+      '${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
 
+    final XFile? compressed = await FlutterImageCompress.compressAndGetFile(
+      file.absolute.path,
+      targetPath,
+      quality: 70, // 0 - 100 (lower = more compression)
+      format: CompressFormat.jpeg,
+    );
+
+    if (compressed == null) return null;
+    return File(compressed.path);
+  }
   void _reviewAndSubmit() {
     if (_formKey.currentState!.validate() &&
         selectedFile != null &&
@@ -126,8 +146,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       var request = http.MultipartRequest(
         'POST',
         Uri.parse(
-            'https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
-        // Uri.parse('https://mittsure.qdegrees.com:3001/user/uploadMultipleImages'),
+            'https://mittsureone.com:3001/user/uploadMultipleImages'),
+        // Uri.parse('https://mittsureone.com:3001/user/uploadMultipleImages'),
       );
 
       request.files.add(
@@ -281,9 +301,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               title: Text('Take Photo'),
               onTap: () async {
                 final XFile? image =
-                    await _picker.pickImage(source: ImageSource.camera);
+                await _picker.pickImage(source: ImageSource.camera);
+
                 if (image != null) {
-                  setState(() => selectedFile = File(image.path));
+                  final compressed =
+                  await compressImage(File(image.path));
+                  if (compressed != null) {
+                    setState(() => selectedFile = compressed);
+                  }
                 }
                 Navigator.pop(context);
               },
@@ -293,9 +318,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
               title: Text('Choose from Gallery'),
               onTap: () async {
                 final XFile? image =
-                    await _picker.pickImage(source: ImageSource.gallery);
+                await _picker.pickImage(source: ImageSource.gallery);
+
                 if (image != null) {
-                  setState(() => selectedFile = File(image.path));
+                  final compressed =
+                  await compressImage(File(image.path));
+                  if (compressed != null) {
+                    setState(() => selectedFile = compressed);
+                  }
                 }
                 Navigator.pop(context);
               },
@@ -305,6 +335,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       ),
     );
   }
+
 
   fetchPicklist1() async {
     final body = {};
