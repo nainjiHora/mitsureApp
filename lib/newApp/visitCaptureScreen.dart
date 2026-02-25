@@ -244,7 +244,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
           longitude != null &&
           _image != null) {
         final uri = Uri.parse(
-            'https://mittsureone.com:3001/visit/startVisit'); // Change this
+            'https://mittsure.qdegrees.com:3001/visit/startVisit'); // Change this
 
         final prefs = await SharedPreferences.getInstance();
         final hasData = prefs.getString('user') != null;

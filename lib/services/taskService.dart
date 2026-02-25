@@ -47,7 +47,7 @@ class VisitTask extends TaskHandler {
     for (String item in list) {
       try {
         final response = await client.post(
-          Uri.parse("https://mittsureone.com:3001/visit/checkLocation"),
+          Uri.parse("https://mittsure.qdegrees.com:3001/visit/checkLocation"),
           headers: headers,
           body: item,
         );
@@ -132,7 +132,7 @@ class VisitTask extends TaskHandler {
 
       // ✅ Then send CURRENT payload
       final response = await client.post(
-        Uri.parse("https://mittsureone.com:3001/visit/checkLocation"),
+        Uri.parse("https://mittsure.qdegrees.com:3001/visit/checkLocation"),
         headers: defaultHeaders,
         body: jsonEncode(payload),
       );

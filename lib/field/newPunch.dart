@@ -382,7 +382,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
     try {
       var uri = Uri.parse(
-          'https://mittsureone.com:3001/attendance/punchAttendance');
+          'https://mittsure.qdegrees.com:3001/attendance/punchAttendance');
 
       var request = http.MultipartRequest('POST', uri);
 
@@ -862,7 +862,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
       // ✅ Make POST request using Dio
       final response = await dio.post(
-        "https://mittsureone.com:3001/attendance/downloadStaffMovementPDF",
+        "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovementPDF",
         data: data,
         options: Options(responseType: ResponseType.bytes),
       );
@@ -922,7 +922,7 @@ class _PunchScreenState extends State<PunchScreen> {
 
         // ✅ Make POST request using Dio
         final response = await dio.post(
-          "https://mittsureone.com:3001/attendance/downloadStaffMovement",
+          "https://mittsure.qdegrees.com:3001/attendance/downloadStaffMovement",
           data: data,
           options: Options(responseType: ResponseType.bytes),
         );

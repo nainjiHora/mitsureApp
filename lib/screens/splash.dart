@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
       if (response != null && response['status'] == true) {
         final data = response['data'];
         await prefs.setString("time",data['todayTime'] );
-        // if (data['appVersion'] == '2.3.0') {
+        // if (data['appVersion'] == '2.4.0') {
           _checkForExistingSession();
         // } else {
         //   DialogUtils.showCommonPopup(

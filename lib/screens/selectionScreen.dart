@@ -27,9 +27,19 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   String? _selectedStockist;
   String? _selectedWarehouse;
   String? _selectedRemark;
+  String? _selectedDistributorType = null;
   String? orderRemark;
+  final TextEditingController distributorName = TextEditingController();
+  final TextEditingController address = TextEditingController();
+  final TextEditingController pincode = TextEditingController();
+  final TextEditingController email = TextEditingController();
+  final TextEditingController makerName = TextEditingController();
+  List<dynamic> roles = [];
+  String? selectedRole = null;
+  final TextEditingController makerContact = TextEditingController();
   bool skipOtp = true;
-  Map<String,dynamic> addDiscounts={};
+  final _schoolformKey = GlobalKey<FormState>();
+  Map<String, dynamic> addDiscounts = {};
   bool otpNeed = false;
   bool discAdjust = false;
 
@@ -136,6 +146,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
 
         setState(() {
           remarks = data;
+          isLoading=false;
         });
       } else {
         throw Exception('Failed to load orders');
@@ -188,7 +199,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   fetchDistributor() async {
-    final body = {"ownerId": widget.payload['ownerId'],"onboarding":"yes"};
+    final body = {"ownerId": widget.payload['ownerId'], "onboarding": "yes"};
 
     try {
       final response = await ApiService.post(
@@ -264,6 +275,30 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     }
   }
 
+  fetchDistributorRoles() async {
+    final body = {};
+
+    try {
+      final response = await ApiService.post(
+        endpoint: '/picklist/getContactPersonRole',
+        body: body,
+      );
+
+      // Check if the response is valid
+      if (response != null) {
+        final data = response['data2'];
+        setState(() {
+          roles = data;
+        });
+      } else {
+        throw Exception('Failed to load orders');
+      }
+    } catch (error) {
+      print("Error fetching orders: $error");
+    }
+  }
+
+
   fetchStockist() async {
     final body = {"ownerId": widget.payload['ownerId']};
 
@@ -291,7 +326,8 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     if (
         // (_selectedTransporter == null &&
         //         widget.payload['orderType'].toLowerCase() == 'sales') ||
-        (_selectedDistributor == null &&
+    (widget.payload['partyType'] == 'cQpLw8vwZf'&&(_selectedDistributorType=="onboarded"||_selectedDistributorType==null) &&
+    _selectedDistributor == null &&
             widget.payload['orderType'].toLowerCase() == 'sales')
         // ||
         // (_selectedStockist == null &&
@@ -299,9 +335,19 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         // (_selectedWarehouse == null &&
         //     widget.payload['orderType'].toLowerCase() == 'sales')
         ) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please fill Distributor')),
-      );
+      DialogUtils.showCommonPopup(context: context, message: 'Please select Distributor', isSuccess: false);
+
+      return;
+    }
+    if (
+
+    (widget.payload['partyType'] == 'cQpLw8vwZf'&&_selectedDistributorType!="onboarded" &&
+        (distributorName.text.isEmpty  || address.text.isEmpty) &&
+        widget.payload['orderType'].toLowerCase() == 'sales')
+
+    ) {
+      DialogUtils.showCommonPopup(context: context, message: 'Please fill Preferred Distributor Form', isSuccess: false);
+
       return;
     }
     if ((_selectedRemark == null &&
@@ -464,18 +510,33 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   Future<void> order(flag) async {
-    if (widget.payload['orderProcess'] == 'new' && attach.length==0) {
-      DialogUtils.showCommonPopup(context: context, message: 'You have not uploaded any document ', isSuccess: false);
+    if (widget.payload['orderProcess'] == 'new' && attach.length == 0) {
+      DialogUtils.showCommonPopup(
+          context: context,
+          message: 'You have not uploaded any document ',
+          isSuccess: false);
       return;
     }
-    if(isLoading){
+    if (isLoading) {
       return;
+    }
+
+    var distriForm={};
+    if(_selectedDistributorType!='onboarded'){
+      distriForm['preferredDistributorEmail']=email.text;
+      distriForm['preferredDistributorConsentPersonNumber']=makerContact.text;
+      distriForm['preferredDistributorConsentPersonRole']=selectedRole;
+      distriForm['preferredDistributorContactPersonName']=makerName.text;
+      distriForm['preferredDistributorAddress']=address.text;
+      distriForm['preferredDistributorName']=distributorName.text;
     }
     var body = widget.payload;
     body['stockistId'] = _selectedStockist;
     body['distributorId'] = _selectedDistributor;
     body['transport'] = _selectedTransporter;
     body['otp_need'] = otpNeed;
+    body["form"]= distriForm;
+    body['distributorType']=_selectedDistributorType;
     // body['additionalDiscount']=addDiscounts;
     body['mobileNo'] = addressData[_selectedAddressType]!['id']!;
     body['email'] = addressData[_selectedAddressType]!['email']!;
@@ -502,7 +563,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
 
     print(body);
     setState(() {
-      isLoading=true;
+      isLoading = true;
     });
     try {
       final response = await ApiService.post(
@@ -525,15 +586,13 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
         }
       } else {
         throw Exception('Failed to create order');
-
       }
     } catch (error) {
       print("Error creating order: $error");
       _showErrorMessage("Failed to place the order. Please try again.");
-    }
-    finally{
+    } finally {
       setState(() {
-        isLoading=false;
+        isLoading = false;
       });
     }
   }
@@ -573,7 +632,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   }
 
   initialiseData() {
-    print(widget.payload['seriesDiscount']);
+  setState(() {
+    isLoading=true;
+  });
     addressData['Party Address']!['address'] = widget.payload['address'];
     addressData['Party Address']!['mobile'] = widget.payload['mobileNo'];
     addressData['Party Address']!['email'] = widget.payload['email'];
@@ -587,6 +648,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     // fetchTransporter();
     // fetchStockist();
     fetchDistributor();
+    fetchDistributorRoles();
     // fetchWarehouse();
     fetchRemarks();
   }
@@ -631,71 +693,156 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (widget.payload['orderType'].toLowerCase() ==
-                            'sales')
-                          widget.payload['partyType'] == 'cQpLw8vwZf'
-                              ? TypeAheadFormField<String>(
-                                  textFieldConfiguration:
-                                      TextFieldConfiguration(
-                                    controller: distriController,
-                                    decoration: InputDecoration(
-                                      border: OutlineInputBorder(),
-                                      labelText: "Distributor Name",
-                                      hintText: 'Enter Distributor Name or Id ',
+                                'sales' &&
+                            widget.payload['partyType'] == 'cQpLw8vwZf')
+                          Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: DropdownButtonFormField<String>(
+                              decoration: InputDecoration(
+                                labelText: "Distributor Type",
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 14),
+                              ),
+                              value: _selectedDistributorType,
+                              items: [
+                                {
+                                  "value": "onboarded",
+                                  "name": "Onboarded Distributor"
+                                },
+                                {
+                                  "value": "schoolPreferred",
+                                  "name": "Preferred Distributor"
+                                }
+                              ].map((remark) {
+                                return DropdownMenuItem(
+                                  value: remark['value'].toString(),
+                                  child: Text(remark['name'] ?? ""),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                setState(() {
+                                  if(value=='onboarded'){
+                                    if(_schoolformKey.currentState!=null)
+                                    _schoolformKey.currentState!.reset();
+                                  }
+                                  _selectedDistributorType = value;
+                                });
+                              },
+                            ),
+                          ),
+
+                        if (widget.payload['orderType'].toLowerCase() ==
+                                'sales' &&
+                            widget.payload['partyType'] == 'cQpLw8vwZf')
+                          _selectedDistributorType == 'onboarded'
+                              ? Padding(
+                                  padding: const EdgeInsets.all(8.0),
+                                  child: TypeAheadFormField<String>(
+                                    textFieldConfiguration:
+                                        TextFieldConfiguration(
+                                      controller: distriController,
+                                      decoration: InputDecoration(
+                                        border: OutlineInputBorder(),
+                                        labelText: "Distributor Name",
+                                        hintText:
+                                            'Enter Distributor Name or Id ',
+                                      ),
                                     ),
-                                  ),
-                                  suggestionsCallback: (pattern) async {
-                                    return await fetchSuggestions(pattern);
-                                  },
-                                  itemBuilder: (context, suggestion) {
-                                    return ListTile(
-                                      title: Text(suggestion),
-                                    );
-                                  },
-                                  onSuggestionSelected: (suggestion) {
-                                    final id = suggestion.split("D-")[1];
-                                    final a = distributors
-                                        .where((distri) =>
-                                            distri['distributorID'] ==
-                                            "D-${id}")
-                                        .toList()[0];
-                                    setState(() {
-                                      addressData['Distributor Address']![
-                                          'address'] = formatAddress(a);
-                                      addressData['Distributor Address']![
-                                          'email'] = a['email'] ?? "";
-                                      addressData['Distributor Address']![
-                                          'mobile'] = a['makerContact'] ?? "";
-                                      addressData['Distributor Address']![
-                                          'id'] = "D-${id}" ?? "";
-                                      addressData['Distributor Address']![
-                                          'addId'] = a['addressId'] ?? "";
-                                      var matchingTransporters = alltransporters
-                                          .where((ele) =>
-                                              ele['transporterId'] ==
-                                              a['transporterId'])
-                                          .toList();
-                                      if (matchingTransporters.isNotEmpty) {
-                                        transporters['Distributor'] =
-                                            matchingTransporters[0];
-                                      } else {
-                                        transporters['Distributor'] = {};
-                                      }
-                                      distriController.text = suggestion;
-                                      _selectedDistributor = "D-${id}";
-                                    });
-                                    // field.itemController.text = suggestion;
-                                  },
-                                  noItemsFoundBuilder: (context) => Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Text(
-                                      'No Distributor Found',
-                                      style: TextStyle(color: Colors.grey),
+                                    suggestionsCallback: (pattern) async {
+                                      return await fetchSuggestions(pattern);
+                                    },
+                                    itemBuilder: (context, suggestion) {
+                                      return ListTile(
+                                        title: Text(suggestion),
+                                      );
+                                    },
+                                    onSuggestionSelected: (suggestion) {
+                                      final id = suggestion.split("D-")[1];
+                                      final a = distributors
+                                          .where((distri) =>
+                                              distri['distributorID'] ==
+                                              "D-${id}")
+                                          .toList()[0];
+                                      setState(() {
+                                        addressData['Distributor Address']![
+                                            'address'] = formatAddress(a);
+                                        addressData['Distributor Address']![
+                                            'email'] = a['email'] ?? "";
+                                        addressData['Distributor Address']![
+                                            'mobile'] = a['makerContact'] ?? "";
+                                        addressData['Distributor Address']![
+                                            'id'] = "D-${id}" ?? "";
+                                        addressData['Distributor Address']![
+                                            'addId'] = a['addressId'] ?? "";
+                                        var matchingTransporters =
+                                            alltransporters
+                                                .where((ele) =>
+                                                    ele['transporterId'] ==
+                                                    a['transporterId'])
+                                                .toList();
+                                        if (matchingTransporters.isNotEmpty) {
+                                          transporters['Distributor'] =
+                                              matchingTransporters[0];
+                                        } else {
+                                          transporters['Distributor'] = {};
+                                        }
+                                        distriController.text = suggestion;
+                                        _selectedDistributor = "D-${id}";
+                                      });
+                                      // field.itemController.text = suggestion;
+                                    },
+                                    noItemsFoundBuilder: (context) => Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text(
+                                        'No Distributor Found',
+                                        style: TextStyle(color: Colors.grey),
+                                      ),
                                     ),
                                   ),
                                 )
-                              : SizedBox(
-                                  height: 0,
-                                ),
+                              : _selectedDistributorType!=null?Container(
+                                  margin: EdgeInsets.symmetric(vertical: 16),
+                                  padding: EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    border: Border.all(color: Colors.indigo),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Form(
+                                    key: _schoolformKey,
+                                    child: Column(children: [
+                                      buildTextField(
+                                          controller: distributorName,
+                                          label: 'Preferred Distributor Name *'),
+                                      buildTextField(
+                                          controller: address,
+                                          label: 'Address*'),
+                                      // buildTextField(
+                                      //     controller: addressLine2, label: 'Address Line 2'),
+                                      buildTextField(
+                                          controller: pincode,
+                                          label: 'Pincode'),
+                                      buildTextField(
+                                          controller: makerName,
+                                          label: 'Maker Name'),
+                                      buildDropdownFromList(
+                                          'Decision Maker Role',
+                                          roles,
+                                          'contactPersonRoleId',
+                                          "roleName",
+                                          selectedRole, (value) {
+                                        selectedRole = value;
+                                      }),
+
+                                      buildTextField(
+                                          controller: makerContact,
+                                          label: 'Maker Contact'),
+                                      buildTextField(
+                                          controller: email, label: 'Email')
+                                    ]),
+                                  ),
+                                ):Container(),
                         // if (widget.payload['orderType'].toLowerCase() ==
                         //     'sales')
                         //   SizedBox(height: 12),
@@ -937,7 +1084,9 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                         //       ),
                         //     ),
                         //   ),
-                        SizedBox(height: 10,),
+                        SizedBox(
+                          height: 10,
+                        ),
                         // if (widget.payload['orderType'].toLowerCase() ==
                         //     'sales' && widget.payload['applyDiscount'] == "yes")
                         //   CheckboxListTile(
@@ -1334,8 +1483,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
 
     cartItems.forEach((series, items) {
       controllers[series] = TextEditingController(
-          text: addDiscounts[series]!=null ? addDiscounts[series] : ''
-      );
+          text: addDiscounts[series] != null ? addDiscounts[series] : '');
       errorMessages[series] = null;
     });
 
@@ -1433,8 +1581,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                             'Discount must be exactly $minDiscount%';
                                       }
                                     } else if (discountType == 'range') {
-                                      if (newDiscount >
-                                          maxDiscount - items) {
+                                      if (newDiscount > maxDiscount - items) {
                                         errorMessage =
                                             'Discount must be between $minDiscount% and ${maxDiscount - items}%';
                                       }
@@ -1458,7 +1605,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                                     popupSetState(() {
                                       errorMessages[series] = errorMessage;
                                       if (errorMessage == null) {
-                                        addDiscounts[series]=value;
+                                        addDiscounts[series] = value;
                                       }
                                     });
                                   }
@@ -1507,6 +1654,52 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           },
         );
       },
+    );
+  }
+
+  Widget buildTextField(
+      {required TextEditingController controller, required String label}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(),
+        ),
+        validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+      ),
+    );
+  }
+
+  Widget buildDropdownFromList(
+    String label,
+    List<dynamic> items,
+    String keyId,
+    String keyName,
+    String? value,
+    ValueChanged<String?> onChanged,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: DropdownButtonFormField<String>(
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        ),
+        value: value,
+        items: items
+            .map((item) => DropdownMenuItem<String>(
+                  value: item[keyId].toString(),
+                  child: Text(item[keyName] ?? ""),
+                ))
+            .toList(),
+        onChanged: onChanged,
+        validator: (val) =>
+            val == null || val.isEmpty ? 'Please select $label' : null,
+      ),
     );
   }
 }
