@@ -237,7 +237,7 @@ print(seriedDiscount);
     });
   }
 
-  Widget discountTrailing(int discountPercent) {
+  Widget discountTrailing(double discountPercent) {
     if (discountPercent <= 0) return const SizedBox();
 
     return Container(
@@ -578,7 +578,7 @@ print(seriedDiscount);
 
     groupedItems.forEach((series, items) {
       controllers[series] = TextEditingController(
-        text: items.isNotEmpty ? items[0].discount.toString() : '0',
+        text: items.isNotEmpty ? items[0].discount.toString() : seriedDiscount[series]!=null?seriedDiscount[series].toString():'0',
       );
       errorMessages[series] = null;
     });
@@ -611,7 +611,7 @@ print(seriedDiscount);
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Apply  Discount',
+                        'Apply Discount',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -660,7 +660,7 @@ print(seriedDiscount);
                               ),
                               onChanged: (value) {
                                 if (value.isNotEmpty) {
-                                  final newDiscount = int.tryParse(value) ?? 0;
+                                  final newDiscount = double.tryParse(value) ?? 0;
 
                                   if (seriesInfo != null) {
                                     final discountType =
@@ -685,12 +685,14 @@ print(seriedDiscount);
                                       }
                                     }
                                     setState(() {
+
                                       if (errorMessage == null) {
                                         seriedDiscount[series] = newDiscount;
                                         for (var item in items) {
                                           item.discount = newDiscount;
                                         }
-
+                                        print("sdsadadadada");
+                                        print(seriedDiscount);
                                         seriesTotals[series] =
                                             items.fold(0, (sum, item) {
                                           return sum +
@@ -990,7 +992,7 @@ class CartItem {
   double price;
   int qty;
   String itemId;
-  int discount;
+  double discount;
   String itemType;
   bool disApp;
 

@@ -14,6 +14,7 @@ import 'package:mittsure/newApp/specimenList.dart';
 import 'package:mittsure/newApp/userRequests.dart';
 import 'package:mittsure/newApp/visitScreen.dart';
 import 'package:mittsure/screens/Party.dart';
+import 'package:mittsure/screens/incentiveHtml.dart';
 import 'package:mittsure/screens/incentiveScreen.dart';
 import 'package:mittsure/screens/login.dart';
 import 'package:mittsure/screens/notifications.dart';
@@ -96,7 +97,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     try {
       final response = await ApiService.post(
         endpoint: '/routePlan/getRoutesPartyCount',
-        body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:"",'version':'2.4.0'},
+        body: {"ownerId": userData['role']=='se'?id:"","rsm":userData['role']=='rsm'?id:'',"asm":userData['role']=='asm'?id:"",'version':'3.0.0'},
       );
 
       if (response != null) {
@@ -119,7 +120,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
           "ownerId": userData['role'] == 'se' ? userData['id'] : "",
           "rsm": userData['role'] == 'rsm' ? userData['id'] : "",
           "asm": userData['role'] == 'asm' ? userData['id'] : "",
-          'version':'2.4.0'
+          'version':'3.0.0'
         },
       );
 
@@ -155,7 +156,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
     try {
       final response = await ApiService.post(
         endpoint: '/attendance/getAttendanceConfig',
-        body: {'version':'2.4.0'},
+        body: {'version':'3.0.0'},
       );
 
       if (response != null) {
@@ -510,7 +511,7 @@ class _MainMenuScreenState extends State<MainMenuScreen> {
                     false,[]),
                     _drawerItem("Returns", Icons.bookmark_border,MainMenuScreen() , false,[]),
                 _drawerItem("Collections", Icons.monetization_on,MainMenuScreen() , false,[]),
-                _drawerItem("Incentives", Icons.monetization_on,MainMenuScreen() , false,[]),
+                _drawerItem("Incentives", Icons.monetization_on,IncentiveNew() , false,[]),
                 _drawerItem("FAQs", Icons.question_mark,FAQScreen() , false,[]),
 
                 Divider(thickness: 1),

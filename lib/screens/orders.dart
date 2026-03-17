@@ -580,9 +580,19 @@ print(response);
                         margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                         elevation: 3,
                         child: ListTile(
-                          title: Text(
-                            filteredOrders[index]['DistributorName'] ?? filteredOrders[index]['schoolName'],
-                            style: TextStyle(fontWeight: FontWeight.bold),
+                          title: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+
+                              Text(
+                                filteredOrders[index]['DistributorName'] ?? filteredOrders[index]['schoolName'],
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                "Order ID: "+filteredOrders[index]['so_id'] ?? "",
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                            ],
                           ),
                           subtitle: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

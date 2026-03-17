@@ -19,10 +19,6 @@ class VisitTask extends TaskHandler {
   }
 
 
-  static Future<String?> _getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('Token');
-  }
 
 
   Future<void> _savePendingPayload(Map<String, dynamic> payload) async {
@@ -47,7 +43,7 @@ class VisitTask extends TaskHandler {
     for (String item in list) {
       try {
         final response = await client.post(
-          Uri.parse("https://mittsure.qdegrees.com:3001/visit/checkLocation"),
+          Uri.parse("https://mittsureone.com:3001/visit/checkLocation"),
           headers: headers,
           body: item,
         );
@@ -97,6 +93,7 @@ class VisitTask extends TaskHandler {
     await FlutterForegroundTask.getData<String>(key: 'visitId');
     final lat = await FlutterForegroundTask.getData<String>(key: 'lat');
     final long = await FlutterForegroundTask.getData<String>(key: 'long');
+    final userId = await FlutterForegroundTask.getData<String>(key: 'userId');
 
     final payload = {
       "visitId": visitId,
@@ -106,33 +103,27 @@ class VisitTask extends TaskHandler {
       "partyLat": lat,
       "partyLong": long,
       "timestamp": DateTime.now().millisecondsSinceEpoch,
+      "id": userId
     };
 
-    final String? token = await _getToken();
+
 
     Map<String, String> defaultHeaders = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
 
-    if (token != null) {
-      defaultHeaders['Token'] = 'token=$token';
-      defaultHeaders['token'] = 'token=$token';
-    }
+
 
     final client = createUnsafeClient();
 
-    // ==============================
-    // 🌐 INTERNET + RETRY LOGIC
-    // ==============================
+
     try {
 
-      // ✅ First send OLD payloads
       await _sendPendingPayloads(client, defaultHeaders);
 
-      // ✅ Then send CURRENT payload
       final response = await client.post(
-        Uri.parse("https://mittsure.qdegrees.com:3001/visit/checkLocation"),
+        Uri.parse("https://mittsureone.com:3001/visit/checkLocation"),
         headers: defaultHeaders,
         body: jsonEncode(payload),
       );
@@ -142,14 +133,11 @@ class VisitTask extends TaskHandler {
       var data = jsonDecode(response.body);
 
       if (data['count'] >= 7) {
-        print("🛑 stopping service");
+
         await FlutterForegroundTask.stopService();
       }
 
     } on SocketException catch (e) {
-      print("❌ Internet OFF, saving payload");
-
-      // save locally if internet off
       await _savePendingPayload(payload);
 
     } catch (e) {

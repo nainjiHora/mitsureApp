@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
+import 'package:mittsure/newApp/bookLoader.dart';
 import 'package:mittsure/services/utils.dart';
 import 'package:open_filex/open_filex.dart'; // For opening different file types
 import 'package:photo_view/photo_view.dart'; // For viewing images in full screen
 import 'package:photo_view/photo_view_gallery.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:mittsure/screens/commonLayout.js.dart';
@@ -28,6 +32,7 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
   String _selectedOption = '';
   bool isLoading = false;
   String otpMobile = "";
+  List<PlatformFile> selectedFiles = [];
 
   getUserData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -313,18 +318,18 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                 ),
 
 
-                // if(widget.order['approvalStatus']==1&&widget.type=="Sales")
-                //   ElevatedButton.icon(
-                //     onPressed: () {
-                //       _showConvertedDialog();
-                //     },
-                //     icon: const Icon(Icons.swap_horiz_rounded),
-                //     label: const Text('Convert to Order'),
-                //     style: ElevatedButton.styleFrom(
-                //       backgroundColor: Colors.blue,   // bg blue
-                //       foregroundColor: Colors.white,  // text + icon white
-                //     ),
-                //   )
+                if(widget.order['approvalStatus']==1&&widget.type=="Sales")
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _showConvertedDialog();
+                    },
+                    icon: const Icon(Icons.swap_horiz_rounded),
+                    label: const Text('Convert to Order'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue,   // bg blue
+                      foregroundColor: Colors.white,  // text + icon white
+                    ),
+                  )
 
 
 
@@ -487,30 +492,204 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     );
   }
 
+
   void _showConvertedDialog() {
+    bool popLoader=false;
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) {
         return StatefulBuilder(
-          // Add StatefulBuilder to manage state inside dialog
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text(" ${widget.order['so_id']}"),
-              content: Text(
-                  "You are converting this entry as an Order. Make sure it is not by mistake and you intend to convert this Booking Consent to Order.Are you Sure?"),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.assignment_turned_in,
+                      color: Colors.blue, size: 26),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Convert to Order",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+
+              content: SingleChildScrollView(
+                child: popLoader?BookPageLoader():Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    /// Order ID
+                    Container(
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.receipt_long,
+                              color: Colors.grey.shade700),
+                          SizedBox(width: 8),
+                          Text(
+                            widget.order['so_id'],
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 16),
+
+                    /// Warning text
+                    Text(
+                      "You are converting this entry into an Order. "
+                          "Please confirm this action is intentional.",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+
+                    SizedBox(height: 20),
+
+                    /// Upload Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        icon: Icon(Icons.upload_file),
+                        label: Text("Upload Documents"),
+                        style: ElevatedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        onPressed: () async {
+                          FilePickerResult? result =
+                          await FilePicker.platform.pickFiles(
+                            allowMultiple: true,
+                          );
+
+                          if (result != null) {
+                            setDialogState(() {
+                              selectedFiles = result.files;
+                            });
+                          }
+                        },
+                      ),
+                    ),
+
+                    SizedBox(height: 16),
+
+                    /// Selected files
+                    if (selectedFiles.isNotEmpty) ...[
+                      Text(
+                        "Attached Files",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+
+                      Column(
+                        children: selectedFiles.map((file) {
+                          return Container(
+                            margin: EdgeInsets.only(bottom: 8),
+                            padding: EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.grey.shade300,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.insert_drive_file,
+                                    color: Colors.blue),
+
+                                SizedBox(width: 10),
+
+                                Expanded(
+                                  child: Text(
+                                    file.name,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+
+                                IconButton(
+                                  icon: Icon(Icons.close,
+                                      color: Colors.red),
+                                  onPressed: () {
+                                    setDialogState(() {
+                                      selectedFiles.remove(file);
+                                    });
+                                  },
+                                )
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+
+              actionsPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
+
               actions: [
                 ElevatedButton(
-                  onPressed: () {
-                    convertOrder(widget.order['orderId']);
-                  },
-                  child: Text("Yes"),
-                ),
-                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: Text("No"),
-                )
+                  child: Text("Cancel",style: TextStyle(color: Colors.black),),
+                ),
+
+
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () async {
+                    setDialogState(() {
+                      popLoader=true;
+                    });
+                    await convertOrder(
+                      widget.order['orderId'],
+                      selectedFiles,
+                    );
+
+                    Navigator.pop(context);
+                  },
+                  child: Text("Confirm"),
+                ),
               ],
             );
           },
@@ -518,7 +697,6 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
       },
     );
   }
-
   discardOrder(id) async {
     setState(() {
       isLoading = true;
@@ -546,35 +724,74 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
     }
   }
 
-  convertOrder(id) async {
+
+
+  Future<void> convertOrder(String id, List<PlatformFile> files) async {
     setState(() {
       isLoading = true;
     });
-    var body = {"orderId": id};
 
     try {
-      final response = await ApiService.post(
-        endpoint: '/order/convertToOrder',
-        body: body,
-      );
+      var uri = Uri.parse("${ApiService.baseUrl}/order/convertToOrder");
 
-      if (response != null && response['status'] == true) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (context) => OrdersScreen(
-                userReq: widget.userReq,
-                type: widget.type,
-              )),
-        );
+      var request = http.MultipartRequest("POST", uri);
+
+      // Add normal fields
+      request.fields['orderId'] = id;
+
+      // Add files
+      for (var file in files) {
+        if (file.path != null) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'files', // change if backend expects files[]
+              file.path!,
+              filename: file.name,
+            ),
+          );
+        }
+      }
+
+      var response = await request.send();
+
+      var responseData = await response.stream.bytesToString();
+      var decoded = json.decode(responseData);
+
+      if (response.statusCode == 200 && decoded['status'] == true) {
+        Navigator.pop(context);
+
+        Future.microtask(() {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) =>
+                  OrdersScreen(
+                    userReq: widget.userReq,
+                    type: widget.type,
+                  ),
+            ),
+          );
+        });
       } else {
-        DialogUtils.showCommonPopup(context: context, message: "Something Went Wrong", isSuccess: false);
+        print("DASdsaa Something went wrong");
+        Navigator.pop(context);
+
+        Future.microtask(() {
+          DialogUtils.showCommonPopup(
+            context: context,
+            message: decoded['message'] ?? "Something Went Wrong",
+            isSuccess: false,
+          );
+        });
       }
     } catch (error) {
-      print("Error verifying Verification Code: $error");
+      print("Error converting order: $error");
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
-
   void _showConsentDialog() {
     bool otpNeed = true;
     String error = '';
@@ -868,9 +1085,9 @@ class _OrderDetailsScreenState extends State<OrderDetailsScreen> {
                             final attachment = attachments[index];
                             final fileName =
                                 attachment['originalName'] ?? 'Unknown File';
-                            // final fileUrl = "https://mittsure.qdegrees.com:3001/file/${attachment['fileName']}";
+                            // final fileUrl = "https://mittsureone.com:3001/file/${attachment['fileName']}";
                             final fileUrl =
-                                "https://mittsure.qdegrees.com:3001/file/${attachment['fileName']}"; // File URL to open
+                                "https://mittsureone.com:3001/file/${attachment['fileName']}"; // File URL to open
                             print(fileUrl);
                             return ListTile(
                               leading: _getFileIcon(fileName),

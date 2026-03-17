@@ -20,7 +20,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
   List<dynamic> prize = [];
   List<dynamic> addOnProducts = [];
   List<dynamic> dropMenu = [];
-  bool isLoading=true;
+  bool isLoading=false;
 
   getMenu(pp) async {
     final body = {"id": pp.map((ele) => ele['menu']).toList()};
@@ -213,7 +213,7 @@ class _AddOnProductsScreenState extends State<AddOnProductsScreen> {
   @override
   void initState() {
     super.initState();
-    groupData(widget.items);
+    // groupData(widget.items);
   }
 
   @override

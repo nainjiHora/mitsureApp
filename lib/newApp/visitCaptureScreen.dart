@@ -215,6 +215,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
     await FlutterForegroundTask.saveData(key: 'visitId', value: visitId);
     await FlutterForegroundTask.saveData(key: 'lat', value: lat);
     await FlutterForegroundTask.saveData(key: 'long', value: long);
+    await FlutterForegroundTask.saveData(key: 'userId', value: userData['id']);
     print("🚀 START SERVICE BUTTON CLICKED");
     await FlutterForegroundTask.startService(
       notificationTitle: 'Visit Started',
@@ -244,7 +245,7 @@ class _VisitCaptureScreenState extends State<VisitCaptureScreen> {
           longitude != null &&
           _image != null) {
         final uri = Uri.parse(
-            'https://mittsure.qdegrees.com:3001/visit/startVisit'); // Change this
+            'https://mittsureone.com:3001/visit/startVisit'); // Change this
 
         final prefs = await SharedPreferences.getInstance();
         final hasData = prefs.getString('user') != null;

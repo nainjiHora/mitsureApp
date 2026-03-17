@@ -65,7 +65,7 @@ class ExpenseDetailScreen extends StatelessWidget {
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
-                      "https://mittsure.qdegrees.com:3001/file/${expense['BillLink']}",
+                      "https://mittsureone.com:3001/file/${expense['BillLink']}",
                       height: 200,
                       width: double.infinity,
                       fit: BoxFit.contain,

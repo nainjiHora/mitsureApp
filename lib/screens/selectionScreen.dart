@@ -29,6 +29,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
   String? _selectedRemark;
   String? _selectedDistributorType = null;
   String? orderRemark;
+  bool saveLater=false;
   final TextEditingController distributorName = TextEditingController();
   final TextEditingController address = TextEditingController();
   final TextEditingController pincode = TextEditingController();
@@ -366,9 +367,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       );
       return;
     }
-
+setState(() {
+  saveLater=flag;
+});
     if (flag || !otpNeed) {
-      order(flag);
+      order(flag,false);
     } else {
       proceed(flag);
     }
@@ -453,7 +456,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     print(response);
     if (response != null && response['status'] == false) {
       Navigator.pop(context); // Close Verification Code dialog
-      await order(flag); // Proceed to order
+      await order(flag,false); // Proceed to order
     } else {
       _showErrorMessage("Incorrect Verification Code. Please try again.");
     }
@@ -509,7 +512,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     }
   }
 
-  Future<void> order(flag) async {
+  Future<void> order(flag,alertShown) async {
     if (widget.payload['orderProcess'] == 'new' && attach.length == 0) {
       DialogUtils.showCommonPopup(
           context: context,
@@ -532,6 +535,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     }
     var body = widget.payload;
     body['stockistId'] = _selectedStockist;
+    body['duplicateAllowed']=alertShown?'yes':'no';
     body['distributorId'] = _selectedDistributor;
     body['transport'] = _selectedTransporter;
     body['otp_need'] = otpNeed;
@@ -561,7 +565,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     }
     body['date'] = cDate;
 
-    print(body);
+
     setState(() {
       isLoading = true;
     });
@@ -572,24 +576,28 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
       );
       print(body);
       if (response != null && response['status'] == false) {
-        if (flag) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (context) => OrdersScreen(
-                      userReq: false,
-                      type: widget.payload['orderType'],
-                    )),
-          );
-        } else {
-          consentDone(response["data1"]);
+        if(!response["alert"]){
+          if (flag) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => OrdersScreen(
+                        userReq: false,
+                        type: widget.payload['orderType'],
+                      )),
+            );
+          } else {
+            consentDone(response["data1"]);
+          }
+        }else{
+          showDuplicateDialog();
         }
       } else {
-        throw Exception('Failed to create order');
+        DialogUtils.showCommonPopup(context: context, message: response["message"], isSuccess: false);
       }
     } catch (error) {
       print("Error creating order: $error");
-      _showErrorMessage("Failed to place the order. Please try again.");
+      _showErrorMessage("something went wrong");
     } finally {
       setState(() {
         isLoading = false;
@@ -708,11 +716,11 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
                               items: [
                                 {
                                   "value": "onboarded",
-                                  "name": "Onboarded Distributor"
+                                  "name": "Area Distributor"
                                 },
                                 {
                                   "value": "schoolPreferred",
-                                  "name": "Preferred Distributor"
+                                  "name": "School Preferred Distributor "
                                 }
                               ].map((remark) {
                                 return DropdownMenuItem(
@@ -1454,6 +1462,116 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
     );
   }
 
+  void showDuplicateDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.assignment_turned_in,
+                      color: Colors.blue, size: 26),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      "Duplicate Order",
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+
+              content: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    /// Order ID
+                    Container(
+                      padding: EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.receipt_long,
+                              color: Colors.grey.shade700),
+                          SizedBox(width: 8),
+                          // Text(
+                          //   widget.order['so_id'],
+                          //   style: TextStyle(
+                          //     fontWeight: FontWeight.w600,
+                          //   ),
+                          // ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 16),
+
+                    /// Warning text
+                    Text(
+                      "You are placing a duplicate Order."
+                          "Please confirm if this action is intentional.",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+
+                    SizedBox(height: 20),
+
+                    ],
+                ),
+              ),
+
+              actionsPadding: EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
+
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    "Cancel",
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () async {
+                    order(saveLater,true);
+                    Navigator.pop(context);
+                  },
+                  child: Text("Confirm"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   void showGroupedCartPopupfordistributor(
       BuildContext context, cartItems, List<dynamic> seriesData) {
     // final Map<String, dynamic> groupedItems = {};
@@ -1486,6 +1604,7 @@ class _CreateOrderScreenState extends State<CreateOrderScreen> {
           text: addDiscounts[series] != null ? addDiscounts[series] : '');
       errorMessages[series] = null;
     });
+
 
     showDialog(
       context: context,
